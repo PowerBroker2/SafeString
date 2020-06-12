@@ -1,0 +1,1 @@
+SafeString readBuffer(), writeBuffer() example
