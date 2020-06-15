@@ -7,7 +7,7 @@
 // www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html
 #include "SafeString.h"
 
-const char commands[]  = " some leading text  stop, reset, start dummy text";
+char commands[]  = " some leading text  stop, reset, start dummy text";
 size_t commandsIdx = 0;
 const size_t outputBufferSize = 4; // a very small output buffer can be larger
 char outputBuffer[outputBufferSize]; // output buffer
