@@ -2544,7 +2544,7 @@ bool SafeString::toDouble(double  &d) const {
 /*  Tokenizing                               */
 /*********************************************/
 
-size_t SafeString::stoken(SafeString &token, size_t fromIndex, const SafeString delimiters, bool useAsDelimiters) {
+size_t SafeString::stoken(SafeString &token, size_t fromIndex, const SafeString &delimiters, bool useAsDelimiters) {
   return stoken(token, fromIndex, delimiters.buffer, useAsDelimiters);
 }
 
@@ -2623,7 +2623,7 @@ size_t SafeString::stoken(SafeString &token, size_t fromIndex, const char* delim
 // returns true if find a token in this SafeString that is terminated by one of the delimiters
 //
 // unterminated tokens are left in the SafeString and not returned.
-bool SafeString::nextToken(SafeString& token, SafeString delimiters) {
+bool SafeString::nextToken(SafeString& token, SafeString &delimiters) {
 	return nextToken(token,delimiters.buffer);
 }
 

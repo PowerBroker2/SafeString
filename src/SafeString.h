@@ -56,7 +56,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#ifdef ARDUINO_ARCH_AVR
+#if defined(ARDUINO_ARCH_AVR) || defined(__RFduino__)
 #include <avr/pgmspace.h>
 #else
 #include <pgmspace.h>
@@ -463,7 +463,7 @@ class SafeString : public Printable, public Print {
     // NOTE: if nextIndex < length(), charAt( return value ) gives the delimiter. Use nextIndex++ to step over it.
     // see the SafeString_stoken example sketch
     size_t stoken(SafeString &token, size_t fromIndex, const char* delimiters, bool useAsDelimiters = true);
-    size_t stoken(SafeString &token, size_t fromIndex, const SafeString delimiters, bool useAsDelimiters = true);
+    size_t stoken(SafeString &token, size_t fromIndex, const SafeString &delimiters, bool useAsDelimiters = true);
 
     // nextToken
     //  parse this SafeString via delimiters and return the first delimited token found
@@ -476,7 +476,7 @@ class SafeString : public Printable, public Print {
     // returns true if find a token in this SafeString that is terminated by one of the delimiters
     //
     // unterminated tokens are left in the SafeString and not returned.
-    bool nextToken(SafeString& token, SafeString delimiters);
+    bool nextToken(SafeString& token, SafeString &delimiters);
     bool nextToken(SafeString& token, char* delimiters);
     
 /**
