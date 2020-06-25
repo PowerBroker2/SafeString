@@ -1167,6 +1167,23 @@ bool SafeString::equals(const char *cstr) const {
   return strcmp(buffer, cstr) == 0;
 }
 
+// compare string to char
+bool SafeString::equals(const char c) const {
+	if (c == '\0') {
+		if (len == 0) {
+		return true;
+		} else {
+			return false;
+		}
+	} else {
+		if (len != 1) {
+			return false;
+		}
+	}
+		// else
+	return buffer[0] == c;
+}		
+
 bool SafeString::operator<(const SafeString &rhs) const {
   return compareTo(rhs) < 0;
 }
