@@ -56,11 +56,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#if defined(ARDUINO_ARCH_AVR) || defined(__RFduino__)
-#include <avr/pgmspace.h>
-#else
+
+#if defined(ESP_PLATFORM) || defined(ARDUINO_ARCH_ESP8266)
 #include <pgmspace.h>
+#elif defined(ARDUINO_ARDUINO_NANO33BLE) 
+#include <api/deprecated-avr-comp/avr/pgmspace.h>
+#else
+#include <avr/pgmspace.h>
 #endif
+
 #include <stdint.h>
 #include <Print.h>
 #include <Printable.h>
@@ -334,17 +338,24 @@ class SafeString : public Printable, public Print {
     int compareTo(const char *cstr) const;
     bool equals(const SafeString &s) const;
     bool equals(const char *cstr) const;
+    bool equals(const char c) const;
     bool operator == (const SafeString &rhs) const {
       return equals(rhs);
     }
     bool operator == (const char *cstr) const {
       return equals(cstr);
     }
+    bool operator == (const char c) const {
+      return equals(c);
+    }
     bool operator != (const SafeString &rhs) const {
       return !equals(rhs);
     }
     bool operator != (const char *cstr) const {
       return !equals(cstr);
+    }
+    bool operator != (const char c) const {
+      return !equals(c);
     }
     bool operator <  (const SafeString &rhs) const;
     bool operator >  (const SafeString &rhs) const;
