@@ -69,8 +69,12 @@
 #include <Print.h>
 #include <Printable.h>
 
+#ifdef ARDUINO_ARDUINO_NANO33BLE
+namespace arduino {
+#endif
+
 class __FlashStringHelper;
-// these defined in WString.h already but just in case
+#define F(string_literal) (reinterpret_cast<const __FlashStringHelper *>(PSTR(string_literal)))
 
 // to remove all the error messages, comment out
 #define SSTRING_DEBUG
@@ -586,6 +590,9 @@ class SafeString : public Printable, public Print {
     void outputFromIndexIfFullDebug(size_t fromIndex) const;
 };
 
+#ifdef ARDUINO_ARDUINO_NANO33BLE
+} // namespace arduino
+#endif
 
 #endif  // __cplusplus
 #endif  // SafeString_class_h

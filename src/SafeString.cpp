@@ -30,6 +30,10 @@
 #include "SafeString.h"
 #include <limits.h>
 
+#ifdef ARDUINO_ARDUINO_NANO33BLE
+using namespace arduino;
+#endif
+
 // to remove all the error debug outputs, comment out
 // #define SSTRING_DEBUG
 // in SafeString.h file
