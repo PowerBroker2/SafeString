@@ -507,7 +507,7 @@ class SafeString : public Printable, public Print {
    fromIndex -- where to start reading from, defaults to 0 read from start of buffer
    Note: if string is already full then nothing will be read and fromIndex will be returned
 */
-    size_t readBuffer(char* buffer, size_t fromIndex = 0);
+    size_t readBuffer(const char* buffer, size_t fromIndex = 0);
     
 /**
    size_t writeBuffer(char* buffer, size_t bufsize, size_t fromSafeStringIndex)

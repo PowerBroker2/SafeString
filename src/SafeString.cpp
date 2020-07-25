@@ -2726,7 +2726,7 @@ bool SafeString::nextToken(SafeString& token, char* delimiters) {
    fromIndex -- where to start reading from
    Note: if string is already full then nothing will be read and fromIndex will be returned
 */
-size_t SafeString::readBuffer(char* buffer, size_t fromIndex) {
+size_t SafeString::readBuffer(const char* buffer, size_t fromIndex) {
 	  if (!buffer) {
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
