@@ -57,6 +57,13 @@
 #include <string.h>
 #include <ctype.h>
 
+// ESP8266 defines an nl() macro which interfers with SafeString's nl() method 
+#ifdef nl
+#undef nl
+// define here to raise re-define warning if esp8266 included later
+#define nl() nl()
+#endif
+
 #if defined(ESP_PLATFORM) || defined(ARDUINO_ARCH_ESP8266)
 #include <pgmspace.h>
 #elif defined(ARDUINO_ARDUINO_NANO33BLE) 
