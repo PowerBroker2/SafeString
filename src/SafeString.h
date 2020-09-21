@@ -466,6 +466,7 @@ class SafeString : public Printable, public Print {
     SafeString & toLowerCase(void);
     SafeString & toUpperCase(void);
     SafeString & trim(void); // trims front and back
+    SafeString & processBackspaces(void); // removes all \b and the preceeding chars
 
     // parsing/conversion
     bool toLong(long &l) const;
