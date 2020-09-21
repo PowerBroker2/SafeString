@@ -2499,6 +2499,28 @@ SafeString & SafeString::trim(void) {
   return *this;
 }
 
+// removes all \b and the preceeding chars
+SafeString & SafeString::processBackspaces(void) {
+  if ( len == 0) {
+    return *this;
+  }
+  size_t idx = 0;
+  while((!isEmpty()) && (idx<length())) {
+    if (charAt(idx) == '\b') {
+      if (idx == 0) {
+        remove(idx,1); // no previous char just remove backspace
+      } else {
+        idx = idx-1; // remove previous char and this backspace
+        remove(idx,2);
+      }
+    } else {
+      idx++;
+    }
+  }
+  return *this;	
+}
+
+
 /*********************************************/
 /*  Parsing / Conversion                     */
 /*********************************************/
@@ -2706,7 +2728,7 @@ bool SafeString::nextToken(SafeString& token, char* delimiters) {
     return false;
   }
   // have token since index != input.length() must have at least one delimiter
-  delimIdx = stoken(token, index, delimiters, false); // check for following delimiters
+  delimIdx = index; // do not remove trailing delimiters so can test which delimiter is the separator
   substring(token, 0, index - 1); // skip delimiters
   remove(0, delimIdx); // remove token and all following delimiters
   // here have found token followed by at least 1 delimiter
