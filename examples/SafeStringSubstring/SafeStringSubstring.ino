@@ -22,6 +22,7 @@ void setup() {
   Serial.println();
 
   Serial.println(F("SafeString substring() usage"));
+  Serial.println(F(" Note: SafeString V2 substring() endIdx is EXCLUDED from the range.  When updating from V1 check your substring( ) usage."));
   Serial.println(F("SafeString::setOutput(Serial); // verbose == true"));
   // see the SafeString_ConstructorAndDebugging example for debugging settings
   SafeString::setOutput(Serial); // enable full debugging error msgs
@@ -38,11 +39,20 @@ void setup() {
   }
   Serial.println();
 
-  stringOne.substring(substr, 14, 17);
-  substr.debug(F("stringOne.substring(substr,14,17); => "));
-  if (stringOne.substring(substr, 14, 17) == "text") { // substring return reference to result SafeString
-    Serial.println("substr is 'text'");
+  stringOne.substring(substr, 14, 18);
+  substr.debug(F("stringOne.substring(substr,14,18); => "));
+  if (stringOne.substring(substr, 14, 18) == "text") { // substring return reference to result SafeString
+    Serial.print("substr is 'text'");    Serial.println("  the char at index 18 is NOT included");
   }
+  Serial.println();
+
+  cSF(stringTwo, 30);
+  stringTwo = stringOne;
+  stringTwo.debug(F("stringTwo = stringOne; => "));
+  Serial.println();
+  Serial.println(F("The result substring can be the same SafeString."));
+  stringTwo.substring(stringTwo, 14, 18);
+  stringTwo.debug(F("stringTwo.substring(stringTwo,14, 18);  => "));
   Serial.println();
 
   Serial.println(F("Error checking.."));
@@ -71,8 +81,9 @@ void setup() {
 
   Serial.println(F("stringOne.substring(substr,19,5);"));
   stringOne.substring(substr, 19, 5);
-  Serial.println(F(" contents of result substring are unchanged on errors"));
-  substr.debug(F(" result: "));
+  Serial.println();
+  Serial.println(F("The contents of result substring are unchanged on errors"));
+  substr.debug(F(" resulting "));
   Serial.println();
 
   Serial.println(F("stringOne.substring(substr,8);"));

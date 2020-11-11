@@ -121,7 +121,7 @@ void setup() {
   str.debug(F("str = \"5.\"; => "));
   Serial.print(F("SafeString version.  str.toFloat(f); "));
   if (str.toFloat(f)) {
-    Serial.print(F("retuns true, f set to "));
+    Serial.print(F("returns true, f set to "));
     Serial.println(f);
   } else {
     Serial.println(F(" returns false, not a valid float. f unchanged."));
@@ -135,7 +135,7 @@ void setup() {
   str.debug(F("str = \"5.3.6\"; => "));
   Serial.print(F("SafeString version.  str.toFloat(f); "));
   if (str.toFloat(f)) {
-    Serial.print(F("retuns true, f set to "));
+    Serial.print(F("returns true, f set to "));
     Serial.println(f);
   } else {
     Serial.println(F(" returns false, not a valid float. f unchanged."));
@@ -144,6 +144,32 @@ void setup() {
   Serial.print(F(" Arduino WString.cpp version. a_str = \"5.3.6\"; a_str.toFloat() => "));
   Serial.println(a_str.toFloat());
   Serial.println();
+
+  Serial.println(F(" binToLong(), octToLong() and hexToLong() versions"));
+
+  str = "0101";
+  str.debug(F("str = \"0101\"; => "));
+  Serial.print(F("SafeString str.binToLong(l_num); "));
+  if (str.binToLong(l_num)) {
+    Serial.print(F("returns true, l_num set to "));
+    Serial.println(l_num);
+  } else {
+    Serial.println(F(" returns false, not a valid binary number. l_num unchanged."));
+  }
+  Serial.print(F("SafeString str.octToLong(l_num); "));
+  if (str.octToLong(l_num)) {
+    Serial.print(F("returns true, l_num set to "));
+    Serial.println(l_num);
+  } else {
+    Serial.println(F(" returns false, not a valid octal number. l_num unchanged."));
+  }
+  Serial.print(F("SafeString str.hexToLong(l_num); "));
+  if (str.hexToLong(l_num)) {
+    Serial.print(F("returns true, l_num set to "));
+    Serial.println(l_num);
+  } else {
+    Serial.println(F(" returns false, not a valid hex number. l_num unchanged."));
+  }
 
 }
 

@@ -1,5 +1,5 @@
 /*
-  SafeString startsWith(), startsWithIgnoreCase() and endsWith()
+  SafeString startsWith(), startsWithIgnoreCase(), endsWithCharFrom() and endsWith()
 
   by Matthew Ford
   Copyright(c)2020 Forward Computing and Control Pty. Ltd.
@@ -20,7 +20,7 @@ void setup() {
     delay(500);
   }
   Serial.println();
-  Serial.println(F("SafeString startsWith(), startsWithIgnoreCase() and endsWith() functions"));
+  Serial.println(F("SafeString startsWith(), startsWithIgnoreCase(), endsWithCharFrom() and endsWith() functions"));
   Serial.println(F("SafeString::setOutput(Serial); // verbose == true"));
   // see the SafeString_ConstructorAndDebugging example for debugging settings
   SafeString::setOutput(Serial); // enable full debugging error msgs
@@ -36,6 +36,7 @@ void setup() {
   }
   Serial.println();
 
+  Serial.println("Check startsWith starting from index 9");
   if (stringOne.startsWith("200 OK", 9)) {
     Serial.println("stringOne.startsWith(\"200 OK\", 9) returned true");
   } else {
@@ -125,6 +126,16 @@ void setup() {
   stringOne.endsWith(string);
   Serial.println();
 
+  Serial.println(F("char * nullStr = NULL;"));
+  Serial.println("stringOne.endsWithCharFrom(nullStr);");
+  stringOne.endsWithCharFrom(nullStr);
+  Serial.println();
+
+  string = "";
+  string.debug(F("string.clear(); => "));
+  Serial.println("stringOne.endsWithCharFrom(string);");
+  stringOne.endsWithCharFrom(string);
+  Serial.println();
 
 }
 

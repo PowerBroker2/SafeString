@@ -2,6 +2,8 @@
 /*
   SafeString constructors and assignments
   Examples of how to create SafeStrings and how to assign SafeStrings from other data types
+  also see the SafeStringFromCharArray, SafeStringFromCharPtr and SafeStringFromCharPtrWithSize examples
+
 
   by Matthew Ford
   Mods Copyright(c)2020 Forward Computing and Control Pty. Ltd.
@@ -27,15 +29,18 @@ void setup() {
   SafeString::setOutput(Serial); // enable error messages and debug() output
 
   Serial.println();
-  Serial.println(F("Use the createSafeString(  ); macro to create SafeStrings"));
+  Serial.println(F("Use the createSafeString(  ); macro, or its typing shortcut cSF( ), to create SafeStrings"));
   Serial.println(F(" This macro creates the char array and wraps it in a SafeString object and sets its name for debugging"));
+  Serial.println(F(" Also see the SafeStringFromCharArray, SafeStringFromCharPtr and SafeStringFromCharPtrWithSize examples"));
+  Serial.println();
+  Serial.println(F(" createSafeString(stringOne, 26); // or cSF(stringOne, 26); "));
   createSafeString(stringOne, 26);
   Serial.println();
   Serial.println(F("When the C++ pre-processor processes createSafeString(stringOne,26) it generates the following two lines"));
   Serial.println(F("char stringOne_SAFEBUFFER[26+1];"));
   Serial.println(F("// create the char array to hold strings of upto length 26. Plus 1 for terminating '\\0'"));
-  Serial.println(F("SafeString stringOne(sizeof(stringOne_SAFEBUFFER),stringOne_SAFEBUFFER,\"stringOne\", \"\");"));
-  Serial.println(F("// wrap it in an SafeString object and set its name for debugging"));
+  Serial.println(F("SafeString stringOne(sizeof(stringOne_SAFEBUFFER),stringOne_SAFEBUFFER, \"\",\"stringOne\");"));
+  Serial.println(F("// wrap it in an SafeString object and set its initial value and its name for debugging"));
   Serial.println();
   Serial.println(F("Once the SafeString has been created you can assign values to it, e.g."));
   Serial.println(F(" stringOne = \"Hello SafeString!!\";"));
@@ -79,7 +84,7 @@ void setup() {
   stringOne.debug(stitle);
   Serial.println();
 
-  Serial.println(F("For Examples of assignment see the SafeStringAssignmentAndAppendOperator example."));
+  Serial.println(F("For Examples of assignment see the SafeStringAssignmentAndConcatOperator example."));
   Serial.println(F("Also see the SafeStringPrint example for extra format control."));
   Serial.println();
 

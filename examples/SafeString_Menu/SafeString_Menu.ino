@@ -70,7 +70,6 @@ bool isCounterRunning() {
 millisDelay printDelay;
 unsigned long PRINT_DELAY_MS = 2000; // print counter every 2sec
 
-
 void setup() {
   Serial.begin(9600);    // Open serial communications and wait a few seconds
   for (int i = 10; i > 0; i--) {
@@ -144,7 +143,7 @@ void setEcho(bool on) {
 
 // use this to suppress output while waiting for arg input
 bool isMenuWaitingForCmd() {
-  return cmdState == WAITING_FOR_CMD;
+  return (cmdState == WAITING_FOR_CMD);
 }
 
 millisDelay inputTimeout;
@@ -162,6 +161,9 @@ void processCmds() {
   if (inputTimeout.justFinished()) { // nothing received for 0.1secs, terminated last chars so token will be processed.
     input += eolDelimiters; // add \r\n delimiter if nothing input for 2sec incase CR / NL is not set on input
     SafeString::Output.print(F("Input timed out"));
+    if ((!isMenuWaitingForCmd()) && (cmdState != INC_CMD)) {
+      cmdState = WAITING_FOR_CMD;
+    }
   }
 
   if (skipToEndOfLine) {
@@ -251,7 +253,7 @@ static void displayUserMenu() {
   Serial.println();
   Serial.print(F(" Counter is currently ")); Serial.println(isCounterRunning() ? "RUNNING" : "STOPPED");
   Serial.print(helpCmd);
-  Serial.print(F(" => display this menu ")); Serial.println();
+  Serial.print(F(" => display this menu (skips rest of the input line)")); Serial.println();
   Serial.print(startCmd);
   Serial.print(F(" => start counter,  currently ")); Serial.println(getCounter());
   Serial.print(stopCmd);
