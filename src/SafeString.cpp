@@ -3015,21 +3015,25 @@ bool SafeString::toDouble(double  &d) {
 
 /*  stoken  -- The SafeString itself is not changed ********************
       stoken breaks into the SafeString into tokens using chars in delimiters string as delimiters
-      the tokens are return in the token argument (less any delimiter).
+      the delimited tokens are return in the token argument (less the delimiter).
 
-      if useAsDelimiters is true (default) the token is terminated when of those chars read
-      if useAsDelimiters is false, the token is terminated when of a char NOT in the delimiters is read
+      params
+      token - the SafeString to return the token in, it is cleared if no delimited token found or if there are errors
+              the token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.
+              if the token's capacity is < the next token, then nextToken returns false and an error messages printed if debug is enabled.
+              The found delimited token (less the delimiter) is returned in the token SafeString argument
+      fromIndex -- where to start the search from  0 to length() is valid for fromIndex
+      delimiters - the characters that any one of which can delimit a token     
+      useAsDelimiters -- if  true (default) the token is terminated when of those chars read
+                         if false, the token is terminated when of a char NOT in the delimiters is read
+                         
       You can use a call with useAsDelimiters false to skip over delimiters after finding a token
 
-      The fromIndex is where to start the search from  0 to length() is valid for fromIndex
-      The found token (less any delimiter) is returned in the token SafeString argument
 
       return -- nextIndex, the next index in this SafeString after the end of the token just found
                use this as the fromIndex for the next call
-               NOTE: If there is no terminating delimiter, the token contains the entire contents and 
-               nextIdx return is == length()
-               If no token is found i.e. first char is a delimiter then token is cleared 
-               and the fromIndex arg is returned as the nextIndex
+               NOTE: length() is returned if no token found. That is no token terminated by following by a delimiter
+               In that case the token argument is cleared
 
       errors return length()+1 and clear token
 
@@ -3113,13 +3117,14 @@ size_t SafeString::stoken(SafeString &token, size_t fromIndex, const char* delim
       This allows the SafeString to hold partial tokens when reading from an input stream a char at a time.
 
       params
-      token - the SafeString to return the token in, it is cleared if no delimited token found
-              the token's capacity must be >= this SafeString's capacity incase the entire SafeString needs to be returned.
-              if the token's capacity is < the SafeString's, then nextToken returns false and an error messages printed if debug is enabled.
+      token - the SafeString to return the token in, it is cleared if no delimited token found or if there are errors
+              the token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.
+              if the token's capacity is < the next token, then nextToken returns false and an error messages printed if debug is enabled.
       delimiters - the characters that any one of which can delimit a token
 
       returns true if it finds a token in this SafeString that is terminated by one of the delimiters after removing any leading delimiters, else false
 **/
+
 bool SafeString::nextToken(SafeString& token, SafeString &delimiters) {
   delimiters.cleanUp();
   return nextToken(token, delimiters.buffer); // calls cleanUp()
@@ -3127,22 +3132,21 @@ bool SafeString::nextToken(SafeString& token, SafeString &delimiters) {
 
 bool SafeString::nextToken(SafeString& token, char* delimiters) {
   cleanUp();
-  token.cleanUp();
+  token.clear();
   if (isEmpty()) {
-    token.clear();
     return false;
   }
-
-  if (token._capacity < _capacity) {
-#ifdef SSTRING_DEBUG
-    if (debugPtr) {
-      errorMethod(F("nextToken"));
-      debugPtr->print(F(" token SafeString ")); token.outputName(); debugPtr->print(F(" needs capacity of ")); debugPtr->print(_capacity);
-      debugInternalMsg(fullDebug);
-    }
-#endif // SSTRING_DEBUG
-    return false;
-  }
+  
+//  if (token._capacity < _capacity) {
+//#ifdef SSTRING_DEBUG
+//    if (debugPtr) {
+//      errorMethod(F("nextToken"));
+//      debugPtr->print(F(" token SafeString ")); token.outputName(); debugPtr->print(F(" needs capacity of ")); debugPtr->print(_capacity);
+//      debugInternalMsg(fullDebug);
+//    }
+//#endif // SSTRING_DEBUG
+//    return false;
+//  }
 
   if (!delimiters) {
 #ifdef SSTRING_DEBUG
@@ -3165,13 +3169,38 @@ bool SafeString::nextToken(SafeString& token, char* delimiters) {
     return false;
   }
 
-  token.clear();
+// check available size
+  size_t delimIdx = stoken(token, 0, delimiters, false);  
+  if (delimIdx > len) { // error
+    token.clear(); // clean up in case of error
+    return false;
+  }
+  size_t index = stoken(token, delimIdx, delimiters);
+  if (index > len) { // error
+    token.clear(); // clean up in case of error
+    return false;
+  }
+  
+  if (token._capacity < (index - delimIdx)) {
+    token.clear(); // clean up in case of error
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      errorMethod(F("nextToken"));
+      debugPtr->print(F(" token SafeString ")); token.outputName(); debugPtr->print(F(" needs capacity of ")); debugPtr->print((index - delimIdx));
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    return false;
+  }
+  
   // remove leading delimiters
-  size_t delimIdx = stoken(token, 0, delimiters, false);
+  // have checked for errors above
+  delimIdx = stoken(token, 0, delimiters, false);
   remove(0, delimIdx);
 
   // check for token
-  size_t index = stoken(token, 0, delimiters);
+  // have checked for errors above
+  index = stoken(token, 0, delimiters);
   if (token.isEmpty()) { // no token, just leading delimiters
     return false;
   }
@@ -3179,9 +3208,9 @@ bool SafeString::nextToken(SafeString& token, char* delimiters) {
   if (index == len ) { // no delimiter
     // keep input
     token.clear();
-    if (isFull()) {
-      clear(); // token overflow
-    }
+//    if (isFull()) {
+//      clear(); // token overflow
+//    }
     return false;
   }
   // have token since index != input.length() must have at least one delimiter

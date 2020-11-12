@@ -638,12 +638,18 @@ class SafeString : public Printable, public Print {
       stoken breaks into the SafeString into tokens using chars in delimiters string as delimiters
       the delimited tokens are return in the token argument (less the delimiter).
 
-      if useAsDelimiters is true (default) the token is terminated when of those chars read
-      if useAsDelimiters is false, the token is terminated when of a char NOT in the delimiters is read
+      params
+      token - the SafeString to return the token in, it is cleared if no delimited token found or if there are errors
+              the token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.
+              if the token's capacity is < the next token, then nextToken returns false and an error messages printed if debug is enabled.
+              The found delimited token (less the delimiter) is returned in the token SafeString argument
+      fromIndex -- where to start the search from  0 to length() is valid for fromIndex
+      delimiters - the characters that any one of which can delimit a token     
+      useAsDelimiters -- if  true (default) the token is terminated when of those chars read
+                         if false, the token is terminated when of a char NOT in the delimiters is read
+                         
       You can use a call with useAsDelimiters false to skip over delimiters after finding a token
 
-      The fromIndex is where to start the search from  0 to length() is valid for fromIndex
-      The found delimted token (less the delimiter) is returned in the token SafeString argument
 
       return -- nextIndex, the next index in this SafeString after the end of the token just found
                use this as the fromIndex for the next call
@@ -665,9 +671,9 @@ class SafeString : public Printable, public Print {
       This allows the SafeString to hold partial tokens when reading from an input stream a char at a time.
 
       params
-      token - the SafeString to return the token in, it is cleared if no delimited token found
-              the token's capacity must be >= this SafeString's capacity incase the entire SafeString needs to be returned.
-              if the token's capacity is < the SafeString's, then nextToken returns false and an error messages printed if debug is enabled.
+      token - the SafeString to return the token in, it is cleared if no delimited token found or if there are errors
+              the token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.
+              if the token's capacity is < the next token, then nextToken returns false and an error messages printed if debug is enabled.
       delimiters - the characters that any one of which can delimit a token
 
       returns true if it finds a token in this SafeString that is terminated by one of the delimiters after removing any leading delimiters, else false
