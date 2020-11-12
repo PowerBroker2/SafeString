@@ -57,6 +57,10 @@ void setup() {
   Serial.println(F("sensorStr.setCharAt(14, '\\0');"));
   sensorStr.setCharAt(14, '\0');
   Serial.println();
+  Serial.println(F(" Use removeFrom(14) instead"));
+  sensorStr.removeFrom(14);
+  sensorStr.debug(F("sensorStr.removeFrom(14); => "));
+  Serial.println();
 
   Serial.println(F("sensorStr.setCharAt(33, 'a');"));
   sensorStr.setCharAt(33, 'a');

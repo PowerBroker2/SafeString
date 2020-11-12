@@ -38,7 +38,7 @@ void setup() {
   }
   // two SafeStrings not equal:
   if (stringOne != stringTwo) {
-    Serial.print(stringOne); Serial.print(" =! "); Serial.println(stringTwo);
+    Serial.print(stringOne); Serial.print(" != "); Serial.println(stringTwo);
   }
   Serial.println(F(" comparing two SafeStrings is faster because the length()'s are checked first"));
 
@@ -47,7 +47,7 @@ void setup() {
   stringOne = "This";
   stringTwo = "this";
   if (stringOne != stringTwo) {
-    Serial.print(stringOne); Serial.print(" =! "); Serial.println(stringTwo);
+    Serial.print(stringOne); Serial.print(" != "); Serial.println(stringTwo);
   }
   // you can also use equals() to see if two SafeStrings are the same:
   if (stringOne.equals(stringTwo)) {
@@ -128,16 +128,16 @@ void setup() {
   Serial.println(F("char *nullPtr = NULL;"));
   Serial.println(F("stringOne.compareTo(nullPtr);"));
   int result = stringTwo.compareTo(nullPtr);
-  Serial.print(F("stringOne.compareTo(nullPtr) returns ")); Serial.print(result); Serial.println(F(" any SafeString is always > NULL "));
+  Serial.print(F("stringOne.compareTo(nullPtr) returns ")); Serial.print(result); Serial.println(F("  Any SafeString is always > NULL "));
   Serial.println();
   Serial.println(F("stringTwo < nullPtr;"));
   result = stringTwo < nullPtr;
-  Serial.print(F("stringTwo < nullPtr; returns ")); Serial.print(result); Serial.println(F(" any SafeString is always > NULL "));
+  Serial.print(F("stringTwo < nullPtr; returns ")); Serial.print(result); Serial.println(F("  Any SafeString is always > NULL "));
   Serial.println();
 
   Serial.println(F("stringTwo == nullPtr;"));
   result = stringTwo == nullPtr;
-  Serial.print(F("stringTwo == nullPtr; returns ")); Serial.print(result); Serial.println(F(" a SafeString is never NULL "));
+  Serial.print(F("stringTwo == nullPtr; returns ")); Serial.print(result); Serial.println(F("  A SafeString is never NULL "));
   Serial.println();
 
 }

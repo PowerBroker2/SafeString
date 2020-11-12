@@ -1,5 +1,5 @@
 /*
-  SafeString remove(), removeLast(), keepLast()
+  SafeString removeFrom(), removeBefore(), remove(), removeLast(), keepLast()
   Examples of SafeString remove
 
   by Matthew Ford
@@ -18,11 +18,11 @@ void setup() {
   Serial.begin(9600);
   for (int i = 10; i > 0; i--) {
     Serial.print(' '); Serial.print(i);
-    delay(50);
+    delay(500);
   }
   Serial.println();
 
-  Serial.println(F("SafeString  remove(), removeLast(), keepLast() usage"));
+  Serial.println(F("SafeString  removeFrom(), removeBefore(), remove(), removeLast(), keepLast() usage"));
   Serial.println(F("SafeString::setOutput(Serial); // verbose == true"));
   // see the SafeString_ConstructorAndDebugging example for debugging settings
   SafeString::setOutput(Serial); // enable verbose debugging error msgs
@@ -33,10 +33,17 @@ void setup() {
   stringTwo = stringOne;
   stringTwo.debug(F("stringTwo = stringOne; => "));
   size_t idx = stringTwo.indexOf("<head>");
-  stringTwo.remove(idx);
+  stringTwo.removeFrom(idx);
   Serial.println(F("size_t idx = stringTwo.indexOf(\"<head>\")"));
   Serial.println(F(" remove all chars from idx to end of string"));
-  stringTwo.debug(F("stringTwo.remove(idx); => "));
+  stringTwo.debug(F("stringTwo.removeFrom(idx); => "));
+  Serial.println();
+
+  stringTwo = stringOne;
+  stringTwo.debug(F("stringTwo = stringOne; => "));
+  stringTwo.removeBefore(idx);
+  Serial.println(F(" remove chars from before idx "));
+  stringTwo.debug(F("stringTwo.removeBefore(idx); => "));
   Serial.println();
 
   stringTwo = stringOne;
@@ -67,14 +74,27 @@ void setup() {
   stringTwo = stringOne;
   stringTwo.debug(F("stringTwo = stringOne; => "));
 
-  Serial.println(F(" idx == stringTwo.length() is OK, nothing removed"));
-  stringTwo.remove(stringTwo.length());
-  stringTwo.debug(F("stringTwo.remove(stringTwo.length()); => "));
+  Serial.println(F(" idx == stringTwo.length() for removeFrom is OK, nothing removed"));
+  stringTwo.removeFrom(stringTwo.length());
+  stringTwo.debug(F("stringTwo.removeFrom(stringTwo.length()); => "));
   Serial.println();
 
+  stringTwo = stringOne;
   Serial.println(F(" idx > stringTwo.length() is error, stringTwo unchanged"));
-  Serial.println(F("stringTwo.remove(stringTwo.length()+1);"));
-  stringTwo.remove(stringTwo.length() + 1);
+  Serial.println(F("stringTwo.removeFrom(stringTwo.length()+1);"));
+  stringTwo.removeFrom(stringTwo.length() + 1);
+  Serial.println();
+
+  Serial.println(F(" idx == stringTwo.length() for removeBefore is OK, everything removed"));
+  stringTwo.removeBefore(stringTwo.length());
+  stringTwo.debug(F("stringTwo.removeBefore(stringTwo.length()); => "));
+  Serial.println();
+
+  stringTwo = stringOne;
+  stringTwo.debug(F("stringTwo = stringOne; => "));
+  Serial.println(F(" idx > stringTwo.length() is error, stringTwo unchanged"));
+  Serial.println(F("stringTwo.removeBefore(stringTwo.length()+1);"));
+  stringTwo.removeBefore(stringTwo.length() + 1);
   Serial.println();
 
   Serial.println(F(" idx + count > stringTwo.length() is error, stringTwo unchanged"));

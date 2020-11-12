@@ -1,5 +1,5 @@
 /*
-  Prfixing to SafeStrings using the -= operator and prefix()
+  Prefixing to SafeStrings using the -= operator and prefix()
   Examples of how to prefix different data types to SafeStrings
 
   by Matthew Ford

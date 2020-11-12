@@ -10,8 +10,6 @@
 */
 #include "SafeString.h"
 
-createSafeString(ssLine, 54); // just enough space for the input line
-
 void setup() {
   // Open serial communications and wait a few seconds
   Serial.begin(9600);
@@ -25,15 +23,16 @@ void setup() {
   // see the SafeString_ConstructorAndDebugging example for debugging settings
   SafeString::setOutput(Serial); // enable full debugging error msgs
 
-  ssLine = F("23.5, 44a ,, , -5. , +.5, 7a, 33,fred5, 6.5.3, a.5,b.3");
-  Serial.print(F("Input line is '")); Serial.print(ssLine); Serial.println('\'');
+  char line[] = "23.5, 44a ,, , -5. , +.5, 7a, 33,fred5, 6.5.3, a.5,b.3";
+  cSFP(sfLine,line);
+  Serial.print(F("Input line is '")); Serial.print(sfLine); Serial.println('\'');
   createSafeString(field, 10); // for the field strings. Should have capacity > largest field length
   size_t nextIdx = 0;
   char delimiters[] = ","; // just comma for delimiter, could also use ",;" if comma or semi-colon seperated fields
   Serial.println();
   Serial.println(F("Fields with numbers are:-"));
-  while (nextIdx < ssLine.length()) {
-    nextIdx = ssLine.stoken(field, nextIdx, delimiters);
+  while (nextIdx < sfLine.length()) {
+    nextIdx = sfLine.stoken(field, nextIdx, delimiters);
     double d;
     if (field.toDouble(d)) {
       Serial.println(d);
@@ -44,11 +43,11 @@ void setup() {
   }
   Serial.println();
   createSafeString(sDelimiters, 4, ",");
-  sDelimiters.debug(F(" Using an SafeString for the delimiters  --  "));
+  sDelimiters.debug(F(" Using a SafeString for the delimiters  --  "));
   Serial.println(F(" The fields with integers are:-"));
   nextIdx = 0; // restart from beginning
-  while (nextIdx < ssLine.length()) {
-    nextIdx = ssLine.stoken(field, nextIdx, sDelimiters);
+  while (nextIdx < sfLine.length()) {
+    nextIdx = sfLine.stoken(field, nextIdx, sDelimiters);
     long l_num;
     if (field.toLong(l_num)) {
       Serial.println(l_num);
@@ -84,31 +83,31 @@ void setup() {
   Serial.println(F("Check if field SafeString not large enough for token"));
   createSafeString(smallField, 2);
   nextIdx = 0;
-  Serial.println(F("nextIdx = ssLine.stoken(smallField, nextIdx, delimiters);"));
-  nextIdx = ssLine.stoken(smallField, nextIdx, delimiters);
+  Serial.println(F("nextIdx = sfLine.stoken(smallField, nextIdx, delimiters);"));
+  nextIdx = sfLine.stoken(smallField, nextIdx, delimiters);
   Serial.println();
 
   Serial.println(F("Check if empty delimitiers"));
   nextIdx = 0;
-  Serial.println(F("nextIdx = ssLine.stoken(field, nextIdx, \"\");"));
-  nextIdx = ssLine.stoken(field, nextIdx, "");
+  Serial.println(F("nextIdx = sfLine.stoken(field, nextIdx, \"\");"));
+  nextIdx = sfLine.stoken(field, nextIdx, "");
   Serial.println();
 
   Serial.println(F("Check if delimitiers NULL"));
   nextIdx = 0;
   char *nullDelims = NULL;
-  Serial.println(F("nextIdx = ssLine.stoken(field, nextIdx, nullDelims);"));
-  nextIdx = ssLine.stoken(field, nextIdx, nullDelims);
+  Serial.println(F("nextIdx = sfLine.stoken(field, nextIdx, nullDelims);"));
+  nextIdx = sfLine.stoken(field, nextIdx, nullDelims);
   Serial.println();
 
   Serial.println(F("Check if fromIndex past end of SafeString"));
-  Serial.println(F("nextIdx = ssLine.stoken(field, 60, delimiters);"));
-  nextIdx = ssLine.stoken(field, 60, delimiters);
+  Serial.println(F("nextIdx = sfLine.stoken(field, 60, delimiters);"));
+  nextIdx = sfLine.stoken(field, 60, delimiters);
   Serial.println();
 
   Serial.println(F(" fromIndex == length() is a valid argument, result field will be empty"));
-  Serial.println(F("nextIdx = ssLine.stoken(field, 54, delimiters);"));
-  nextIdx = ssLine.stoken(field, 54, delimiters);
+  Serial.println(F("nextIdx = sfLine.stoken(field, 54, delimiters);"));
+  nextIdx = sfLine.stoken(field, 54, delimiters);
   Serial.print(F("returned nextIdx : ")); Serial.println(nextIdx);
   field.debug(F("field.debug(true) => "));
 
