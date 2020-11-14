@@ -1,6 +1,6 @@
 // !!!!!!!!! WARNING in V2 substring endIdx is EXCLUSIVE !!!!!!!!!! change from V1 inclusive
 /*
-   The SafeString class V2.0.0
+   The SafeString class V2.0.2
    Note: ESP32 gives warning: "F" redefined which can be ignored
 
   -----------------  creating SafeStrings ---------------------------------
@@ -626,6 +626,7 @@ class SafeString : public Printable, public Print {
     // else leave the argument unchanged
     // SafeString conversions are stricter than the Arduino String version
     // trailing chars can only be white space
+    bool toInt(int & i) ;
     bool toLong(long & l) ;
     bool binToLong(long & l) ;
     bool octToLong(long & l) ;
@@ -796,6 +797,7 @@ class SafeString : public Printable, public Print {
     void warningMethod(const __FlashStringHelper * methodName) const ;
     void outputFromIndexIfFullDebug(size_t fromIndex) const ;
 };
+
 
 #ifdef ARDUINO_ARDUINO_NANO33BLE
 } // namespace arduino

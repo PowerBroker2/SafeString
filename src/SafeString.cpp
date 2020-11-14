@@ -1,6 +1,6 @@
 // !!!!!!!!! WARNING in V2 substring endIdx is EXCLUSIVE !!!!!!!!!! change from V1 inclusive
 /*
-   The SafeString class V2.0.0
+   The SafeString class V2.0.2
    Note: ESP32 gives warning: "F" redefined which can be ignored
 
   -----------------  creating SafeStrings ---------------------------------
@@ -2852,6 +2852,36 @@ SafeString & SafeString::processBackspaces(void) {
 // SafeString conversions are stricter than the Arduino String version
 // trailing chars can only be white space
 
+// convert decimal number to int, arg i unchanged if no valid number found
+bool SafeString::toInt(int &i) {
+  cleanUp();
+  if (len == 0) {
+    return false; // not found
+  }
+  char* endPtr;
+  long result = strtol(buffer, &endPtr, 10); // handles 123 (use 0 for 0xAF and 037 (octal))
+  if (result > INT_MAX) {
+    return false;
+  }
+  if (result < INT_MIN) {
+    return false;
+  }
+  // check endPtr to see if number valid 5a is invalid,  5. is valid
+  if (endPtr == buffer)  { // no numbers found at all
+    return false;
+  } // else
+  // else check for trailing white space
+  while (*endPtr != '\0') {
+    if (!isspace(*endPtr)) { // number terminated by white space
+      return false;
+    }
+    endPtr++;
+  }
+  // else all OK
+  i = result;
+  return true; // OK
+}
+
 // convert decimal number to long, arg 1 unchanged if no valid number found
 bool SafeString::toLong(long &l) {
   cleanUp();
@@ -3548,3 +3578,4 @@ void SafeString::prefixErr() const {
 #endif
 }
 /*****************  end of private internal debug support methods *************************/
+
