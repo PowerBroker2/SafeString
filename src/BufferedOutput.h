@@ -3,7 +3,8 @@
 #ifdef __cplusplus
 
 /**
-  (c)2018 Forward Computing and Control Pty. Ltd.
+  BufferedOutput.h 
+  (c)2020 Forward Computing and Control Pty. Ltd.
   This code may be freely used for both private and commerical use.
   Provide this copyright is maintained.
 */
@@ -77,12 +78,20 @@ class BufferedOutput : public Stream {
     BufferedOutput(size_t _bufferSize, uint8_t *_buf, BufferedOutputMode = BLOCK_IF_FULL, bool allOrNothing = true);
 
     /**
-        void connect(Stream& _stream, const uint32_t baudRate); // write to and how fast to write output, can also read from
-            stream -- the stream to buffer output to, usually Serail.
-            baudRate -- the maximum rate at which the bytes are to be released.  Bytes will be relased slower depending on how long your loop() method takes to execute
-                         You must call one of the BufferedOutput methods read, write, available.. , peek, flush, bytesToBeSent each loop() in order to release the buffered chars
+        void connect(HardwareSerial& _serial); // the output to write to, can also read from
+            serial -- the HardwareSerial to buffer output to, usually Serial.
+                     You must call nextByteOut() each loop() in order to release the buffered chars. 
     */
-    void connect(Stream& _stream, const uint32_t baudRate = 0); // if baudRate not specified use availableForWrite to control release
+    void connect(HardwareSerial& _serial); // the output to write to, can also read from
+    
+    
+    /**
+        void connect(Stream& _stream, const uint32_t baudRate); // write to and how fast to write output, can also read from
+            stream -- the stream to buffer output to
+            baudRate -- the maximum rate at which the bytes are to be released.  Bytes will be relased slower depending on how long your loop() method takes to execute
+                         You must call nextByteOut() each loop() in order to release the buffered chars. 
+    */
+    void connect(Stream& _stream, const uint32_t baudRate);
     
     void nextByteOut();
     virtual size_t write(uint8_t);
@@ -101,7 +110,6 @@ class BufferedOutput : public Stream {
   private:
     int internalAvailableForWrite();
     void writeDropMark();
-    void updateSerialBufSize(size_t serialAvail);
     size_t bytesToBeSent(); // bytes in this buffer to be sent, // this ignores any data in the HardwareSerial buffer
     BufferedOutputMode mode; // = 0;
     bool allOrNothing; // = true current setting reset to allOrNothingSetting after each write(buf,size)
@@ -109,6 +117,7 @@ class BufferedOutput : public Stream {
     uint8_t defaultBuffer[8]; // if buffer passed in too small or NULL
     unsigned long uS_perByte; // == 1000000 / (baudRate/10) == 10000000 / baudRate
     Stream* streamPtr;
+    HardwareSerial* serialPtr; // non-null if HardwareSerial and availableForWrite returns non zero
     uint32_t baudRate;
     unsigned long sendTimerStart;
     bool waitForEmpty;

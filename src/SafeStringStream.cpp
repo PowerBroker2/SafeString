@@ -1,9 +1,9 @@
 /*
-  SafeStringStream.cpp - a Stream wrapper for a SafeString
+  SafeStringStream.h  a Stream wrapper for a SafeString
   Matthew Ford
-  Mods Copyright(c)2020 Forward Computing and Control Pty. Ltd.
+  Copyright(c)2020 Forward Computing and Control Pty. Ltd.
   All rights reservered subject to the License below
-*/
+**/
 
 #include "SafeStringStream.h"
 
