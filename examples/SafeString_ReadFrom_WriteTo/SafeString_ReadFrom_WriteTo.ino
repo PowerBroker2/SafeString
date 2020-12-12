@@ -61,8 +61,7 @@ void setup() {
 
 // When outputToken returns either token empty OR outputBuffer is full
 void outputToken(SafeString &token, char* outputBuffer, size_t outBufSize) {
-  cSFPS(sfOut, outputBuffer, outBufSize - 1); // keeps any existing data in outBuf, allow one space for terminating null,
-  //  cSFPS 3rd arg is no of chars (the capacity) not counting the '\0'
+  cSFPS(sfOut, outputBuffer, outBufSize); // keeps any existing data in outBuf,  cSFPS 3rd arg is size of the underlying array
   size_t tokenIdx = token.writeTo(sfOut); // writeTo outputBuffer stops when token empty OR outputBuffer is full
   token.removeBefore(tokenIdx); tokenIdx = 0;  // remove the data just written
 }
@@ -119,6 +118,10 @@ size_t processInput(char* text, size_t txtIdx, char* outBuf, size_t outBufSize )
       break; // break here waiting for output to clear
     }
   } // have processed all the tokens in the current input or are waiting for space in the outputBuffer
+  if (input.isFull()) {
+    input.debug(F("!! Skipping input that is too large to be a command: "));
+    input.clear(); // no delimited token < token size
+  }
 
   return txtIdx; // next read location
 }
