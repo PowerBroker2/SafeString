@@ -82,6 +82,15 @@ void setup() {
   testStr1.debug(F("testStr1.debug(); => "));
   Serial.println();
 
+  Serial.println(F("Check passing an empty char* to createSafeStringFromCharPtr."));
+  Serial.println(F("charArray[0] = '\\0'; // charArray is now an empty (zero length) c-string"));
+  Serial.println(F("cSFP(testStr2,charArray); // using the typing shortcut name"));
+  cSFP(testStr2, charArray); // using the typing shortcut name
+  Serial.println();
+  Serial.println(F("The resulting testStr2 is valid, but with zero capacity."));
+  testStr1.debug(F("testStr2.debug(); => "));
+  Serial.println();
+
   Serial.println(F(" The Robustness of createSafeStringFromCharPtr depends on passing a pointer to a valid correctly terminated char[] "));
   Serial.println(F(" If the intial charArray is not termiated correctly createSafeStringFromCharPtr cannot correct that error."));
   Serial.println(F(" The following struct has an unterminated char[], buffer_1."));
@@ -107,8 +116,8 @@ void setup() {
   sfBuffer_1.debug();
   Serial.println();
   Serial.println(F("You can avoid this error by using either createSafeStringFromCharArray(sfBuffer_1,buffers.buffer_1), cSFA(sfBuffer_1,buffers.buffer_1) "));
-  Serial.println(F(" or createSafeStringFromCharPtrWithSize(sfBuffer_1,buffers.buffer_1,8-1), cSFPS(sfBuffer_1,buffers.buffer_1,8-1)"));
-  Serial.println(F(" Note: the 8 - 1 to allow for the terminating '\\0' the char buffer_1[8] can only hold a 7 char c-string"));
+  Serial.println(F(" or createSafeStringFromCharPtrWithSize(sfBuffer_1,buffers.buffer_1,8), cSFPS(sfBuffer_1,buffers.buffer_1,8)"));
+  Serial.println(F(" Note: the 8 allows for the terminating '\\0' the char buffer_1[8] can only hold a 7 char c-string"));
 
 }
 

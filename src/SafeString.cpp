@@ -22,7 +22,7 @@
 
   createSafeStringFromCharArray(name, char[]);  or cSFA(name, char[]);
    wraps an existing char[] in a SafeString of the given name
-  e.g. 
+  e.g.
   char charBuffer[15];
   createSafeStringFromCharArray(str,charBuffer); or cSFA(str,charBuffer);
   expands in the pre-processor to
@@ -30,19 +30,19 @@
 
   createSafeStringFromCharPtrWithSize(name, char*, size_t);  or cSFPS(name, char*, size_t);
    wraps an existing char[] pointed to by char* in a SafeString of the given name and sets the capacity to the given size
-  e.g. 
+  e.g.
   char charBuffer[15]; // can hold 14 char + terminating '\0'
   char *bufPtr = charBuffer;
-  createSafeStringFromCharPtrWithSize(str,bufPtr, 14); or cSFPS(str,bufPtr, 14);
+  createSafeStringFromCharPtrWithSize(str,bufPtr, 15); or cSFPS(str,bufPtr, 15);
   expands in the pre-processor to
-   SafeString str(14+1,charBuffer, charBuffer, "str", true);
+   SafeString str(15,charBuffer, charBuffer, "str", true);
   The capacity of the SafeString is set to 14.
 
   createSafeStringFromCharPtr(name, char*);  or cSFP(name, char*);
    wraps an existing char[] pointed to by char* in a SafeString of the given name
   createSafeStringFromCharPtr(name, char* s) is the same as   createSafeStringFromCharPtrWithSzie(name, char* s, strlen(s));
   That is the current strlen() is used to set the SafeString capacity.
-  e.g. 
+  e.g.
   char charBuffer[15] = "test";
   char *bufPtr = charBuffer;
   createSafeStringFromCharPtr(str,bufPtr); or cSFP(str,bufPtr);
@@ -50,7 +50,7 @@
    SafeString str(0,charBuffer, charBuffer, "str", true);
   and the capacity of the SafeString is set to strlen(charBuffer) and cannot be increased.
 
-  
+
 ****************************************************************************************/
 
 /***************************************************
@@ -136,8 +136,9 @@ bool SafeString::fullDebug = true; // output current contents of SafeString and 
 SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _name, bool _fromBuffer, bool _fromPtr) {
   name = _name; // save name
   fromBuffer = _fromBuffer;
+  timeoutRunning = false;
   if (!fromBuffer) {
-  	  _fromPtr = false;
+    _fromPtr = false;
   }
   bool keepBufferContents = false;
   if ((buf != NULL) && (cstr != NULL) && (buf == cstr)) {
@@ -152,7 +153,7 @@ SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _
     if (debugPtr) {
       debugPtr->print(F("Error: createSafeStringFromCharArray("));
       outputName(); debugPtr->print(F(", ...) sizeof(charArray) == sizeof(char*). \nCheck you are passing a char[] to createSafeStringFromCharArray OR use a slightly larger char[]\n"
-      	  "  To wrap a char* use either createSafeStringFromCharPtr(..), cSFP(..) or createSafeStringFromCharPtrWithSize(..), cSFPS(.. )"));
+                                      "  To wrap a char* use either createSafeStringFromCharPtr(..), cSFP(..) or createSafeStringFromCharPtrWithSize(..), cSFPS(.. )"));
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
@@ -161,15 +162,41 @@ SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _
 
   if (buf != NULL) {
     buffer = buf;
-    if (maxLen > 0) {
-      _capacity = maxLen - 1;
-    } else {
-      if (_fromPtr) {
-      	  // calculate capacity from inital contents length. Have check buffer not NULL
-      	  _capacity = strlen(buf);
-      } else { // from char[]
+    if ((maxLen == 0) || (maxLen == ((size_t) - 1))) { // -1 => find cap from strlen()
+      if (_fromPtr) { // either ..fromCharPtr or ..fromCharPtrWithSize
+        if (maxLen == 0) { // ..fromCharPtrWithSize
+          buffer = nullBufferSafeStringBuffer;
+          _capacity = 0;
+          len = 0;
+          buffer[0] = '\0';
+#ifdef SSTRING_DEBUG
+          if (debugPtr) {
+            debugPtr->print(F("Error: createSafeStringFromCharArrayWithSize("));
+            outputName(); debugPtr->print(F(", ..., 0) was passed zero passed for array size"));
+            debugInternalMsg(fullDebug);
+          }
+#endif // SSTRING_DEBUG
+          return;
+        } else { // -1 ..fromCharPtr  use strlen()
+          // calculate capacity from inital contents length. Have check buffer not NULL
+          _capacity = strlen(buf);
+        }
+      } else { // from char[] most likely maxLen == 0 as (size_t)-1 is very very large
+        buffer = nullBufferSafeStringBuffer;
         _capacity = 0;
+        len = 0;
+        buffer[0] = '\0';
+#ifdef SSTRING_DEBUG
+        if (debugPtr) {
+          debugPtr->print(F("Error: createSafeStringFromCharArray("));
+          outputName(); debugPtr->print(F(", ...) passed a zero length array"));
+          debugInternalMsg(fullDebug);
+        }
+#endif // SSTRING_DEBUG
+        return;
       }
+    } else { //    if (maxLen > 0) and != (size_t)-1 {
+      _capacity = maxLen - 1;
     }
     if (!keepBufferContents) {
       len = 0;
@@ -208,7 +235,7 @@ SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _
       //  len = 0;
       //  buffer[0] = '\0'; // clears cstr is it is the same as buf !!
     } else {
-  	  // does cleanUp for all new objects
+      // does cleanUp for all new objects
       len = _capacity;
       buffer[len] = '\0'; // truncate buffer to given size
     }
@@ -224,11 +251,11 @@ SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _
         debugInternalMsg(fullDebug);
       } else {
         debugPtr->print(F("Warning: SafeString("));
-        outputName(); debugPtr->print(F(", ...) passed unterminated buffer of length ")); debugPtr->print(cstrLen); 
+        outputName(); debugPtr->print(F(", ...) passed unterminated buffer of length ")); debugPtr->print(cstrLen);
         if (_fromPtr) {
-        	debugPtr->print(F(" to createSafeStringFromCharPtrWithSize."));
+          debugPtr->print(F(" to createSafeStringFromCharPtrWithSize."));
         } else {
-        	debugPtr->print(F(" to createSafeStringFromCharArray."));
+          debugPtr->print(F(" to createSafeStringFromCharArray."));
         }
         if (fullDebug) {
           debugPtr->println(); debugPtr->print(F("       "));
@@ -260,6 +287,7 @@ SafeString::SafeString(const SafeString& other ) {
   _capacity = 0;
   len = 0;
   buffer[0] = '\0';
+  timeoutRunning = false;
 }
 /**  end of Constructor methods ***********/
 
@@ -520,7 +548,7 @@ size_t SafeString::println() {
   return 2;
 }
 
-SafeString & SafeString::nl() {
+SafeString & SafeString::newline() {
   println(); // calls cleanUp()
   return *this;
 }
@@ -1004,7 +1032,7 @@ SafeString & SafeString::prefix(char c) {
   char buf[2];
   buf[0] = c;
   buf[1] = 0;
-  return prefix(buf, 1); 
+  return prefix(buf, 1);
 }
 
 SafeString & SafeString::prefix(const char *cstr, size_t length) {
@@ -1206,7 +1234,7 @@ SafeString & SafeString::concat(char c) {
 // you can concat to yourself if there is enough room, i.e. str.concat(str);
 SafeString & SafeString::concat(SafeString &s) {
   s.cleanUp();
-  return concat(s.buffer, s.len); 
+  return concat(s.buffer, s.len);
 }
 
 SafeString & SafeString::concat(const char *cstr) {
@@ -2361,7 +2389,7 @@ size_t SafeString::indexOfCharFrom(const char* chars, size_t fromIndex) {
 /*************************************************/
 // 0 to length() is valid for beginIdx;
 // if beginIdx == length(), an empty result will be returned
-// substring is from beginIdx to end of string 
+// substring is from beginIdx to end of string
 // can take substring of yourself  e.g. str.substring(str,3);
 SafeString & SafeString::substring(SafeString &result, size_t beginIdx) {
   result.cleanUp();
@@ -2443,9 +2471,9 @@ SafeString & SafeString::substring(SafeString &result, size_t beginIdx, size_t e
     return result.clear();
   }
   // here beginIdx < len AND endIdx <= len
-//  if (endIdx == len) {
-//    endIdx = len - 1;
-//  }
+  //  if (endIdx == len) {
+  //    endIdx = len - 1;
+  //  }
 
   // copy to result
   size_t copyLen = endIdx - beginIdx; // endIdx is exclusive 5,5 copies 0 chars 5,6 copies 1 char char[5].
@@ -2630,7 +2658,7 @@ SafeString & SafeString::replace(const char* find, const char *replace) {
       len = newLen;
       buffer[newLen] = 0;
       if (index == 0) {
-      	  break; // at front of string 
+        break; // at front of string
       } // else
       index--;
     }
@@ -2652,7 +2680,7 @@ SafeString & SafeString::removeFrom(size_t startIndex) {
 // remove from 0 to startIdx (excluding startIdx)
 // 0 to length() is valid for startIndex
 SafeString & SafeString::removeBefore(size_t startIndex) {
-  return remove(0,startIndex); // calls cleanUp()
+  return remove(0, startIndex); // calls cleanUp()
 }
 
 // remove count chars starting from index
@@ -2698,7 +2726,7 @@ SafeString & SafeString::remove(size_t index, size_t count) {
   }
   char *writeTo = buffer + index;
   memmove(writeTo, buffer + index + count, len - index - count + 1);
-  len = len - count;
+  len -= count;
   buffer[len] = 0;
   return *this;
 }
@@ -3041,41 +3069,46 @@ bool SafeString::toDouble(double  &d) {
 
 /*******************************************************/
 /**  Tokenizing methods,  stoken(), nextToken()        */
+/**   Differences between stoken() and nextToken
+       stoken() leaves the SafeString unchanged, nextToken() removes the token (and leading delimiters) from the SafeString giving space to add more input
+       In stoken() the end of the SafeString is always a delimiter, i.e. the last token is returned even if it is not followed by one of the delimiters
+       In nextToken() the end of the SafeString is NOT a delimiter, i.e. if the last token is not terminated it is left in the SafeString
+       this allows partial tokens to be read from a Stream and kept until the full token and delimiter is read
+*/
 /*******************************************************/
-
-/*  stoken  -- The SafeString itself is not changed ********************
-      stoken breaks into the SafeString into tokens using chars in delimiters string as delimiters
-      the delimited tokens are return in the token argument (less the delimiter).
+/*
+      stoken  -- The SafeString itself is not changed
+      stoken breaks into the SafeString into tokens using chars in delimiters string and the end of the SafeString as delimiters.
+      Any leading delimiters are first stepped over and then the delimited token is return in the token argument (less the delimiter).
+      The token argument is always cleared at the start of the stoken().
 
       params
       token - the SafeString to return the token in, it is cleared if no delimited token found or if there are errors
-              the token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.
-              if the token's capacity is < the next token, then nextToken returns false and an error messages printed if debug is enabled.
-              The found delimited token (less the delimiter) is returned in the token SafeString argument
+              The found delimited token (less the delimiter) is returned in the token SafeString argument if there is capacity.
+              The token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.
+              If the token's capacity is < the next token, then token is returned empty and an error messages printed if debug is enabled.
+              In this case the return (nextIndex) is still updated.
       fromIndex -- where to start the search from  0 to length() is valid for fromIndex
-      delimiters - the characters that any one of which can delimit a token     
-      useAsDelimiters -- if  true (default) the token is terminated when of those chars read
-                         if false, the token is terminated when of a char NOT in the delimiters is read
-                         
-      You can use a call with useAsDelimiters false to skip over delimiters after finding a token
+      delimiters - the characters that any one of which can delimit a token. The end of the SafeString is always a delimiter.
+      returnEmptyFields -- default false, if true only skip one leading delimiter each call
+      useAsDelimiters - default true, if false then token consists only of chars in the delimiters and any other char terminates the token
 
+      return -- nextIndex, the next index in this SafeString after the end of the token just found.
+               Use this as the fromIndex for the next call
+               NOTE: if there are no delimiters then length() is returned and the whole SafeString returned in token if the SafeString token argument is large enough
+               If the token's capacity is < the next token, the token returned is empty and an error messages printed if debug is enabled.
+               In this case the returned nextIndex is still updated to end of the token just found so that that the program will not be stuck in an infinite loop testing for nextInded >= length()
+               while being consistent with the SafeString's all or nothing insertion rule
 
-      return -- nextIndex, the next index in this SafeString after the end of the token just found
-               use this as the fromIndex for the next call
-               NOTE: length() is returned if no token found. That is no token terminated by following by a delimiter
-               In that case the token argument is cleared
-
-      errors return length()+1 and clear token
-
-      NOTE: if nextIndex < length(), charAt( nextIndex ) returns the first delimiter. Use nextIndex++ to step over it.
-      see the SafeString_stoken example sketch
+      Input argument errors return length()+1
+      If the returned, nextIndex is <= length() and the returned token is empty, then the SafeString token argument did not have the capacity to hold the next token.
 **/
-size_t SafeString::stoken(SafeString &token, size_t fromIndex, SafeString &delimiters, bool useAsDelimiters) {
+size_t SafeString::stoken(SafeString &token, size_t fromIndex, SafeString &delimiters, bool returnEmptyFields, bool useAsDelimiters) {
   delimiters.cleanUp();
-  return stoken(token, fromIndex, delimiters.buffer, useAsDelimiters); // calls cleanUp()
+  return stoken(token, fromIndex, delimiters.buffer, returnEmptyFields, useAsDelimiters); // calls cleanUp()
 }
 
-size_t SafeString::stoken(SafeString &token, size_t fromIndex, const char* delimiters, bool useAsDelimiters) {
+size_t SafeString::stoken(SafeString &token, size_t fromIndex, const char* delimiters, bool returnEmptyFields, bool useAsDelimiters) {
   cleanUp();
   token.clear(); // no need to clean up token
   if (!delimiters) {
@@ -3115,13 +3148,30 @@ size_t SafeString::stoken(SafeString &token, size_t fromIndex, const char* delim
     return len + 1;
   }
   size_t count = 0;
+  // skip leading delimiters  (prior to V2.0.2 leading delimiters not skipped)
   if (useAsDelimiters) {
-    count = strcspn(buffer + fromIndex, delimiters);
+    count = strspn(buffer + fromIndex, delimiters); // count chars ONLY in delimiters
   } else {
-    count = strspn(buffer + fromIndex, delimiters); // count char ONLY in delimiters
+    count = strcspn(buffer + fromIndex, delimiters); // count chars NOT in delimiters
+  }
+  if (returnEmptyFields) {
+    // only step over one
+    if (count > 0) {
+      count = 1;
+    }
+  }
+  fromIndex += count;
+  if (fromIndex == len) {
+    return len; // reached end of input return empty token and len
+  }
+  // find length of token
+  if (useAsDelimiters) {
+    count = strcspn(buffer + fromIndex, delimiters); // count chars NOT in delimiters, i.e. the token
+  } else {
+    count = strspn(buffer + fromIndex, delimiters); // count chars ONLY in delimiters, i.e. the delimiters are the token
   }
   if (count == 0) {
-    return fromIndex; // not found and no token returned
+    return fromIndex; // not found and empty token returned
   }
   if (count > token._capacity) {
 #ifdef SSTRING_DEBUG
@@ -3132,7 +3182,7 @@ size_t SafeString::stoken(SafeString &token, size_t fromIndex, const char* delim
       token.debugInternalResultMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
+    return fromIndex + count;  // used to be len + 1; prior to V2.0.3
   }
   // else get substring
   substring(token, fromIndex, fromIndex + count);
@@ -3142,41 +3192,34 @@ size_t SafeString::stoken(SafeString &token, size_t fromIndex, const char* delim
 
 /* nextToken -- The token is removed from the SafeString ********************
       nextToken -- Any leading delimiters are first removed, then the delimited token found is removed from the SafeString.
-                  The following delimiters remain in the SafeString so you can test which delimiter terminated the token.
+                   The following delimiters remain in the SafeString so you can test which delimiter terminated the token.
+      The token argument is always cleared at the start of the nextToken().
       IMPORTANT !! Only delimited tokens are returned. Partial un-delimited tokens are left in the SafeString and not returned
-      This allows the SafeString to hold partial tokens when reading from an input stream a char at a time.
+      This allows the SafeString to hold partial tokens when reading from an input stream one char at a time.
 
       params
-      token - the SafeString to return the token in, it is cleared if no delimited token found or if there are errors
-              the token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.
-              if the token's capacity is < the next token, then nextToken returns false and an error messages printed if debug is enabled.
-      delimiters - the characters that any one of which can delimit a token
+      token - the SafeString to return the token in, it will be empty if no delimited token found or if there are errors
+              The token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.
+              If the token's capacity is < the next token, then nextToken() returns true, but the returned token argument is empty and an error messages printed if debug is enabled.
+              In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
+      delimiters - the delimiting characters, any one of which can delimit a token
 
-      returns true if it finds a token in this SafeString that is terminated by one of the delimiters after removing any leading delimiters, else false
+      return -- true if nextTokne() finds a token in this SafeString that is terminated by one of the delimiters after removing any leading delimiters, else false
+                If the return is true, but the returned token is empty, then the SafeString token argument did not have the capacity to hold the next token.
+                In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
+                while being consistent with the SafeString's all or nothing insertion rule
 **/
-
 bool SafeString::nextToken(SafeString& token, SafeString &delimiters) {
   delimiters.cleanUp();
   return nextToken(token, delimiters.buffer); // calls cleanUp()
 }
 
-bool SafeString::nextToken(SafeString& token, char* delimiters) {
+bool SafeString::nextToken(SafeString& token, const char* delimiters) {
   cleanUp();
   token.clear();
   if (isEmpty()) {
     return false;
   }
-  
-//  if (token._capacity < _capacity) {
-//#ifdef SSTRING_DEBUG
-//    if (debugPtr) {
-//      errorMethod(F("nextToken"));
-//      debugPtr->print(F(" token SafeString ")); token.outputName(); debugPtr->print(F(" needs capacity of ")); debugPtr->print(_capacity);
-//      debugInternalMsg(fullDebug);
-//    }
-//#endif // SSTRING_DEBUG
-//    return false;
-//  }
 
   if (!delimiters) {
 #ifdef SSTRING_DEBUG
@@ -3199,55 +3242,34 @@ bool SafeString::nextToken(SafeString& token, char* delimiters) {
     return false;
   }
 
-// check available size
-  size_t delimIdx = stoken(token, 0, delimiters, false);  
-  if (delimIdx > len) { // error
-    token.clear(); // clean up in case of error
-    return false;
+  // remove leading delimiters
+  size_t delim_count = 0;
+  // skip leading delimiters  (prior to V2.0.2 leading delimiters not skipped)
+  delim_count = strspn(buffer, delimiters); // count char ONLY in delimiters
+  remove(0, delim_count); // remove leading delimiters
+  // check for token
+  // find first char not in delimiters
+  size_t token_count = 0;
+  token_count = strcspn(buffer, delimiters);
+  if ((token_count) == len) {
+    // no trailing delimiter
+    return false; // delimited token not found
   }
-  size_t index = stoken(token, delimIdx, delimiters);
-  if (index > len) { // error
-    token.clear(); // clean up in case of error
-    return false;
-  }
-  
-  if (token._capacity < (index - delimIdx)) {
-    token.clear(); // clean up in case of error
+  if (token_count > token._capacity) {
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("nextToken"));
-      debugPtr->print(F(" token SafeString ")); token.outputName(); debugPtr->print(F(" needs capacity of ")); debugPtr->print((index - delimIdx));
+      debugPtr->print(F(" token SafeString ")); token.outputName(); debugPtr->print(F(" needs capacity of ")); debugPtr->print(token_count);
+      debugPtr->print(F(" for token '")); debugPtr->write((uint8_t*)(buffer), token_count); debugPtr->print('\'');
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return false;
-  }
-  
-  // remove leading delimiters
-  // have checked for errors above
-  delimIdx = stoken(token, 0, delimiters, false);
-  remove(0, delimIdx);
-
-  // check for token
-  // have checked for errors above
-  index = stoken(token, 0, delimiters);
-  if (token.isEmpty()) { // no token, just leading delimiters
-    return false;
+    remove(0, token_count); // remove token but not following delimiters
+    return true; // but token is empty => error // prior to V2.0.3 returned false
   }
 
-  if (index == len ) { // no delimiter
-    // keep input
-    token.clear();
-//    if (isFull()) {
-//      clear(); // token overflow
-//    }
-    return false;
-  }
-  // have token since index != input.length() must have at least one delimiter
-  delimIdx = index; // do not remove trailing delimiters so can test which delimiter is the separator
-  substring(token, 0, index); // skip delimiters
-  remove(0, delimIdx); // remove token and all following delimiters
-  // here have found token followed by at least 1 delimiter
+  substring(token, 0, token_count); // do not return trailing delimiters.
+  remove(0, token_count); // remove token but not following delimiters
   return true;
 }
 /** end of nextToken methods *******************/
@@ -3263,7 +3285,7 @@ bool SafeString::nextToken(SafeString& token, char* delimiters) {
      sfInput - the SafeString to read from
      startIdx - where to start reading from, defaults to 0,
                 if startIdx >= sfInput.length(), nothing read and sfInput.length() returned
- 
+
    returns new startIdx
    read stops when the end if the sfInput is reached or the calling SafeString is full
    Note: if the SafeString is already full, then nothing will be read and startIdx will be returned
@@ -3274,7 +3296,7 @@ size_t SafeString::readFrom(SafeString & input, size_t startIdx) {
   if (startIdx > input.len) {
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
-  	  errorMethod(F("readFrom"));
+      errorMethod(F("readFrom"));
       debugPtr->print(F(" startIdx:"));  debugPtr->print(startIdx);
       debugPtr->print(F(" > input.length():"));  debugPtr->print(input.len);
       if (fullDebug) {
@@ -3284,17 +3306,17 @@ size_t SafeString::readFrom(SafeString & input, size_t startIdx) {
       debugInternalMsg(fullDebug);
     }
 #endif
-  	  return input.len; // nothing to read
+    return input.len; // nothing to read
   }
   if (len == _capacity) {
-  	  // not room to read
-  	  return startIdx; // no change
+    // not room to read
+    return startIdx; // no change
   }
   size_t readLen = input.len - startIdx;
   if (readLen > (_capacity - len)) {
-  	  readLen = (_capacity - len); // limit to space available
+    readLen = (_capacity - len); // limit to space available
   }
-  memmove(buffer+len,input.buffer+startIdx,readLen);
+  memmove(buffer + len, input.buffer + startIdx, readLen);
   len += readLen;
   buffer[len] = '\0';
   return (startIdx + readLen);
@@ -3306,7 +3328,7 @@ size_t SafeString::readFrom(SafeString & input, size_t startIdx) {
      output - the SafeString to write to
      startIdx - where to start writing from calling SafeString, defaults to 0,
                 if startIdx >= length(), nothing written and length() returned
- 
+
    returns new startIdx for next write
    write stops when the end if the calling SafeString is reached or the output is full
    Note: if the sfOutput is already full, then nothing will be written and startIdx will be returned
@@ -3317,7 +3339,7 @@ size_t SafeString::writeTo(SafeString & output, size_t startIdx) {
   if (startIdx > len) {
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
-  	  errorMethod(F("writeTo"));
+      errorMethod(F("writeTo"));
       debugPtr->print(F(" startIdx:"));  debugPtr->print(startIdx);
       debugPtr->print(F(" > length():"));  debugPtr->print(len);
       if (fullDebug) {
@@ -3327,17 +3349,17 @@ size_t SafeString::writeTo(SafeString & output, size_t startIdx) {
       debugInternalMsg(fullDebug);
     }
 #endif
-  	  return len; // nothing written
+    return len; // nothing written
   }
   if (output.len == output._capacity) {
-  	  // not room to write
-  	  return startIdx; // no change
+    // not room to write
+    return startIdx; // no change
   }
   size_t writeLen = len - startIdx;
   if (writeLen > (output._capacity - output.len)) {
-  	  writeLen = (output._capacity - output.len); // limit to space available
+    writeLen = (output._capacity - output.len); // limit to space available
   }
-  memmove(output.buffer+output.len,buffer+startIdx,writeLen);
+  memmove(output.buffer + output.len, buffer + startIdx, writeLen);
   output.len += writeLen;
   output.buffer[output.len] = '\0';
   return (startIdx + writeLen);
@@ -3423,6 +3445,128 @@ bool SafeString::readUntil(Stream& input, const char* delimiters) {
   } // else
   return false;
 }
+
+
+/*
+      NON-blocking readUntilToken
+      returns true if a delimited token is found, else false
+      ONLY delimited tokens of length less than this SafeString's capacity will return true. Streams of chars that overflow this SafeString's capacity are ignored.
+      That is this SafeString's capacity should be at least 1 more then the largest expected token.
+      If the SaftString & token return argument is too small to hold the result it is returned empty and an error message output if debugging is enabled.
+      The delimiter is NOT included in the SaftString & token return.  It will the first char of the this SafeString when readUntilToken returns true
+      It is recommended that the capacity of the SafeString & token argument be >= this SaftString's capacity
+
+      params
+        input - the Stream object to read from
+        delimiters - string of valid delimieters
+        skipToDelimiter - a bool variable to hold the skipToDelimiter state between calls
+        echoInput - defaults to true to echo the chars read
+        timeout_mS - defaults to never timeout, pass a non-zero mS to autoterminate the last token if no new chars received for that time.
+
+      returns true if a delimited series of chars found that fit in this SafeString else false
+      If the SaftString & token argument is too small to hold the result it is returned empty
+      The delimiter is NOT included in the SaftString & token return. It will the first char of the this SafeString when readUntilToken returns true
+ **/
+bool SafeString::readUntilToken(Stream & input, SafeString& token, SafeString& delimiters, bool & skipToDelimiter, bool echoInput, unsigned long timeout_mS) {
+  delimiters.cleanUp();
+  return readUntilToken(input, token, delimiters.buffer, skipToDelimiter, echoInput, timeout_mS); // calls cleanUp()
+}
+
+bool SafeString::readUntilToken(Stream & input, SafeString& token, const char* delimiters, bool & skipToDelimiter, bool echoInput, unsigned long timeout_mS) {
+  if (!delimiters) {
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      errorMethod(F("readUntilToken"));
+      debugPtr->print(F(" was passed a NULL pointer for delimiters"));
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    return false; // no match
+  }
+  if (*delimiters == '\0') {
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      errorMethod(F("readUntilToken"));
+      debugPtr->print(F(" was passed a empty list of delimiters"));
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    return false; // no match
+  }
+
+  bool readUntilReturnedTrue = false;
+  while (input.available() && (len < (capacity()))) {
+    int c = input.read();
+    if (c == '\0') {
+      continue; // skip nulls
+    }
+    if (echoInput) {
+      input.print((char) c);
+    }
+    if (timeout_mS > 0) {
+      // got new char reset timeout
+      timeoutRunning = true;
+      timeoutStart_mS = millis(); // start timer
+    }
+    concat((char)c); // add char may be delimiter
+    if (strchr(delimiters, c) != NULL) {
+      readUntilReturnedTrue = true; // found delimiter return true
+    }
+  }
+  if (isFull()) {
+    readUntilReturnedTrue = true;
+  }
+
+  if (timeoutRunning) {
+    if ((millis() - timeoutStart_mS) > timeout_mS) {
+      // no new chars for timeout add terminator
+      timeoutRunning = false;
+      skipToDelimiter = false; // found next delimiter
+      if (isFull()) {
+        clear();
+      }
+      if (echoInput) {
+        input.print(delimiters[0]);
+      }
+      concat(delimiters[0]);
+      if (debugPtr) {
+        debugPtr->println();
+        debugPtr->println("!! Input timed out !!");
+      }
+      readUntilReturnedTrue = true; // force processing now
+    }
+  }
+
+  if (!readUntilReturnedTrue) {
+    return false; // skip the rest
+  }
+  // else readUntilReturnedTrue
+  if (skipToDelimiter) {
+    if (endsWithCharFrom(delimiters)) {
+      skipToDelimiter = false; // found next delimiter
+      // removeLast(1); // strip the delimiter for print below
+    }
+    clear(); // discard these chars
+  } else {
+    if (nextToken(token, delimiters)) { // removes leading delimiters
+      // found token terminated by delimiter and removed it from input
+#ifdef SSTRING_DEBUG
+      // token.debug("after nextToken => ");
+#endif
+      return true; // found token
+
+    } else { // no terminating delimiter found
+      if (isFull()) {
+        // SafeString is full of chars but no delimiter
+        // discard the chars and skip input until get next delimiter
+        skipToDelimiter = true;
+        clear();
+      }
+    }
+  }
+  return false;
+}
+
 /** end of NON-Blocking reads from Stream,  read() and readUntil() *******************/
 
 /*******************************************************/

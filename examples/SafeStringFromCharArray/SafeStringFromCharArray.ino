@@ -47,23 +47,23 @@ void setup() {
   stringOne += " test";
   stringOne.debug();
   Serial.print(F(" stringOne.endsWith(\"123\") => "));
-  Serial.println(stringOne.endsWith("123")?"true":"false");
+  Serial.println(stringOne.endsWith("123") ? "true" : "false");
   Serial.println(F("Print out the underlying char[] using Serial.println(charArray)"));
   Serial.println(charArray);
   Serial.println();
   Serial.println(F("Now perform an unsafe operation on the charArray, e.g.  strcat(charArray,\"123\");"));
-  strcat(charArray,"123");
+  strcat(charArray, "123");
   Serial.println("Print out the charArray, Serial.println(charArray)");
   Serial.println(charArray);
   Serial.println(F(" Provided the unsafe operation has not killed your program, "));
   Serial.println(F("   the next call to any SafeString method cleans up the charArray and resyncs the SafeString, making it safe again. e.g."));
   Serial.print(F("stringOne.endsWith(\"123\") => "));
-  Serial.println(stringOne.endsWith("123")?"true":"false");
+  Serial.println(stringOne.endsWith("123") ? "true" : "false");
   stringOne.debug("stringOne.debug() => ");
   Serial.println();
   Serial.println();
-  
-  
+
+
   Serial.println(F(" Unit tests for createSafeStringFromCharArray."));
   Serial.println(F(" createSafeStringFromCharArray needs to be created from an actual char[] not a char* "));
   Serial.println(F("   because SafeString needs to use sizeof( ) to determine the size of the charArray."));
@@ -71,17 +71,28 @@ void setup() {
   Serial.println(F("Check passing char* (NULL or otherwise) as the char[] to createSafeStringFromCharArray, prints error msg but does not blow up program."));
   Serial.println(F("char *charArrayPtr = charArray;"));
   Serial.println(F("cSFA(testStr1,charArrayPtr); // using the typing shortcut name"));
-  cSFA(testStr1,charArrayPtr);
+  cSFA(testStr1, charArrayPtr);
   Serial.println();
   Serial.println(F("The resulting testStr1 is valid, but with zero capacity."));
   testStr1.debug(F("testStr1.debug(); => "));
   Serial.println();
 
+  Serial.println(F("Check passing an empty char[], i.e. char emptyArray[0], to createSafeStringFromCharArray, prints error msg but does not blow up program."));
+  Serial.println(F("char emptyArray[0];"));
+  char emptyArray[0];
+  Serial.println(F("cSFA(testStr2,emptyArray); // using the typing shortcut name"));
+  cSFA(testStr2, emptyArray);
+  Serial.println();
+  Serial.println(F("The resulting testStr1 is valid, but with zero capacity."));
+  testStr1.debug(F("testStr2.debug(); => "));
+  Serial.println();
+
+
   Serial.println(F(" createSafeStringFromCharArray (cSFA) also handles invalid, unterminated char[]s and truncates them to the available size."));
   struct {
-  char buffer_0[8] = "abcdefg";  
-  char buffer_1[8] = {'0','1','2','3','4','5','6','7'};  // no terminating null for this char buffer
-  char buffer_2[8] = "hijklmn";  
+    char buffer_0[8] = "abcdefg";
+    char buffer_1[8] = {'0', '1', '2', '3', '4', '5', '6', '7'}; // no terminating null for this char buffer
+    char buffer_2[8] = "hijklmn";
   } buffers;
   Serial.println(F("struct {"));
   Serial.println(F("  char buffer_0[8] = \"abcdefg\";  "));
@@ -89,16 +100,16 @@ void setup() {
   Serial.println(F("  char buffer_2[8] = \"hijklmn\";  "));
   Serial.println(F("} buffers;"));
   Serial.println();
-  
+
   Serial.println(F(" buffer.buffer_1 is a char[] with no terminating null. When you print it, the output continues on to the next buffer's chars."));
   Serial.println(F("Serial.println(buffers.buffer_1);"));
   Serial.println(buffers.buffer_1);
   Serial.println();
   Serial.println(F("You can safely use createSafeStringFromCharArray (cSFA) on buffer_1 to create as valid SafeString."));
   Serial.println(F("cSFA(sfBuffer_1,buffers.buffer_1);"));
-  cSFA(sfBuffer_1,buffers.buffer_1);
+  cSFA(sfBuffer_1, buffers.buffer_1);
   Serial.println();
-  
+
   Serial.println(F("You can now safely access and update buffers.buffer_1 via the SafeString, sfBuffer_1."));
 
 }

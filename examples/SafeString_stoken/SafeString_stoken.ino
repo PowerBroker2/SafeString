@@ -24,37 +24,45 @@ void setup() {
   SafeString::setOutput(Serial); // enable full debugging error msgs
 
   char line[] = "23.5, 44a ,, , -5. , +.5, 7a, 33,fred5, 6.5.3, a.5,b.3";
-  cSFP(sfLine,line);
+  cSFP(sfLine, line);
   Serial.print(F("Input line is '")); Serial.print(sfLine); Serial.println('\'');
   createSafeString(field, 10); // for the field strings. Should have capacity > largest field length
   size_t nextIdx = 0;
   char delimiters[] = ","; // just comma for delimiter, could also use ",;" if comma or semi-colon seperated fields
   Serial.println();
-  Serial.println(F("Fields with numbers are:-"));
+  int fieldCounter = 0;
+  Serial.println(F("Using  nextIdx = sfLine.stoken(field, nextIdx, delimiters, true); // true => return all fields even empty ones"));
+  Serial.println(F("to find the fields that contain numbers :-"));
   while (nextIdx < sfLine.length()) {
-    nextIdx = sfLine.stoken(field, nextIdx, delimiters);
+    nextIdx = sfLine.stoken(field, nextIdx, delimiters, true); // true => return all fields even empty ones
+    fieldCounter++;
+    Serial.print(F("  Field ")); Serial.print(fieldCounter); Serial.print(F("  "));
     double d;
     if (field.toDouble(d)) {
       Serial.println(d);
     } else {
-      Serial.print(F("  Field ,")); Serial.print(field); Serial.println(F(", is not a number"));
+      Serial.print(F(",")); Serial.print(field); Serial.println(F(", is not a number"));
     }
-    nextIdx++; // step over delimiter
   }
   Serial.println();
   createSafeString(sDelimiters, 4, ",");
-  sDelimiters.debug(F(" Using a SafeString for the delimiters  --  "));
+  Serial.println(F(" Using a SafeString for the delimiters and not returning empty fields (i.e. ,,)"));
+  sDelimiters.debug();
+  Serial.println(F("     nextIdx = sfLine.stoken(field, nextIdx, sDelimiters); // default => skip empty fields"));
+  Serial.println(F(" This means the field count will be one less this time"));
   Serial.println(F(" The fields with integers are:-"));
+  fieldCounter = 0;
   nextIdx = 0; // restart from beginning
   while (nextIdx < sfLine.length()) {
-    nextIdx = sfLine.stoken(field, nextIdx, sDelimiters);
+    nextIdx = sfLine.stoken(field, nextIdx, sDelimiters); // default => skip empty fields
+    fieldCounter++;
+    Serial.print(F("  Field ")); Serial.print(fieldCounter); Serial.print(F("  "));
     long l_num;
     if (field.toLong(l_num)) {
       Serial.println(l_num);
     } else {
-      Serial.print(F("  Field ,")); Serial.print(field); Serial.println(F(", is not an integer number"));
+      Serial.print(F(",")); Serial.print(field); Serial.println(F(", is not an integer number"));
     }
-    nextIdx++; // step over delimiter
   }
   Serial.println();
 
@@ -67,13 +75,15 @@ void setup() {
   validChars.debug(F(" Valid token chars are => "));
   Serial.println();
 
-  Serial.println(F(" First use indexOfCharFrom to find the first digit"));
-  size_t firstDigitIdx = stringOne.indexOfCharFrom(validChars);
-  Serial.print(F("size_t firstDigitIdx = stringOne.indexOfCharFrom(validChars); returned firstDigitIdx : ")); Serial.println(firstDigitIdx);
+  Serial.println(F(" First use "));
+  Serial.println(F("nextIdx = stringOne.stoken(field, 0, validChars);"));
+  nextIdx = stringOne.stoken(field, 0, validChars);
+  Serial.print(F(" to find the first digit. This returns nextIdx : ")); Serial.println(nextIdx);
   Serial.println(F(" Then use validChars not as delimiters but as the valid token chars to extract the number"));
+  Serial.println(F(" the last false does this   nextIdx = stringOne.stoken(field, nextIdx, validChars, false, false); "));
   Serial.println(F(" The first char not in validChars terminates the token."));
-  nextIdx = stringOne.stoken(field, firstDigitIdx, validChars, false); // false => do NOT use delimiters as delimiters but use them as valid token chars
-  field.debug(F("stringOne.stoken(field, nextIdx, validChars, false); => "));
+  nextIdx = stringOne.stoken(field, nextIdx, validChars, false, false); // first false => do not return empty fields, second false => do NOT use delimiters as delimiters but use them as valid token chars
+  field.debug(F("stringOne.stoken(field, nextIdx, validChars, false, false); => "));
   Serial.print(F(" Returned nextIdx is ")); Serial.println(nextIdx);
   Serial.println();
 
@@ -85,6 +95,10 @@ void setup() {
   nextIdx = 0;
   Serial.println(F("nextIdx = sfLine.stoken(smallField, nextIdx, delimiters);"));
   nextIdx = sfLine.stoken(smallField, nextIdx, delimiters);
+  Serial.print(F(" nextIdx is updated to ")); Serial.print(nextIdx); Serial.print(F(" but the smallField returned is empty.")); Serial.println();
+  Serial.println(F(" nextIdx is updated to prevent token processing loops like "));
+  Serial.println(F("while (nextIdx < sfLine.length()) {"));
+  Serial.println(F(" looping forever "));
   Serial.println();
 
   Serial.println(F("Check if empty delimitiers"));
@@ -109,7 +123,7 @@ void setup() {
   Serial.println(F("nextIdx = sfLine.stoken(field, 54, delimiters);"));
   nextIdx = sfLine.stoken(field, 54, delimiters);
   Serial.print(F("returned nextIdx : ")); Serial.println(nextIdx);
-  field.debug(F("field.debug(true) => "));
+  field.debug(F("field.debug() => "));
 
 }
 

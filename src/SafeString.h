@@ -97,12 +97,7 @@
 #include <string.h>
 #include <ctype.h>
 
-// ESP8266 defines an nl() macro which interfers with SafeString's nl() method
-#ifdef nl
-#undef nl
-// define here to raise re-define warning if esp8266 included later
-#define nl() nl()
-#endif
+
 
 #if defined(ESP_PLATFORM) || defined(ARDUINO_ARCH_ESP8266)
 #include <pgmspace.h>
@@ -115,6 +110,15 @@
 #include <stdint.h>
 #include <Print.h>
 #include <Printable.h>
+// This include handles the rename of Stream for MBED compiles
+#if defined(ARDUINO_ARDUINO_NANO33BLE)
+  #include <Stream.h>
+#elif defined( __MBED__ ) || defined( MBED_H )
+  #include <WStream.h>
+  #define Stream WStream
+#else
+  #include <Stream.h>
+#endif
 
 #ifdef ARDUINO_ARDUINO_NANO33BLE
 namespace arduino {
@@ -168,7 +172,7 @@ class __FlashStringHelper;
   char *bufPtr = charBuffer;
   createSafeStringFromCharPtr(str,bufPtr); or cSFP(str,bufPtr);
   expands in the pre-processor to
-   SafeString str(0,charBuffer, charBuffer, "str", true);
+   SafeString str((size_t)-1,charBuffer, charBuffer, "str", true);
   and the capacity of the SafeString is set to strlen(charBuffer) and cannot be increased.
 
   createSafeStringFromCharPtrWithSize(name, char*, size_t);  or cSFPS(name, char*, size_t);
@@ -176,7 +180,7 @@ class __FlashStringHelper;
   e.g. 
   char charBuffer[15];
   char *bufPtr = charBuffer;
-  createSafeStringFromCharPtrWithSize(str,bufPtr, 14); or cSFPS(str,bufPtr, 14);
+  createSafeStringFromCharPtrWithSize(str,bufPtr, 15); or cSFPS(str,bufPtr, 15);
   expands in the pre-processor to
    SafeString str(15,charBuffer, charBuffer, "str", true);
   The capacity of the SafeString is set to 14.
@@ -204,13 +208,13 @@ class __FlashStringHelper;
 #ifdef SSTRING_DEBUG
 #define createSafeString(name, size,...) char name ## _SAFEBUFFER[(size)+1]; SafeString name(sizeof(name ## _SAFEBUFFER),name ## _SAFEBUFFER,  ""  __VA_ARGS__ , #name);
 #define createSafeStringFromCharArray(name, charArray)  SafeString name(sizeof(charArray),charArray, charArray, #name, true, false);
-#define createSafeStringFromCharPtr(name, charPtr) SafeString name(0,charPtr, charPtr, #name, true);
-#define createSafeStringFromCharPtrWithSize(name, charPtr, arraySize) SafeString name((arraySize)+1,charPtr, charPtr, #name, true);
+#define createSafeStringFromCharPtr(name, charPtr) SafeString name((size_t)-1,charPtr, charPtr, #name, true);
+#define createSafeStringFromCharPtrWithSize(name, charPtr, arraySize) SafeString name((arraySize),charPtr, charPtr, #name, true);
 #else
 #define createSafeString(name, size,...) char name ## _SAFEBUFFER[(size)+1]; SafeString name(sizeof(name ## _SAFEBUFFER),name ## _SAFEBUFFER, ""  __VA_ARGS__);
 #define createSafeStringFromCharArray(name,charArray)  SafeString name(sizeof(charArray),charArray, charArray, NULL, true, false);
-#define createSafeStringFromCharPtr(name charPtr) SafeString name(0,charPtr, charPtr, NULL, true);
-#define createSafeStringFromCharPtrWithSize(name, charPtr, arraySize) SafeString name((arraySize)+1,charPtr, charPtr, NULL, true);
+#define createSafeStringFromCharPtr(name charPtr) SafeString name((size_t)-1,charPtr, charPtr, NULL, true);
+#define createSafeStringFromCharPtrWithSize(name, charPtr, arraySize) SafeString name((arraySize),charPtr, charPtr, NULL, true);
 #endif
 
 // define typing shortcuts
@@ -353,7 +357,7 @@ class SafeString : public Printable, public Print {
     SafeString & concat(const __FlashStringHelper * str);
     SafeString & concat(const char *cstr, size_t length); // concat at most length chars from cstr
     SafeString & concat(const __FlashStringHelper * str, size_t length); // concat at most length chars
-    SafeString & nl(); // append newline \r\n same as concat("\r\n");
+    SafeString & newline(); // append newline \r\n same as concat("\r\n"); same a println()
     // e.g. sfStr.concat("test").nl();
 
     /* prefix() operator  -=  ******************
@@ -635,52 +639,63 @@ class SafeString : public Printable, public Print {
     bool toDouble(double & d) ;
 
     /* Tokenizeing methods,  stoken(), nextToken() ************************/
-    /*  stoken  -- The SafeString itself is not changed ********************
-      stoken breaks into the SafeString into tokens using chars in delimiters string as delimiters
-      the delimited tokens are return in the token argument (less the delimiter).
+    /* Differences between stoken() and nextToken
+       stoken() leaves the SafeString unchanged, nextToken() removes the token (and leading delimiters) from the SafeString giving space to add more input
+       In stoken() the end of the SafeString is always a delimiter, i.e. the last token is returned even if it is not followed by one of the delimiters
+       In nextToken() the end of the SafeString is NOT a delimiter, i.e. if the last token is not terminated it is left in the SafeString
+       this allows partial tokens to be read from a Stream and kept until the full token and delimiter is read
+    */
+    /*
+      stoken  -- The SafeString itself is not changed 
+      stoken breaks into the SafeString into tokens using chars in delimiters string and the end of the SafeString as delimiters.
+      Any leading delimiters are first stepped over and then the delimited token is return in the token argument (less the delimiter).
+      The token argument is always cleared at the start of the stoken().
 
       params
       token - the SafeString to return the token in, it is cleared if no delimited token found or if there are errors
-              the token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.
-              if the token's capacity is < the next token, then nextToken returns false and an error messages printed if debug is enabled.
-              The found delimited token (less the delimiter) is returned in the token SafeString argument
+              The found delimited token (less the delimiter) is returned in the token SafeString argument if there is capacity.
+              The token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.
+              If the token's capacity is < the next token, then token is returned empty and an error messages printed if debug is enabled.
+              In this case the return (nextIndex) is still updated.
       fromIndex -- where to start the search from  0 to length() is valid for fromIndex
-      delimiters - the characters that any one of which can delimit a token     
-      useAsDelimiters -- if  true (default) the token is terminated when of those chars read
-                         if false, the token is terminated when of a char NOT in the delimiters is read
+      delimiters - the characters that any one of which can delimit a token. The end of the SafeString is always a delimiter.     
+      returnEmptyFields -- default false, if true only skip one leading delimiter each call  
+      useAsDelimiters - default true, if false then token consists only of chars in the delimiters and any other char terminates the token
                          
-      You can use a call with useAsDelimiters false to skip over delimiters after finding a token
+      return -- nextIndex, the next index in this SafeString after the end of the token just found.
+               Use this as the fromIndex for the next call
+               NOTE: if there are no delimiters then length() is returned and the whole SafeString returned in token if the SafeString token argument is large enough
+               If the token's capacity is < the next token, the token returned is empty and an error messages printed if debug is enabled.
+               In this case the returned nextIndex is still updated to end of the token just found so that that the program will not be stuck in an infinite loop testing for nextInded >= length()
+               while being consistent with the SafeString's all or nothing insertion rule
 
-
-      return -- nextIndex, the next index in this SafeString after the end of the token just found
-               use this as the fromIndex for the next call
-               NOTE: length() is returned if no token found. That is no token terminated by following by a delimiter
-               In that case the token argument is cleared
-
-      errors return length()+1 and clear token
-
-      NOTE: if nextIndex < length(), charAt( nextIndex ) returns the delimiter. Use nextIndex++ to step over it.
-      see the SafeString_stoken example sketch
+      Input argument errors return length()+1
+      If the returned, nextIndex is <= length() and the returned token is empty, then the SafeString token argument did not have the capacity to hold the next token. 
      **/
-    size_t stoken(SafeString & token, size_t fromIndex, const char* delimiters, bool useAsDelimiters = true);
-    size_t stoken(SafeString & token, size_t fromIndex, SafeString & delimiters, bool useAsDelimiters = true);
+    size_t stoken(SafeString & token, size_t fromIndex, const char* delimiters, bool returnEmptyFields = false, bool useAsDelimiters = true);
+    size_t stoken(SafeString & token, size_t fromIndex, SafeString & delimiters, bool returnEmptyFields = false, bool useAsDelimiters = true);
 
     /* nextToken -- The token is removed from the SafeString ********************
       nextToken -- Any leading delimiters are first removed, then the delimited token found is removed from the SafeString.
-                  The following delimiters remain in the SafeString so you can test which delimiter terminated the token.
+                   The following delimiters remain in the SafeString so you can test which delimiter terminated the token.
+      The token argument is always cleared at the start of the nextToken().
       IMPORTANT !! Only delimited tokens are returned. Partial un-delimited tokens are left in the SafeString and not returned
-      This allows the SafeString to hold partial tokens when reading from an input stream a char at a time.
+      This allows the SafeString to hold partial tokens when reading from an input stream one char at a time.
 
       params
-      token - the SafeString to return the token in, it is cleared if no delimited token found or if there are errors
-              the token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.
-              if the token's capacity is < the next token, then nextToken returns false and an error messages printed if debug is enabled.
-      delimiters - the characters that any one of which can delimit a token
+      token - the SafeString to return the token in, it will be empty if no delimited token found or if there are errors
+              The token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.
+              If the token's capacity is < the next token, then nextToken() returns true, but the returned token argument is empty and an error messages printed if debug is enabled.
+              In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
+      delimiters - the delimiting characters, any one of which can delimit a token
 
-      returns true if it finds a token in this SafeString that is terminated by one of the delimiters after removing any leading delimiters, else false
+      return -- true if nextTokne() finds a token in this SafeString that is terminated by one of the delimiters after removing any leading delimiters, else false
+                If the return is true, but the returned token is empty, then the SafeString token argument did not have the capacity to hold the next token. 
+                In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
+                while being consistent with the SafeString's all or nothing insertion rule
     **/
     bool nextToken(SafeString & token, SafeString & delimiters);
-    bool nextToken(SafeString & token, char* delimiters);
+    bool nextToken(SafeString & token, const char* delimiters);
 
     
     /* *** ReadFrom from SafeString, writeTo SafeString ************************/
@@ -734,15 +749,38 @@ class SafeString : public Printable, public Print {
     **/
     bool readUntil(Stream & input, const char* delimiters);
     bool readUntil(Stream & input, SafeString & delimiters);
+    
+    /*
+      NON-blocking readUntilToken
+      returns true if a delimited token is found, else false 
+      ONLY delimited tokens of length less than this SafeString's capacity will return true. Streams of chars that overflow this SafeString's capacity are ignored.
+      That is this SafeString's capacity should be at least 1 more then the largest expected token.
+      If the SaftString & token return argument is too small to hold the result it is returned empty and an error message output if debugging is enabled.
+      The delimiter is NOT included in the SaftString & token return.  It will the first char of the this SafeString when readUntilToken returns true
+      It is recommended that the capacity of the SafeString & token argument be >= this SaftString's capacity
+
+      params
+        input - the Stream object to read from
+        delimiters - string of valid delimieters
+        skipToDelimiter - a bool variable to hold the skipToDelimiter state between calls
+        echoInput - defaults to true to echo the chars read
+        timeout_mS - defaults to never timeout, pass a non-zero mS to autoterminate the last token if no new chars received for that time.
+        
+      returns true if a delimited series of chars found that fit in this SafeString else false
+      If the SaftString & token argument is too small to hold the result it is returned empty
+      The delimiter is NOT included in the SaftString & token return. It will the first char of the this SafeString when readUntilToken returns true
+    **/
+    bool readUntilToken(Stream & input, SafeString & token, const char* delimiters, bool & skipToDelimiter, bool echoInput = true, unsigned long timeout_mS = 0);
+    bool readUntilToken(Stream & input, SafeString & token, SafeString & delimiters, bool & skipToDelimiter, bool echoInput = true, unsigned long timeout_mS = 0);
 
     /* *** END OF PUBLIC METHODS ************/
 
   protected:
     static Print* debugPtr;
     static bool fullDebug;
-    char *buffer = NULL;          // the actual char array
-    size_t _capacity = 0; // the array length minus one (for the '\0')
-    size_t len = 0;       // the SafeString length (not counting the '\0')
+    char *buffer;          // the actual char array
+    size_t _capacity; // the array length minus one (for the '\0')
+    size_t len;       // the SafeString length (not counting the '\0')
 
     class noDebugPrint : public Print {
         inline size_t write(uint8_t b) {
@@ -782,6 +820,8 @@ class SafeString : public Printable, public Print {
     bool fromBuffer; // true if createSafeStringFromBuffer created this object
     void cleanUp(); // reterminates buffer at capacity and resets len to current strlen
     const char *name;
+    unsigned long timeoutStart_mS;
+    bool timeoutRunning;
     // reserve returns 0 if _capacity < size
     bool reserve(size_t size);
     static char nullBufferSafeStringBuffer[1];
