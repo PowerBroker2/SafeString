@@ -6,7 +6,8 @@ using namespace arduino;
 #endif
 
 /**
-  (c)2018 Forward Computing and Control Pty. Ltd.
+  BufferedOutput.cpp 
+  (c)2020 Forward Computing and Control Pty. Ltd.
   This code may be freely used for both private and commerical use.
   Provide this copyright is maintained.
 */
@@ -42,6 +43,7 @@ BufferedOutput::BufferedOutput( size_t _bufferSize, uint8_t _buf[],  BufferedOut
   rb_buf = NULL;
   rb_bufSize = 0; // prevents access to a NULL buf
   rb_clear();
+  serialPtr = NULL;
   streamPtr = NULL;
   debugOut = NULL;
   txBufferSize = 0;
@@ -63,60 +65,80 @@ BufferedOutput::BufferedOutput( size_t _bufferSize, uint8_t _buf[],  BufferedOut
   }
 }
 
+
 /**
-    void connect(Stream& stream, const uint32_t baudRate); // write to and how fast to write output, can also read from
-        stream -- the stream to buffer output to.
-        baudRate -- the maximum rate at which the bytes are to be released.  Bytes will be relased slower depending on how long your loop() method takes to execute
-                     You must call one of the BufferedOutput methods read, write, available.. , peek, flush, bytesToBeSent each loop() in order to release the buffered chars
+        void connect(HardwareSerial& _serial); // the output to write to, can also read from
+            serial -- the HardwareSerial to buffer output to, usually Serial.
+                     You must call nextByteOut() each loop() in order to release the buffered chars. 
+*/
+void BufferedOutput::connect(HardwareSerial& _serial) { // the output to write to, can also read from
+  serialPtr = &_serial;
+  streamPtr = serialPtr;
+  debugOut = streamPtr;
+  delay(10); // wait for a few ms for Tx buffer to clear if flush() does not do it
+  serialPtr->flush(); // try and clear hardware buffer
+  size_t avail = serialPtr->availableForWrite();
+  if (txBufferSize < (size_t)avail) txBufferSize = avail;
+  baudRate = 0;
+  if (txBufferSize == 0) {
+    // need baud rate
+    while (1) {
+      streamPtr->println("availableForWrite() returns 0");
+      streamPtr->println("You need to specify the I/O baudRate");
+      streamPtr->println("and add extra calls to nextByteOut() as only one byte is released each call.");
+      delay(10000);
+    }
+  } // else use avaiableForWrite to throttle I/O
+  uS_perByte = 0;
+#ifdef DEBUG
+  if (debugOut) {
+    debugOut->print("BufferedOutput connected with Serial. Combined buffer size:"); debugOut->print(getSize()); debugOut->println("");
+    debugOut->print(" consisting of BufferedOutput buffer "); debugOut->print(rb_getSize()); debugOut->print(" and Serial Tx buffer "); debugOut->println(txBufferSize);
+    debugOut->print(" using Serial's availableForWrite to throttle output");
+    debugOut->println();
+  }
+#endif // DEBUG 
+  clear();
+}
+    
+/**
+        void connect(Stream& _stream, const uint32_t baudRate); // write to and how fast to write output, can also read from
+            stream -- the stream to buffer output to
+            baudRate -- the maximum rate at which the bytes are to be released.  Bytes will be relased slower depending on how long your loop() method takes to execute
+                         You must call nextByteOut() each loop() in order to release the buffered chars. 
 */
 void BufferedOutput::connect(Stream& _stream, const uint32_t _baudRate) {
+  serialPtr = NULL;
   streamPtr = &_stream;
   debugOut = streamPtr;
   delay(10); // wait for a few ms for Tx buffer to clear if flush() does not do it
   streamPtr->flush(); // try and clear hardware buffer
-  size_t avail = streamPtr->availableForWrite();
-  if (txBufferSize < (size_t)avail) txBufferSize = avail;
   baudRate = _baudRate;
-
-  if (baudRate == 0) {
-    if (txBufferSize == 0) {
-      // need baud rate
-      while (1) {
-        streamPtr->println("availableForWrite() returns 0");
-        streamPtr->println("You need to specify the I/O baudRate");
-        streamPtr->println("and add extra calls to nextByteOut() as only one byte is released each call.");
-        delay(10000);
-      }
-    } // else use avaiableForWrite to throttle I/O
-    uS_perByte = 0;
-#ifdef DEBUG
-    if (debugOut) {
-      debugOut->print("BufferedOutput connected with Stream "); debugOut->print(rb_getSize()); debugOut->println(" byte buffer.");
-      debugOut->print(" using Stream's availableForWrite to throttle output");
-      debugOut->println();
+  if (baudRate == 0) {  // no baudrate
+    while (1) {
+      streamPtr->println("connect(stream,baudrate) must have a non-zero baudrate");
+      delay(10000);
     }
-#endif // DEBUG 
-
-  } else {  // have a baudrate
-    txBufferSize = 0; // ignore stream buffer
-    uS_perByte = ((unsigned long)(13000000.0 / (float)baudRate)) + 1; // 1sec / (baud/13) in uS  baud is in bits
-    // => ~13bits/byte, i.e. start+8+parity+2stop+1  may be less if no parity and only 1 stop bit
-    sendTimerStart = micros();
-#ifdef DEBUG
-    if (debugOut) {
-      debugOut->print("BufferedOutput connected with "); debugOut->print(getSize()); debugOut->println(" byte buffer.");
-      debugOut->print(" BaudRate:");  debugOut->print(baudRate);
-      debugOut->print(" Send interval "); debugOut->print(uS_perByte); debugOut->print("uS");
-      debugOut->println();
-    }
-#endif // DEBUG   
   }
+  // else   // have a baudrate
+  txBufferSize = 0; // ignore stream buffer
+  uS_perByte = ((unsigned long)(13000000.0 / (float)baudRate)) + 1; // 1sec / (baud/13) in uS  baud is in bits
+  // => ~13bits/byte, i.e. start+8+parity+2stop+1  may be less if no parity and only 1 stop bit
+  sendTimerStart = micros();
+#ifdef DEBUG
+  if (debugOut) {
+    debugOut->print("BufferedOutput connected with "); debugOut->print(getSize()); debugOut->println(" byte buffer.");
+    debugOut->print(" BaudRate:");  debugOut->print(baudRate);
+    debugOut->print(" Send interval "); debugOut->print(uS_perByte); debugOut->print("uS");
+    debugOut->println();
+  }
+#endif // DEBUG   
   clear();
 }
 
 // allow 4 for dropMark
 size_t BufferedOutput::getSize() {
-  return rb_getSize() + txBufferSize - 4;
+  return rb_getSize() - 4 + txBufferSize;
 }
 
 // clears space in outgoing (write) buffer, by removing last bytes written,  if len == 0 clear whole buffer, Serial Tx buffer is NOT changed
@@ -158,8 +180,8 @@ int BufferedOutput::internalAvailableForWrite() {
     return 0;
   }
   int rtn = 0;
-  if (txBufferSize) {
-    size_t avail = streamPtr->availableForWrite();
+  if (serialPtr) {
+    size_t avail = serialPtr->availableForWrite();
     rtn += avail;
   }
   int ringAvail = rb_availableForWrite();
@@ -182,8 +204,8 @@ int BufferedOutput::availableForWrite() {
   if (waitForEmpty) {
     return 0;
   } // else
-  if (txBufferSize) {
-    size_t avail = streamPtr->availableForWrite();
+  if (serialPtr) {
+    size_t avail = serialPtr->availableForWrite();
     rtn += avail;
   }
   int ringAvail = rb_availableForWrite();
@@ -199,7 +221,7 @@ int BufferedOutput::availableForWrite() {
 size_t BufferedOutput::terminateLastLine() {
   if (lastCharWritten != '\n') {
     if (internalAvailableForWrite() > 2) { 
-      return write("\r\n", 2);
+      return write((const uint8_t*)"\r\n", 2);
     } else {
       return write('\n'); // may only be one space left 
     }
@@ -213,6 +235,7 @@ size_t BufferedOutput::write(const uint8_t *buffer, size_t size) {
   if (!streamPtr) {
     return 0;
   }
+
   if (mode == BLOCK_IF_FULL) { // ignores all or nothing
     for (size_t i = 0; i < size; i++) {
       lastCharWritten = buffer[i];
@@ -247,8 +270,8 @@ size_t BufferedOutput::write(const uint8_t *buffer, size_t size) {
   // reduce size to fit
   size_t initSize = size;
   size_t strWriteLen = 0; // nothing written yet
-  if ((rb_available() == 0) && txBufferSize) {
-    size_t avail = streamPtr->availableForWrite();
+  if ((rb_available() == 0) && serialPtr) {
+    size_t avail = serialPtr->availableForWrite();
     strWriteLen = size; // try to write it all
     if (avail < strWriteLen) { // only write some of it
       strWriteLen = avail;
@@ -306,8 +329,8 @@ size_t BufferedOutput::write(uint8_t c) {
       return 0;
     }
     // else have some ringBuffer space
-    if ((txBufferSize) && (rb_available() == 0)) {
-      if (streamPtr->availableForWrite()) {
+    if ((serialPtr) && (rb_available() == 0)) {
+      if (serialPtr->availableForWrite()) {
         lastCharWritten = c;
         streamPtr->write(lastCharWritten);
         dropMarkWritten = false;
@@ -356,44 +379,44 @@ size_t BufferedOutput::write(uint8_t c) {
 size_t BufferedOutput::bytesToBeSent() {
   //nextByteOut(); don't call this here as may loop
   size_t btbs = (size_t)rb_available();
-  if (txBufferSize) {
-    size_t avail = (size_t)streamPtr->availableForWrite();
+  if (serialPtr) {
+    size_t avail = (size_t)serialPtr->availableForWrite();
     if (txBufferSize < (size_t)avail) txBufferSize = avail;
     btbs += (txBufferSize - avail);
   }
   return btbs;
 }
 
-void BufferedOutput::updateSerialBufSize(size_t serialAvail) {
-  if (txBufferSize < serialAvail) txBufferSize = serialAvail;
-}
-
-// private so no need to check streamPtr here
-// NOTE nextByteOut will block is baudRate is set higher then actual i/o baudrate
+// NOTE nextByteOut will block if baudRate is set higher then actual i/o baudrate
 void BufferedOutput::nextByteOut() {
   if (!streamPtr) {
     return;
   }
-  if (rb_available() == 0) {
-    // do quick check on txBufferSize first to avoid fn call
-    if ((!txBufferSize) || (streamPtr->availableForWrite() >= txBufferSize)) {
-      waitForEmpty = false;
-    }
-    sendTimerStart = micros();
-    return; // nothing connected or nothing to do
+  if (rb_available() == 0) { // nothing to send from ringBuffer
+    if (serialPtr) { // have HardwareSerial 
+      if ((serialPtr->availableForWrite() >= txBufferSize)) {
+    	// Serial tx buffer empty, all of txBufferSize availableForWrite
+        waitForEmpty = false; // both buffers empty
+      }
+    } else { // no serialPtr so cannot call availableForWrite, just using ringBuffer and baudrate
+       waitForEmpty = false; // ringBuffer empty
+       // not HardwareSerial so using baudrate to release bytes instead of availableForWrite()
+       sendTimerStart = micros(); // restart baudrate release timer
+    } 
+    return; // nothing to release
   }
 
-  if (txBufferSize) { // common case use streamPtr->avaiableForWrite() to throttle output
+  if (serialPtr) { // common case use streamPtr->avaiableForWrite() to throttle output
     // check if space available and fill from ringBuffer
     // some boards return 0 for availableForWrite
-    while (streamPtr->availableForWrite() && rb_available()) {
-      streamPtr->write((uint8_t)rb_read());
+    while (serialPtr->availableForWrite() && rb_available()) {
+      serialPtr->write((uint8_t)rb_read());
     }
     int btbs = (size_t)rb_available();
     if (btbs) {
       return;
     }
-    int avail = (size_t)streamPtr->availableForWrite();
+    int avail = (size_t)serialPtr->availableForWrite();
     if (txBufferSize < ((size_t)avail)) txBufferSize = avail; // incase calls to availableForWrite() in connect did not return full Txbuffer size
     btbs += (txBufferSize - avail);
     if (btbs <= 0) {
@@ -402,24 +425,22 @@ void BufferedOutput::nextByteOut() {
     return;
   } // else
 
-  // txBufferSize == 0 so use timer to throttle output
+  // serialPtr == NULL and txBufferSize == 0 so use timer to throttle output
+  // sendTimerStart will have been set above
 
   unsigned long uS = micros();
   // micros() has 8uS resolution on 8Mhz systems, 4uS on 16Mhz system
   // NOTE throw away any excess of (uS - sendTimerStart) > uS_perByte
   // output will be slower then specified
-  if ((uS - sendTimerStart) > uS_perByte) {
-    sendTimerStart = uS;
-  } else {
-    return; // nothing to do
+  if ((uS - sendTimerStart) < uS_perByte) {
+    return; // nothing to do not time to release next byte
   }
-
-  // send next byte
+  // else send next byte
+  sendTimerStart = uS; //releasing next byte, restart timer
   streamPtr->write((uint8_t)rb_read()); // may block if set baudRate higher then actual I/O baud rate
   if (rb_available() == 0) {
     waitForEmpty = false;
   }
-
 }
 
 // always expect there to be at least 4 spaces available in the ringBuffer when this is called
