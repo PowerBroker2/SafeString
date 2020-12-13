@@ -106,7 +106,6 @@ class BufferedOutput : public Stream {
     void clear(); // clears outgoing (write) buffer
     size_t terminateLastLine(); // adds a newline if one not already there
 
-
   private:
     int internalAvailableForWrite();
     void writeDropMark();
@@ -122,7 +121,7 @@ class BufferedOutput : public Stream {
     unsigned long sendTimerStart;
     bool waitForEmpty;
     Print* debugOut; // only used if #define DEBUG uncomment in BufferedOutput.cpp
-    size_t txBufferSize; // hardware serial tx buffer, if any
+    size_t txBufferSize; // hardware serial tx buffer, if any OR set to zero to only use ringBuffer
     bool dropMarkWritten;
     uint8_t lastCharWritten; // check for \n
 
