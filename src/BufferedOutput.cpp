@@ -441,7 +441,7 @@ void BufferedOutput::nextByteOut() {
     } else {
       // using Serial tx buffer
       int avail = (size_t)serialPtr->availableForWrite(); // bytesToBeSent() updates txBufferSize
-      if ((avail + 1) >= txBufferSize) { // almost empty
+      if ( (((size_t)avail) + 1) >= txBufferSize) { // almost empty
         waitForEmpty = false;
       }
     }
