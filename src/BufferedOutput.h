@@ -4,8 +4,10 @@
 
 /**
   BufferedOutput.h 
+  by Matthew Ford
   (c)2020 Forward Computing and Control Pty. Ltd.
-  This code may be freely used for both private and commerical use.
+  This code is not warranted to be fit for any purpose. You may only use it at your own risk.
+  This code may be freely used for both private and commercial use.
   Provide this copyright is maintained.
 */
 

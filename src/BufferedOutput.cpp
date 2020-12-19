@@ -7,8 +7,10 @@ using namespace arduino;
 
 /**
   BufferedOutput.cpp
+  by Matthew Ford
   (c)2020 Forward Computing and Control Pty. Ltd.
-  This code may be freely used for both private and commerical use.
+  This code is not warranted to be fit for any purpose. You may only use it at your own risk.
+  This code may be freely used for both private and commercial use.
   Provide this copyright is maintained.
 */
 
@@ -439,7 +441,7 @@ void BufferedOutput::nextByteOut() {
     } else {
       // using Serial tx buffer
       int avail = (size_t)serialPtr->availableForWrite(); // bytesToBeSent() updates txBufferSize
-      if ((avail + 1) >= txBufferSize) { // almost empty
+      if ( (((size_t)avail) + 1) >= txBufferSize) { // almost empty
         waitForEmpty = false;
       }
     }
