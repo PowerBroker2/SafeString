@@ -104,8 +104,9 @@ class BufferedOutput : public Stream {
     virtual void flush(); // this blocks until write buffer empty
     virtual int availableForWrite();
     size_t getSize(); // returns buffer size + any hardwareSerial buffer size found on connect
-    void clearSpace(size_t len = 0); // clears space in outgoing (write) buffer, by removing last bytes written,  if len == 0 clear whole buffer, Serial Tx buffer is NOT changed
-    void clear(); // clears outgoing (write) buffer
+    int clearSpace(size_t len); // clears space in outgoing (write) buffer, by removing last bytes written,  Serial Tx buffer is NOT changed, returns available space in buffer + Tx
+    void protect(); // prevents current buffer contects from being cleared by clearSpace(), but clear() will still clear the whole buffer
+    void clear(); // clears outgoing (write) buffer, even if protected.
     size_t terminateLastLine(); // adds a newline if one not already there
 
   private:
@@ -134,7 +135,7 @@ class BufferedOutput : public Stream {
     */
     void rb_init(uint8_t* _buf, size_t _size);
     void rb_clear();
-    bool rb_clearSpace(size_t len = 0); //returns true if some output dropped, clears space in outgoing (write) buffer, by removing last bytes written,  if len == 0 clear whole buffer, Serial Tx buffer is NOT changed
+    bool rb_clearSpace(size_t len); //returns true if some output dropped, clears space in outgoing (write) buffer, by removing last bytes written
     // from Stream
     inline int rb_available() {
       return rb_buffer_count;
@@ -145,7 +146,8 @@ class BufferedOutput : public Stream {
     size_t rb_write(const uint8_t *buffer, size_t size); // does not block, drops bytes if buffer full
     int rb_availableForWrite(); // {   return (bufSize - buffer_count); }
     size_t rb_getSize(); // size of ring buffer
-    void rb_unWrite(); // removes last char written, if any
+   // void rb_unWrite(); // removes last char written, if any
+    bool rb_lastBufferedByteProtect();
     void rb_dump(Stream* streamPtr);
 
     uint8_t* rb_buf;

@@ -143,25 +143,47 @@ size_t BufferedOutput::getSize() {
   return rb_getSize() - 4 + txBufferSize;
 }
 
-// clears space in outgoing (write) buffer, by removing last bytes written,  if len == 0 clear whole buffer, Serial Tx buffer is NOT changed
-void BufferedOutput::clearSpace(size_t len) {
-  waitForEmpty = false;
-  allOrNothing = false; // force something next write
-  if (len == 0) {
-    clear(); // clears waitForEmpty and allOrNothing
-    return;
-  }
-  len += 8; // should be only 4 for the drop mark but...
-  if (internalAvailableForWrite() > (long)len) {
-    return; // have space
-  }
-  if (rb_clearSpace(len)) {
-    dropMarkWritten = false;
-    writeDropMark();
+ // prevents current buffer contects from being cleared by clearSpace(), but clear() will still clear the whole buffer
+void BufferedOutput::protect() {
+  if (rb_lastBufferedByteProtect()) {
+	return;
+  } else {
+  	// buffer not empty have something to protect
+  	// and have not just written protect byte
+    rb_write('\0');  // this uses up 1 byte fo the 4 set aside for dropMark
   }
 }
 
+// clears space in outgoing (write) buffer, by removing last bytes written, until a protected section reached 
+//  the Serial Tx buffer is NOT changed
+int BufferedOutput::clearSpace(size_t len) {
+  waitForEmpty = false;
+  allOrNothing = false; // force something next write
+  int avail = internalAvailableForWrite();
+  if (len == 0) {
+    return avail; // nothing to do
+  }
+  len += 8; // should be only 4 for the drop mark but...
+  if (((size_t)avail) >= len) {
+    return avail; // have space
+  }
+  // else len < internalAvailableForWrite() which includes Serial Tx buffer space
+  size_t txAvail = 0;
+  if (txBufferSize) {
+    txAvail = serialPtr->availableForWrite();
+    if (txAvail > 1) {
+      txAvail -= 1;
+    }
+  }
+  if (rb_clearSpace(len - ((size_t)txAvail))) {
+    dropMarkWritten = false;
+    writeDropMark();
+  }
+  return (internalAvailableForWrite());
+}
+
 // only clears the BufferedOutput buffer not any HardwareSerial buffer
+// clears BufferedOutput buffer even if protected with protect()
 void BufferedOutput::clear() {
   bool notEmpty = (rb_available() != 0);
   rb_clear();
@@ -426,7 +448,11 @@ void BufferedOutput::nextByteOut() {
       }
       serialBytesWritten = (toWrite > 0); //set once here
       for (int i = 0; i < toWrite; i++) {
-        serialPtr->write((uint8_t)rb_read());
+      	uint8_t b = (uint8_t)rb_read();
+      	if (b) {
+          serialPtr->write(b);
+        } 
+        // else  skip protect bytes '\0'        
       }
     }
 
@@ -460,7 +486,11 @@ void BufferedOutput::nextByteOut() {
   }
   // else send next byte
   sendTimerStart = uS; //releasing next byte, restart timer
-  streamPtr->write((uint8_t)rb_read()); // may block if set baudRate higher then actual I/O baud rate
+  uint8_t b = (uint8_t)rb_read();
+  if (b) {
+    serialPtr->write(b);  // may block if set baudRate higher then actual I/O baud rate
+  }
+  // else skip protect bytes '\0' This also skips this release baud rate interval
   if (rb_available() == 0) {
     waitForEmpty = false;
   }
@@ -468,7 +498,11 @@ void BufferedOutput::nextByteOut() {
 
 // always expect there to be at least 4 spaces available in the ringBuffer when this is called
 void BufferedOutput::writeDropMark() {
-  rb_write((const uint8_t*)"~~\r\n", 4); // will truncate if not enough room
+  if (rb_availableForWrite() < 4) {
+     rb_write((const uint8_t*)"~~\n", 3); // skip the \r if not enough space in rb_buf due to protect byte
+  } else {
+    rb_write((const uint8_t*)"~~\r\n", 4); // will truncate if not enough room
+  }
   dropMarkWritten = true;
 }
 
@@ -637,32 +671,73 @@ uint16_t BufferedOutput::rb_wrapBufferIdx(uint16_t idx) {
 // clears space in outgoing (write) buffer, by removing last bytes written,  if len == 0 clear whole buffer, Serial Tx buffer is NOT changed
 // returns true if some output dropped
 bool BufferedOutput::rb_clearSpace(size_t len) {
-  if ((len == 0) || (len >= rb_bufSize)) {
-    rb_clear();
-    return true;
+  if (len == 0) {
+    return false; // nothing dropped
   }
+  if (len >= rb_bufSize) {
+  	rb_clear();
+  	return true;
+  }
+  
   int avail = rb_availableForWrite();
   if (((long)len) <= avail) {
     return false;
   }
   // else avail < len
   size_t tobedropped = len - (size_t)(avail);
+ // for (; tobedropped > 0; tobedropped--) {
+//    rb_unWrite(); // this stops unWriting at first '\0'
+//  }
   for (; tobedropped > 0; tobedropped--) {
-    rb_unWrite();
+    if (rb_buffer_count == 0) {
+      return true; // empty
+    }
+    // else
+    size_t head = rb_buffer_head-1; // will wrap to very large number if idx == 0
+    if (head > (rb_bufSize - 1)) {
+      head = (rb_bufSize - 1);
+    }	
+    if (!rb_buf[head]) { // true if == '\0' else false
+     return true; // stop at '\0'
+    }
+    // else update for this unWrite
+    rb_buffer_head = head;
+    rb_buffer_count--;
   }
   return true;
 }
 
-void BufferedOutput::rb_unWrite() {
+// returns true is last byte still in ringBuffer is '\0' else false
+bool BufferedOutput::rb_lastBufferedByteProtect() {
   if (rb_buffer_count == 0) {
-    return; // empty
+    return true; // empty so no need to write another one here as nothing to protect
   }
   // else
-  rb_buffer_head--; // will wrap to very large number if idx == 0
-  rb_buffer_count--;
-  if (rb_buffer_head > (rb_bufSize - 1)) {
-    rb_buffer_head = (rb_bufSize - 1);
-  }
+  size_t head = rb_buffer_head-1; // will wrap to very large number if idx == 0
+  if (head > (rb_bufSize - 1)) {
+    head = (rb_bufSize - 1);
+  }	
+  return (!rb_buf[head]);  // true if == '\0' else false
 }
+
+/**
+void BufferedOutput::rb_unWrite() {
+  if (rb_buffer_count == 0) {
+    return; // empty cannot unWrite
+  }
+  // else
+  size_t head = rb_buffer_head-1; // will wrap to very large number if idx == 0
+  if (head > (rb_bufSize - 1)) {
+    head = (rb_bufSize - 1);
+  }	
+  if (!rb_buf[head]) { // true if == '\0' else false
+  	//  Serial.println("!~!");
+    return; // stop at '\0'
+  }
+  // update for unWrite
+  rb_buffer_head = head; 
+  rb_buffer_count--;
+}
+**/
 
 

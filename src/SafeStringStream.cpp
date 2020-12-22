@@ -14,32 +14,47 @@ using namespace arduino;
 #endif
 
 /**  SafeStringStream methods **/
-SafeStringStream::SafeStringStream( SafeString& sf ) {
+// Use this constructor to set an rxBuffer to use insted of the internal 8 byte buffer
+// the sf set here can be replaced in the begin( ) call
+SafeStringStream::SafeStringStream(SafeString& sf, SafeString& sfRxBuffer) {
+	init();
 	sfPtr = &sf;
-	baudRate = 0;
+	sfRxBufferPtr = &sfRxBuffer;
+}
+
+SafeStringStream::SafeStringStream(SafeString& sf) {
+	init();
+	sfPtr = &sf;
 }
 
 SafeStringStream::SafeStringStream() {
-	sfPtr = NULL;
-	baudRate = 0;
+	init();
 }
 
 // private and so never called
 SafeStringStream::SafeStringStream(const SafeStringStream& other) {
 	(void)(other); // to suppress unused warning
+	init();
+}
+
+void SafeStringStream::init() {
 	sfPtr = NULL;
+	baudRate = (uint32_t)-1; // not started yet
+	sfRxBufferPtr = NULL;
 }
 
 void SafeStringStream::begin(const uint32_t _baudRate) {
 	baudRate = _baudRate;
 	uS_perByte = 0;
-	if (baudRate != 0) { 
+	if ((baudRate != 0) && (baudRate != ((uint32_t)-1)) ){ 
       uS_perByte = ((unsigned long)(13000000.0 / (float)baudRate)) + 1; // 1sec / (baud/13) in uS  baud is in bits
       // => ~13bits/byte, i.e. start+8+parity+2stop+1  may be less if no parity and only 1 stop bit
 	  sendTimerStart = micros();
     }	
 }
 
+
+// this begin replaces any previous sf with the sf passed here.
 void SafeStringStream::begin(SafeString &sf, const uint32_t baudRate) {
 	// start to release at this baud rate, 0 means infinite baudRate
 	sfPtr =&sf;
@@ -64,7 +79,7 @@ size_t SafeStringStream::write(uint8_t b) {
 }
 
 int SafeStringStream::available() {
-	if (sfPtr == NULL) {
+	if ((sfPtr == NULL) || (baudRate == ((uint32_t)-1)) ) {
 		return 0;
 	}
 	if (baudRate == 0) {
@@ -72,11 +87,15 @@ int SafeStringStream::available() {
 	} // else
 	releaseNextByte();
 	cSFA(sfRxBuffer,Rx_BUFFER);
-	return sfRxBuffer.length();
+    SafeString *rxBuf = &sfRxBuffer;
+    if (sfRxBufferPtr != NULL) {
+  	   rxBuf = sfRxBufferPtr;
+    }
+	return rxBuf->length();
 }
 
 int SafeStringStream::read() {
-   if (sfPtr == NULL) {
+	if ((sfPtr == NULL) || (baudRate == ((uint32_t)-1)) ) {
 		return -1;
 	}
 	if (baudRate == 0) {
@@ -90,16 +109,20 @@ int SafeStringStream::read() {
     
 	releaseNextByte();
     cSFA(sfRxBuffer,Rx_BUFFER);
-	if (sfRxBuffer.isEmpty()) {
+    SafeString *rxBuf = &sfRxBuffer;
+    if (sfRxBufferPtr != NULL) {
+  	   rxBuf = sfRxBufferPtr;
+    }
+	if (rxBuf->isEmpty()) {
 		return -1;
 	} // else
-	char c = sfRxBuffer.charAt(0);
-    sfRxBuffer.remove(0,1);
+	char c = rxBuf->charAt(0);
+    rxBuf->remove(0,1);
     return c;
 }
 
 int SafeStringStream::peek() {
-   if (sfPtr == NULL) {
+	if ((sfPtr == NULL) || (baudRate == ((uint32_t)-1)) ) {
 		return -1;
 	}
 	if (baudRate == 0) {
@@ -111,10 +134,14 @@ int SafeStringStream::peek() {
 	
 	releaseNextByte();
     cSFA(sfRxBuffer,Rx_BUFFER);
-	if (sfRxBuffer.isEmpty()) {
+    SafeString *rxBuf = &sfRxBuffer;
+    if (sfRxBufferPtr != NULL) {
+  	   rxBuf = sfRxBufferPtr;
+    }
+	if (rxBuf->isEmpty()) {
 		return -1;
 	} // else
-	return sfRxBuffer.charAt(0);
+	return  rxBuf->charAt(0);
 }
 
 void SafeStringStream::SafeStringStream::flush() {
@@ -124,7 +151,7 @@ void SafeStringStream::SafeStringStream::flush() {
 
 // note built in Rx buffer is only 8 chars
 void SafeStringStream::releaseNextByte() {
-  if (sfPtr == NULL) {
+  if ((sfPtr == NULL) || (baudRate == ((uint32_t)-1)) ) {
 		return;
   }
   if (baudRate == 0) {
@@ -140,18 +167,21 @@ void SafeStringStream::releaseNextByte() {
     unsigned long excessTime = (uS - sendTimerStart) - (noOfCharToRelease*uS_perByte);
     sendTimerStart = uS-excessTime;
   }
-  
   // noOfCharToRelease  limit to available chars
   cSFA(sfRxBuffer,Rx_BUFFER);
+  SafeString *rxBuf = &sfRxBuffer;
+  if (sfRxBufferPtr != NULL) {
+  	  rxBuf = sfRxBufferPtr;
+  }
   if (noOfCharToRelease > sfPtr->length()) {
   	  noOfCharToRelease = sfPtr->length(); // limit to char left in SF
   }
   for (size_t i=0; i<noOfCharToRelease; i++) {
-  	  if (!sfRxBuffer.availableForWrite()) {
+  	  if (!rxBuf->availableForWrite()) {
   	  	  // make space
-  	  	  sfRxBuffer.remove(0,1);
+  	  	  rxBuf->remove(0,1);
   	  } 
-  	  sfRxBuffer += sfPtr->charAt(0);
+  	  rxBuf->concat(sfPtr->charAt(0));
   	  sfPtr->remove(0,1);
   }
 }
