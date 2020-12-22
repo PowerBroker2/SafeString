@@ -69,6 +69,7 @@ connect	KEYWORD2
 nextByteOut	KEYWORD2
 getSize	KEYWORD2
 clearSpace	KEYWORD2
+protect	KEYWORD2
 clear	KEYWORD2
 terminateLastLine	KEYWORD2
 
