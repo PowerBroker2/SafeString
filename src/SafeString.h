@@ -672,6 +672,7 @@ class SafeString : public Printable, public Print {
       Input argument errors return length()+1
       If the returned, nextIndex is <= length() and the returned token is empty, then the SafeString token argument did not have the capacity to hold the next token. 
      **/
+    size_t stoken(SafeString & token, size_t fromIndex, const char delimiter, bool returnEmptyFields = false, bool useAsDelimiters = true);
     size_t stoken(SafeString & token, size_t fromIndex, const char* delimiters, bool returnEmptyFields = false, bool useAsDelimiters = true);
     size_t stoken(SafeString & token, size_t fromIndex, SafeString & delimiters, bool returnEmptyFields = false, bool useAsDelimiters = true);
 
@@ -694,6 +695,7 @@ class SafeString : public Printable, public Print {
                 In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
                 while being consistent with the SafeString's all or nothing insertion rule
     **/
+    bool nextToken(SafeString & token, char delimiter);
     bool nextToken(SafeString & token, SafeString & delimiters);
     bool nextToken(SafeString & token, const char* delimiters);
 
@@ -747,6 +749,7 @@ class SafeString : public Printable, public Print {
       Any delimiter read is returned.  Only at most one delimiter is added per call
        Multiple sucessive delimiters require multiple calls to read them
     **/
+    bool readUntil(Stream & input, const char delimiter);
     bool readUntil(Stream & input, const char* delimiters);
     bool readUntil(Stream & input, SafeString & delimiters);
     
@@ -770,8 +773,9 @@ class SafeString : public Printable, public Print {
       If the SaftString & token argument is too small to hold the result it is returned empty
       The delimiter is NOT included in the SaftString & token return. It will the first char of the this SafeString when readUntilToken returns true
     **/
-    bool readUntilToken(Stream & input, SafeString & token, const char* delimiters, bool & skipToDelimiter, bool echoInput = true, unsigned long timeout_mS = 0);
-    bool readUntilToken(Stream & input, SafeString & token, SafeString & delimiters, bool & skipToDelimiter, bool echoInput = true, unsigned long timeout_mS = 0);
+    bool readUntilToken(Stream & input, SafeString & token, const char delimiter, bool & skipToDelimiter, uint8_t echoInput = true, unsigned long timeout_mS = 0);
+    bool readUntilToken(Stream & input, SafeString & token, const char* delimiters, bool & skipToDelimiter, uint8_t echoInput = true, unsigned long timeout_mS = 0);
+    bool readUntilToken(Stream & input, SafeString & token, SafeString & delimiters, bool & skipToDelimiter, uint8_t echoInput = true, unsigned long timeout_mS = 0);
 
     /* *** END OF PUBLIC METHODS ************/
 
@@ -817,6 +821,10 @@ class SafeString : public Printable, public Print {
     void outputName() const ;
 
   private:
+    bool readUntilTokenInternal(Stream & input, SafeString & token, const char* delimitersIn, char delimiterIn, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_mS);
+    bool readUntilInternal(Stream & input, const char* delimitersIn, char delimiterIn);
+    bool nextTokenInternal(SafeString & token, const char* delimitersIn, char delimiterIn);
+    size_t stokenInternal(SafeString &token, size_t fromIndex, const char* delimitersIn, char delimiterIn, bool returnEmptyFields, bool useAsDelimiters);
     bool fromBuffer; // true if createSafeStringFromBuffer created this object
     void cleanUp(); // reterminates buffer at capacity and resets len to current strlen
     const char *name;

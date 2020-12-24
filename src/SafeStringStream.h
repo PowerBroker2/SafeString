@@ -39,7 +39,7 @@ class SafeStringStream : public Stream {
   	void init();
     unsigned long uS_perByte; // == 1000000 / (baudRate/10) == 10000000 / baudRate
     uint32_t baudRate;
-    void releaseNextByte();
+    unsigned long releaseNextByte();
     unsigned long sendTimerStart;
     char Rx_BUFFER[9]; // 8char + null
     SafeString* sfRxBufferPtr;

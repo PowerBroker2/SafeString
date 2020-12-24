@@ -73,8 +73,9 @@ size_t SafeStringStream::write(uint8_t b) {
 	if (sfPtr == NULL) {
 		return 0;
 	}
-	releaseNextByte();
+	unsigned long excessTime = releaseNextByte();
 	size_t rtn = sfPtr->write(b);
+    sendTimerStart = micros()-excessTime; // allow for this processing time
 	return rtn;
 }
 
@@ -85,12 +86,13 @@ int SafeStringStream::available() {
 	if (baudRate == 0) {
 		return sfPtr->length();
 	} // else
-	releaseNextByte();
+	unsigned long excessTime = releaseNextByte();
 	cSFA(sfRxBuffer,Rx_BUFFER);
     SafeString *rxBuf = &sfRxBuffer;
     if (sfRxBufferPtr != NULL) {
   	   rxBuf = sfRxBufferPtr;
     }
+    sendTimerStart = micros()-excessTime; // allow for this processing time
 	return rxBuf->length();
 }
 
@@ -107,17 +109,19 @@ int SafeStringStream::read() {
       return c;
     } // else
     
-	releaseNextByte();
+	unsigned long excessTime = releaseNextByte();
     cSFA(sfRxBuffer,Rx_BUFFER);
     SafeString *rxBuf = &sfRxBuffer;
     if (sfRxBufferPtr != NULL) {
   	   rxBuf = sfRxBufferPtr;
     }
 	if (rxBuf->isEmpty()) {
+        sendTimerStart = micros()-excessTime; // allow for this processing time
 		return -1;
 	} // else
 	char c = rxBuf->charAt(0);
     rxBuf->remove(0,1);
+    sendTimerStart = micros()-excessTime; // allow for this processing time
     return c;
 }
 
@@ -132,40 +136,44 @@ int SafeStringStream::peek() {
 	  return sfPtr->charAt(0);
 	} // else
 	
-	releaseNextByte();
+	unsigned long excessTime = releaseNextByte();
     cSFA(sfRxBuffer,Rx_BUFFER);
     SafeString *rxBuf = &sfRxBuffer;
     if (sfRxBufferPtr != NULL) {
   	   rxBuf = sfRxBufferPtr;
     }
 	if (rxBuf->isEmpty()) {
+        sendTimerStart = micros()-excessTime; // allow for this processing time
 		return -1;
 	} // else
+    sendTimerStart = micros()-excessTime; // allow for this processing time
 	return  rxBuf->charAt(0);
 }
 
 void SafeStringStream::SafeStringStream::flush() {
-	releaseNextByte();
-	// do nothing here
+	unsigned long excessTime = releaseNextByte();
+    sendTimerStart = micros()-excessTime; // allow for this processing time
 }
 
 // note built in Rx buffer is only 8 chars
-void SafeStringStream::releaseNextByte() {
+unsigned long SafeStringStream::releaseNextByte() {
+  unsigned long uS = micros();
   if ((sfPtr == NULL) || (baudRate == ((uint32_t)-1)) ) {
-		return;
+		return 0;
   }
   if (baudRate == 0) {
-  	  return;
+  	  return 0;
   }
   if (sfPtr->length() == 0) {
-    return; // nothing connected or nothing to do
+    return 0; // nothing connected or nothing to do
   }
   // micros() has 8uS resolution on 8Mhz systems, 4uS on 16Mhz system
-  unsigned long uS = micros();
-  unsigned long noOfCharToRelease = (uS - sendTimerStart)/uS_perByte;
+  unsigned long excessTime = (uS - sendTimerStart);
+  unsigned long noOfCharToRelease = excessTime/uS_perByte;
   if (noOfCharToRelease > 0) {
-    unsigned long excessTime = (uS - sendTimerStart) - (noOfCharToRelease*uS_perByte);
-    sendTimerStart = uS-excessTime;
+    excessTime -= (noOfCharToRelease*uS_perByte);
+  } else {
+    return excessTime; // nothing to do
   }
   // noOfCharToRelease  limit to available chars
   cSFA(sfRxBuffer,Rx_BUFFER);
@@ -184,6 +192,7 @@ void SafeStringStream::releaseNextByte() {
   	  rxBuf->concat(sfPtr->charAt(0));
   	  sfPtr->remove(0,1);
   }
+  return excessTime;
 }
 
 
