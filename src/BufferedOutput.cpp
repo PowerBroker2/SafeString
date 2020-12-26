@@ -488,7 +488,7 @@ void BufferedOutput::nextByteOut() {
   sendTimerStart = uS; //releasing next byte, restart timer
   uint8_t b = (uint8_t)rb_read();
   if (b) {
-    serialPtr->write(b);  // may block if set baudRate higher then actual I/O baud rate
+    streamPtr->write(b);  // may block if set baudRate higher then actual I/O baud rate
   }
   // else skip protect bytes '\0' This also skips this release baud rate interval
   if (rb_available() == 0) {
