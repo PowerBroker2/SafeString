@@ -3104,7 +3104,7 @@ bool SafeString::toDouble(double  &d) {
       If the returned, nextIndex is <= length() and the returned token is empty, then the SafeString token argument did not have the capacity to hold the next token.
 **/
 
-size_t SafeString::stoken(SafeString & token, size_t fromIndex, const char delimiter, bool returnEmptyFields = false, bool useAsDelimiters = true) {
+size_t SafeString::stoken(SafeString & token, size_t fromIndex, const char delimiter, bool returnEmptyFields, bool useAsDelimiters) {
   if (!delimiter) {
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
@@ -3153,7 +3153,7 @@ size_t SafeString::stokenInternal(SafeString &token, size_t fromIndex, const cha
   char charDelim[2];
   charDelim[0] = delimiterIn;
   charDelim[1] = '\0';
-  char *delimiters = delimitersIn;
+  const char *delimiters = delimitersIn;
   if (delimiters == NULL) {
   	delimiters = charDelim;
   }
@@ -3286,7 +3286,7 @@ bool SafeString::nextTokenInternal(SafeString& token, const char* delimitersIn, 
   char charDelim[2];
   charDelim[0] = delimiterIn;
   charDelim[1] = '\0';
-  char *delimiters = delimitersIn;
+  const char *delimiters = delimitersIn;
   if (delimiters == NULL) {
   	delimiters = charDelim;
   }
@@ -3500,7 +3500,7 @@ bool SafeString::readUntilInternal(Stream& input, const char* delimitersIn, cons
   char charDelim[2];
   charDelim[0] = delimiterIn;
   charDelim[1] = '\0';
-  char *delimiters = delimitersIn;
+  const char *delimiters = delimitersIn;
   if (delimiters == NULL) {
   	delimiters = charDelim;
   }  
@@ -3530,6 +3530,7 @@ bool SafeString::readUntilInternal(Stream& input, const char* delimitersIn, cons
       If the SaftString & token return argument is too small to hold the result it is returned empty and an error message output if debugging is enabled.
       The delimiter is NOT included in the SaftString & token return.  It will the first char of the this SafeString when readUntilToken returns true
       It is recommended that the capacity of the SafeString & token argument be >= this SaftString's capacity
+      Each call to this method removes any leading delimiters so if you need to check the delimiter do it BEFORE the next call to readUntilToken()
 
       params
         input - the Stream object to read from
@@ -3588,7 +3589,8 @@ bool SafeString::readUntilToken(Stream & input, SafeString& token, const char* d
 }
 
 bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const char* delimitersIn, const char delimiterIn, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_mS) {
-  if ((echoInput != 0) && (echoInput != 1) && (timeout_mS == 0)) {
+   token.clear(); // always
+	if ((echoInput != 0) && (echoInput != 1) && (timeout_mS == 0)) {
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("readUntilToken"));
@@ -3599,22 +3601,38 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
     timeout_mS = echoInput; // swap to timeout
     echoInput = true; // use default
   }	  
+  
+  if (capacity() < 2) {
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      errorMethod(F("readUntilToken"));
+      debugPtr->println(F(" SafeString needs capacity of at least 2, one char + one delimiter"));
+    }
+#endif // SSTRING_DEBUG
+    return false;
+  }	  
+
   cleanUp();
   char charDelim[2];
   charDelim[0] = delimiterIn;
   charDelim[1] = '\0';
-  char *delimiters = delimitersIn;
+  const char *delimiters = delimitersIn;
   if (delimiters == NULL) {
   	delimiters = charDelim;
   }  
-  token.clear();
+  // remove leading delimiters 
+  size_t delim_count = 0;
+  // skip leading delimiters  (prior to V2.0.2 leading delimiters not skipped)
+  delim_count = strspn(buffer, delimiters); // count char ONLY in delimiters
+  remove(0, delim_count); // remove leading delimiters
+
   // NOTE: this method's contract says you can set skipToDelimiter true at any time
   // so here stop reading on first delimiter and process results
   // loop here until either isFill() OR no more chars avail OR found delimiter
   while (input.available() && (len < (capacity()))) {
     int c = input.read();
     if (c == '\0') {
-      continue; // skip nulls
+      continue; // skip nulls  // don't update timer on null chars
     }
     if (echoInput) {
       input.print((char) c);
@@ -3624,7 +3642,9 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
       timeoutRunning = true;
       timeoutStart_mS = millis(); // start timer
     }
-    concat((char)c); // add char may be delimiter
+    if (!skipToDelimiter) {
+    	concat((char)c); // add char may be delimiter
+    }
     if (strchr(delimiters, c) != NULL) {
       if (skipToDelimiter) {
         // if skipToDelimiter then started with empty SafeString
@@ -3635,14 +3655,13 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
       }
     }
   }
-  
   // here either isFill() OR no more chars avail OR found delimiter
   // skipToDelimiter may still be true here if no delimiter found above
-  if (nextToken(token, delimiters)) {  // removes leading delimiters if any
+  if ((!skipToDelimiter) && (nextToken(token, delimiters))) {  // removes leading delimiters if any
      // returns true only if have found delimited token, returns false if full and no delimiter
-  	  // IF found delimited token, delimiter was add just now and so timer reset
-      // skipToDelimiter is false here since found delimiter
-  	  return true; // not full and not timeout and have new token
+    // IF found delimited token, delimiter was add just now and so timer reset
+    // skipToDelimiter is false here since found delimiter
+    return true; // not full and not timeout and have new token
   }
   // else
   if (isFull()) { // note if full here then > max token as capacity needs to allow for one delimiter
