@@ -45,11 +45,13 @@
 #include <Stream.h>
 #endif
 
+#include "SafeString.h"  // for Output and #define SSTRING_DEBUG
+
 #ifdef ARDUINO_ARDUINO_NANO33BLE
 namespace arduino {
 #endif
 
-#define createBufferedOutput(name, size, ...) uint8_t name ## _OUTPUT_BUFFER[(size)]; BufferedOutput name(sizeof(name ## _OUTPUT_BUFFER),name ## _OUTPUT_BUFFER,  __VA_ARGS__ );
+#define createBufferedOutput(name, size, ...) uint8_t name ## _OUTPUT_BUFFER[(size)+4]; BufferedOutput name(sizeof(name ## _OUTPUT_BUFFER),name ## _OUTPUT_BUFFER,  __VA_ARGS__ ); // add 4 for dropMark
 
 typedef enum {BLOCK_IF_FULL, DROP_UNTIL_EMPTY, DROP_IF_FULL } BufferedOutputMode;
 
@@ -59,14 +61,19 @@ class BufferedOutput : public Stream {
     /**
         use
         createBufferedOutput(name, size, mode);
-        instead of calling this constructor
-
-        BufferedOutput(const uint32_t _baudRate, uint8_t *_buf, size_t _bufferSize, BufferedOutputMode _mode, bool _allOrNothing  = true) ;
-        You must call one of the BufferedOutput methods read, write, available.. , peek, flush, bytesToBeSent each loop() in order to release the buffered chars
-        Usually just call bufferedStream.available(); at the top of loop()
-
-         buf -- the user allocated buffer to store the bytes, must be at least bufferSize long.  Defaults to an internal 64 char buffer if buf is omitted or NULL
-         bufferSize -- number of bytes to buffer,max bufferSize is limited to 32766. Defaults to an internal 64 char buffer if bufferSize is < 8 or is omitted
+        instead of calling the constructor
+        add a call to 
+        bufferedOutput.nextByteOut();
+        at the top of the loop() to release the buffered chars.  You can add more of these calls through out the loop() code if needed
+        Most BufferedOutput methods also release the buffered chars
+    **/
+    
+    /**
+         use createBufferedOutput(name, size, mode); instead
+         BufferedOutput(size_t _bufferSize, uint8_t *_buf, BufferedOutputMode = BLOCK_IF_FULL, bool allOrNothing = true);
+         
+         buf -- the user allocated buffer to store the bytes, must be at least bufferSize long.  Defaults to an internal 8 char buffer if buf is omitted or NULL
+         bufferSize -- number of bytes to buffer,max bufferSize is limited to 32766. Defaults to an internal 8 char buffer if bufferSize is < 8 or is omitted
          mode -- BLOCK_IF_FULL (default), DROP_UNTIL_EMPTY or DROP_IF_FULL
                  BLOCK_IF_FULL,    like normal print, but with a buffer. Use this to see ALL the output, but will block the loop() when the output buffer fills
                  DROP_UNTIL_EMPTY, when the output buffer is full, drop any more chars until it completely empties.  ~~<CR><NL> is inserted in the output to show chars were dropped.
@@ -84,16 +91,16 @@ class BufferedOutput : public Stream {
             serial -- the HardwareSerial to buffer output to, usually Serial.
                      You must call nextByteOut() each loop() in order to release the buffered chars. 
     */
-    void connect(HardwareSerial& _serial); // the output to write to, can also read from
+    void connect(HardwareSerial& _serial); 
     
     
     /**
-        void connect(Stream& _stream, const uint32_t baudRate); // write to and how fast to write output, can also read from
+        void connect(Stream& _stream, const uint32_t baudRate); // the stream to write to and how fast to write output, can also read from
             stream -- the stream to buffer output to
             baudRate -- the maximum rate at which the bytes are to be released.  Bytes will be relased slower depending on how long your loop() method takes to execute
                          You must call nextByteOut() each loop() in order to release the buffered chars. 
     */
-    void connect(Stream& _stream, const uint32_t baudRate);
+    void connect(Stream& _stream, const uint32_t baudRate=0);
     
     void nextByteOut();
     virtual size_t write(uint8_t);
@@ -111,6 +118,7 @@ class BufferedOutput : public Stream {
 
   private:
     int internalAvailableForWrite();
+    int internalStreamAvailableForWrite(); // returns 0 if no availableForWrite else connection.availableForWrite()-1 to allow for ESP blocking on 1
     void writeDropMark();
     size_t bytesToBeSent(); // bytes in this buffer to be sent, // this ignores any data in the HardwareSerial buffer
     BufferedOutputMode mode; // = 0;
@@ -124,7 +132,7 @@ class BufferedOutput : public Stream {
     unsigned long sendTimerStart;
     bool waitForEmpty;
     Print* debugOut; // only used if #define DEBUG uncomment in BufferedOutput.cpp
-    size_t txBufferSize; // hardware serial tx buffer, if any OR set to zero to only use ringBuffer
+    int txBufferSize; // serial tx buffer, if any OR set to zero to only use ringBuffer
     bool dropMarkWritten;
     uint8_t lastCharWritten; // check for \n
 
@@ -146,7 +154,6 @@ class BufferedOutput : public Stream {
     size_t rb_write(const uint8_t *buffer, size_t size); // does not block, drops bytes if buffer full
     int rb_availableForWrite(); // {   return (bufSize - buffer_count); }
     size_t rb_getSize(); // size of ring buffer
-   // void rb_unWrite(); // removes last char written, if any
     bool rb_lastBufferedByteProtect();
     void rb_dump(Stream* streamPtr);
 

@@ -7,6 +7,7 @@ cSF	KEYWORD2
 cSFA	KEYWORD2
 cSFP	KEYWORD2
 cSFPS	KEYWORD2
+debug	KEYWORD2
 setOutput	KEYWORD2
 Output	KEYWORD2
 turnOutputOff	KEYWORD2
@@ -63,6 +64,23 @@ write	KEYWORD2
 available	KEYWORD2
 peek	KEYWORD2
 flush	KEYWORD2
+SafeStringReader	KEYWORD1
+createSafeStringReader	KEYWORD1
+connect	KEYWORD2
+read	KEYWORD2
+echoOn	KEYWORD2
+echoOff	KEYWORD2
+skipToDelimiter	KEYWORD2
+setTimeout	KEYWORD2
+getDelimiter	KEYWORD2 
+debugInputBuffer	KEYWORD2
+SafeStringStream	KEYWORD1
+RxBufferOverflow	KEYWORD2  
+createBufferedInput	KEYWORD1
+BufferedInput	KEYWORD1
+nextByteIn	KEYWORD2
+maxBufferUsed	KEYWORD2
+maxStreamAvailable	KEYWORD2
 BufferedOutput	KEYWORD1
 createBufferedOutput	KEYWORD2
 connect	KEYWORD2  
@@ -72,5 +90,28 @@ clearSpace	KEYWORD2
 protect	KEYWORD2
 clear	KEYWORD2
 terminateLastLine	KEYWORD2
+millisDelay	KEYWORD1
+start	KEYWORD2
+stop	KEYWORD2
+repeat	KEYWORD2
+restart	KEYWORD2
+finish	KEYWORD2
+justFinished	KEYWORD2
+isRunning	KEYWORD2
+getStartTime	KEYWORD2
+remaining	KEYWORD2
+delay	KEYWORD2
+loopTimerClass	KEYWORD1
+check	KEYWORD2
+print	KEYWORD2
+loopTimer	KEYWORD2
+
+
+
+	
+
+
+
+	
 
 

@@ -1,8 +1,20 @@
 # SafeString
-This SafeString library is designed for beginners to be a safe, robust and debuggable replacement for string processing in Arduino.
+This SafeString library is designed for beginners to be a safe, robust and debuggable replacement for string processing in Arduino and provides non-blocking text I/O and parsing and testing for Real World use.
+
+This library includes:-
+**SafeString**, a safe, robust and debuggable replacement for string processing in Arduino
+**SafeStringReader**, a non-blocking tokenizing text reader replacement for Serial.read()
+**BufferedOutput**, non-blocking replacement for Serial.print()
+**SafeStringStream**, a stream to provide test inputs for repeated testing of I/O sketches 
+**BufferedInput**, extra buffering for text input
+**loopTimer**, to track of the maximum and average run times for the loop()
+**millisDelay**, a non-blocking delay replacement, with single-shot, repeating, restart and stop facilities.
 
 # How-To
-See [here](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
+See [SafeString Tutorial](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
+See [Arduino Text I/O for the Real World](https://www.forward.com.au/pfod/ArduinoProgramming/Serial_IO/index.html).
+See [Simple Multitasking Arduino](https://www.forward.com.au/pfod/ArduinoProgramming/RealTimeArduino/index.html)
+See [How to code Timers and Delays in Arduino](https://www.forward.com.au/pfod/ArduinoProgramming/TimingDelaysInArduino.html)
 
 # Software License
 See the top of each file for its license

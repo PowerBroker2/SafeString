@@ -22,34 +22,41 @@ using namespace arduino;
 
 // For ESP32 and ESP8266 serialPtr->availableForWrite() does not seem to return the 'correct' value, i.e. serialPtr->availableForWrite() == 1 still blocks on write()
 // so for ALL boards require serialPtr->availableForWrite() > 1 before writing to serialPtr
+// Also ESP32 and ESP8266 do not have availableForWrite() in Print.h  (Arduino does!!)
 
 /**
-      use
-      createBufferedOutput(name, size, mode);
-      instead of calling this constructor
+    use
+    createBufferedOutput(name, size, mode);
+    instead of calling the constructor
+    add a call to
+    bufferedOutput.nextByteOut();
+    at the top of the loop() to release the buffered chars.  You can add more of these calls through out the loop() code if needed
+    Most BufferedOutput methods also release the buffered chars
+**/
 
-      BufferedOutput(const uint32_t _baudRate, uint8_t *_buf, size_t _bufferSize, BufferedOutputMode _mode, bool _allOrNothing  = true) ;
-      You must call one of the BufferedOutput methods read, write, available.. , peek, flush, bytesToBeSent each loop() in order to release the buffered chars
-      Usually just call bufferedStream.available(); at the top of loop()
+/**
+     use createBufferedOutput(name, size, mode); instead
+     BufferedOutput(size_t _bufferSize, uint8_t *_buf, BufferedOutputMode = BLOCK_IF_FULL, bool allOrNothing = true);
 
-       buf -- the user allocated buffer to store the bytes, must be at least bufferSize long.  Defaults to an internal 64 char buffer if buf is omitted or NULL
-       bufferSize -- number of bytes to buffer,max bufferSize is limited to 32766. Defaults to an internal 64 char buffer if bufferSize is < 8 or is omitted
-       mode -- BLOCK_IF_FULL, DROP_UNTIL_EMPTY or DROP_IF_FULL
-               BLOCK_IF_FULL,    like normal print, but with a buffer. Use this to see ALL the output, but will block the loop() when the output buffer fills
-               DROP_UNTIL_EMPTY, when the output buffer is full, drop any more chars until it completely empties.  ~~<CR><NL> is inserted in the output to show chars were dropped.
-                                   Useful when there too much output.  It allow multiple prints to be output consecutively to give meaning full output
-                                   avaliableForWrite() will return 0 from when the buffer fills until is empties
-               DROP_IF_FULL,     when the output buffer is full, drop any more chars until here is space.  ~~<CR><NL> is inserted in the output to show chars were dropped.
-       allOrNothing -- defaults to true,  If true AND output buffer not empty then if write(buf,size) will not all fit don't output any of it.
-                                      Else if false OR output buffer is empty then write(buf,size) will output partial data to fill output buffer.
-                       allOrNothing setting is ignored if mode is BLOCK_IF_FULL
+     buf -- the user allocated buffer to store the bytes, must be at least bufferSize long.  Defaults to an internal 8 char buffer if buf is omitted or NULL
+     bufferSize -- number of bytes to buffer,max bufferSize is limited to 32766. Defaults to an internal 8 char buffer if bufferSize is < 8 or is omitted
+     mode -- BLOCK_IF_FULL (default), DROP_UNTIL_EMPTY or DROP_IF_FULL
+             BLOCK_IF_FULL,    like normal print, but with a buffer. Use this to see ALL the output, but will block the loop() when the output buffer fills
+             DROP_UNTIL_EMPTY, when the output buffer is full, drop any more chars until it completely empties.  ~~<CR><NL> is inserted in the output to show chars were dropped.
+                                 Useful when there too much output.  It allow multiple prints to be output consecutively to give meaning full output
+                                 avaliableForWrite() will return 0 from when the buffer fills until is empties
+             DROP_IF_FULL,     when the output buffer is full, drop any more chars until here is space.  ~~<CR><NL> is inserted in the output to show chars were dropped.
+     allOrNothing -- defaults to true,  If true AND output buffer not empty then if write(buf,size) will not all fit don't output any of it.
+                                    Else if false OR output buffer is empty then write(buf,size) will output partial data to fill output buffer.
+                     allOrNothing setting is ignored if mode is BLOCK_IF_FULL
 */
+
 BufferedOutput::BufferedOutput( size_t _bufferSize, uint8_t _buf[],  BufferedOutputMode _mode, bool _allOrNothing) {
   rb_buf = NULL;
   rb_bufSize = 0; // prevents access to a NULL buf
   rb_clear();
   serialPtr = NULL;
-  streamPtr = NULL;
+  streamPtr = NULL; // always non-NULL after connect( )  either set to HardwareSerial OR Stream
   debugOut = NULL;
   txBufferSize = 0;  // if > 0 then serialPtr != NULL, but can have serialPtr != NULL and txBufferSize == 0
   dropMarkWritten = false;
@@ -67,35 +74,44 @@ BufferedOutput::BufferedOutput( size_t _bufferSize, uint8_t _buf[],  BufferedOut
   }
 }
 
-
 /**
         void connect(HardwareSerial& _serial); // the output to write to, can also read from
             serial -- the HardwareSerial to buffer output to, usually Serial
                      You must call nextByteOut() each loop() in order to release the buffered chars.
 */
+//  for HardwareSerial connections serialPtr != NULL else == NULL for Stream connections
+//  streamPtr is always != NULL
+//  if have availableForWrite >= 2, then txBufferSize != 0
+//   else txBufferSize == connection's buffer size
 void BufferedOutput::connect(HardwareSerial& _serial) { // the output to write to, can also read from
   serialPtr = &_serial;
   streamPtr = serialPtr;
   debugOut = streamPtr;
-  delay(10); // wait for a few ms for Tx buffer to clear if flush() does not do it
   serialPtr->flush(); // try and clear hardware buffer
-  size_t avail = serialPtr->availableForWrite();
-  if (txBufferSize < (size_t)avail) txBufferSize = avail;
+  delay(10); // wait for a few ms for Tx buffer to clear if flush() does not do it
+  int avail = serialPtr->availableForWrite();
+  if (txBufferSize < avail) {
+    txBufferSize = avail;
+  }
   baudRate = 0;
-  if (txBufferSize <= 1) { // use <= 1 here because below in nextByteOut() and write() will subtract 1 from serialPtr->availableForWrite()
+  if (txBufferSize <= 2) { // use <= 2 here because below internalStreamAvailableForWrite will subtract 1 from serialPtr->availableForWrite() to allow for bug in ESP32 that blocks when availableForWrite() returns 1
+    txBufferSize = 0; // do not use availableForWrite()
     // need baud rate
     while (1) {
       streamPtr->println("availableForWrite() returns 0");
       streamPtr->println("You need to specify the I/O baudRate");
       streamPtr->println("and add extra calls to nextByteOut() as only one byte is released each call.");
-      delay(10000);
+      streamPtr->println();
+      streamPtr->flush();
+      delay(5000);
     }
   } // else use avaiableForWrite to throttle I/O
+  txBufferSize -= 1; // subtract one to match internalStreamAvailableForWrite()
   uS_perByte = 0;
 #ifdef DEBUG
   if (debugOut) {
-    debugOut->print("BufferedOutput connected to Serial  Combined buffer size:"); debugOut->print(getSize()); debugOut->println("");
-    debugOut->print(" consisting of BufferedOutput buffer "); debugOut->print(rb_getSize()); debugOut->print(" and Serial Tx buffer "); debugOut->println(txBufferSize);
+    debugOut->print("BufferedOutput connected to a HardwareSerial  Combined buffer size:"); debugOut->print(getSize()); debugOut->println("");
+    debugOut->print(" consisting of BufferedOutput buffer "); debugOut->print(rb_getSize()-4); debugOut->print(" and Serial Tx buffer "); debugOut->println(txBufferSize);
     debugOut->print(" using Serial's availableForWrite to throttle output");
     debugOut->println();
   }
@@ -104,29 +120,80 @@ void BufferedOutput::connect(HardwareSerial& _serial) { // the output to write t
 }
 
 /**
-        void connect(Stream& _stream, const uint32_t baudRate); // write to and how fast to write output, can also read from
+        void connect(Stream& _stream, const uint32_t baudRate);  // the stream to write to and how fast to write output, can also read from
             stream -- the stream to buffer output to
             baudRate -- the maximum rate at which the bytes are to be released.  Bytes will be relased slower depending on how long your loop() method takes to execute
                          You must call nextByteOut() each loop() in order to release the buffered chars.
 */
+//  for HardwareSerial connections serialPtr != NULL else == NULL for Stream connections
+//  streamPtr is always != NULL
+//  if have availableForWrite >= 2, then txBufferSize != 0
+//   else txBufferSize == connection's buffer size
 void BufferedOutput::connect(Stream& _stream, const uint32_t _baudRate) {
   serialPtr = NULL;
   streamPtr = &_stream;
   debugOut = streamPtr;
-  delay(10); // wait for a few ms for Tx buffer to clear if flush() does not do it
+  uS_perByte = 0;
   streamPtr->flush(); // try and clear hardware buffer
+  delay(10); // wait for a few ms for Tx buffer to clear if flush() does not do it
   baudRate = _baudRate;
-  if (baudRate == 0) {  // no baudrate
+  if (baudRate == 0) {  // no baudrate  use availableForWrite() if it is available
+#if defined(ESP_PLATFORM) || defined(ARDUINO_ARCH_ESP8266)
+    // ESP32 ESP8266 Stream does not have availableForWrite()
     while (1) {
-      streamPtr->println("connect(stream,baudrate) must have a non-zero baudrate");
-      delay(10000);
+      streamPtr->println("ESP32 and ESP8266 Print does not implement availableForWrite()");
+      streamPtr->println("You need to specify the I/O baudRate");
+      streamPtr->println("and add extra calls to nextByteOut() as only one byte is released each call.");
+      streamPtr->println();
+      streamPtr->flush();
+      delay(5000);
     }
+#else  // not ESP_PLATFORM || ARDUINO_ARCH_ESP8266
+    int avail = streamPtr->availableForWrite();
+    if (txBufferSize < avail) {
+      txBufferSize = avail;
+    }
+    if (txBufferSize <= 2) { // use <= 2 here because below internalStreamAvailableForWrite will subtract 1 from serialPtr->availableForWrite() to allow for bug in ESP32 that blocks when availableForWrite() returns 1
+      txBufferSize = 0; // do not use availableForWrite()
+      // need baud rate
+      while (1) {
+        streamPtr->println();
+        streamPtr->println("availableForWrite() returns 0");
+        streamPtr->println("You need to specify the I/O baudRate");
+        streamPtr->println("and add extra calls to nextByteOut() as only one byte is released each call.");
+        streamPtr->println();
+        streamPtr->flush();
+        delay(5000);
+      }
+    } // else use avaiableForWrite to throttle I/O
+    txBufferSize -= 1; // subtract one to match internalStreamAvailableForWrite()
+#ifdef DEBUG
+    if (debugOut) {
+      debugOut->print("BufferedOutput connected a Stream.  Combined buffer size:"); debugOut->print(getSize()); debugOut->println("");
+      debugOut->print(" consisting of BufferedOutput buffer "); debugOut->print(rb_getSize()-4); debugOut->print(" and Serial Tx buffer "); debugOut->println(txBufferSize);
+      debugOut->print(" using Stream's availableForWrite() to throttle output");
+      debugOut->println();
+    }
+#endif // DEBUG 
+    clear();
+    return;
+#endif //  ESP_PLATFORM || ARDUINO_ARCH_ESP8266
   }
+
   // else   // have a baudrate
   txBufferSize = 0; // ignore stream buffer
-  uS_perByte = ((unsigned long)(13000000.0 / (float)baudRate)) + 1; // 1sec / (baud/13) in uS  baud is in bits
+  uS_perByte = ((unsigned long)(13000000.0 / (float)baudRate));
+  if (uS_perByte == 0) {
+    while (1) {
+      streamPtr->println();
+      streamPtr->println("BufferedOutput Error: connect(stream,baudRate) needs a uint32_t baudRate variable < 13000000");
+      streamPtr->println();
+      streamPtr->flush();
+      delay(5000);
+    }
+  }
+  uS_perByte += 1; // 1sec / (baud/13) in uS  baud is in bits
   // => ~13bits/byte, i.e. start+8+parity+2stop+1  may be less if no parity and only 1 stop bit
-  sendTimerStart = micros();
 #ifdef DEBUG
   if (debugOut) {
     debugOut->print("BufferedOutput connected with "); debugOut->print(getSize()); debugOut->println(" byte buffer.");
@@ -136,6 +203,7 @@ void BufferedOutput::connect(Stream& _stream, const uint32_t _baudRate) {
   }
 #endif // DEBUG   
   clear();
+  sendTimerStart = micros();
 }
 
 // allow 4 for dropMark
@@ -143,43 +211,41 @@ size_t BufferedOutput::getSize() {
   return rb_getSize() - 4 + txBufferSize;
 }
 
- // prevents current buffer contects from being cleared by clearSpace(), but clear() will still clear the whole buffer
+// prevents current buffer contects from being cleared by clearSpace(), but clear() will still clear the whole buffer
 void BufferedOutput::protect() {
   if (rb_lastBufferedByteProtect()) {
-	return;
+    return;
   } else {
-  	// buffer not empty have something to protect
-  	// and have not just written protect byte
+    // buffer not empty have something to protect
+    // and have not just written protect byte
     rb_write('\0');  // this uses up 1 byte fo the 4 set aside for dropMark
   }
 }
 
-// clears space in outgoing (write) buffer, by removing last bytes written, until a protected section reached 
+// clears space in outgoing (write) buffer, by removing last bytes written, until a protected section reached
 //  the Serial Tx buffer is NOT changed
 int BufferedOutput::clearSpace(size_t len) {
   waitForEmpty = false;
   allOrNothing = false; // force something next write
-  int avail = internalAvailableForWrite();
+  int avail = internalAvailableForWrite(); // already subtracts 4 from rb_buffer
   if (len == 0) {
     return avail; // nothing to do
   }
+  if (rb_available() < 8) { // can not allow 8 below in rb_buffer just return now
+    return avail;
+  }
+  // else have at least rb_available() > 8
   len += 8; // should be only 4 for the drop mark but...
   if (((size_t)avail) >= len) {
-    return avail; // have space
+    return (avail - 8); // have space and avail > 8 because > len+8
   }
   // else len < internalAvailableForWrite() which includes Serial Tx buffer space
-  size_t txAvail = 0;
-  if (txBufferSize) {
-    txAvail = serialPtr->availableForWrite();
-    if (txAvail > 1) {
-      txAvail -= 1;
-    }
-  }
-  if (rb_clearSpace(len - ((size_t)txAvail))) {
+  size_t txAvail = internalStreamAvailableForWrite(); // stream available -1 or 0
+  if (rb_clearSpace(len - txAvail)) { // allow for space in stream Tx buffer
     dropMarkWritten = false;
     writeDropMark();
   }
-  return (internalAvailableForWrite());
+  return (internalAvailableForWrite() - 4); // perhaps should be -8??
 }
 
 // only clears the BufferedOutput buffer not any HardwareSerial buffer
@@ -197,18 +263,45 @@ void BufferedOutput::clear() {
   allOrNothing = false; // force something next write
 }
 
+// this method handles the problems caused by ESP32 and ESP8266 not
+// implementing availableForWrite() in Print.h
+// it is implemented in HardwareSerial though in ESP32 and ESP8266
+// returns 0 if no availableForWrite() implemented
+// else returns stream.availableForWrite()-1 to compensate for ESP32 returning 1 when blocking
+//
+//  for HardwareSerial connections serialPtr != NULL
+//  for Stream connections  streamPtr != NULL
+//  if have availableForWrite >= 2, then txBufferSize != 0
+//   else txBufferSize == connection's buffer size
+int BufferedOutput::internalStreamAvailableForWrite() {
+  if (txBufferSize == 0) {
+    return 0;
+  }
+  int avail = 0;
+  if (serialPtr) {
+  	//  have availableForWrite
+    avail = serialPtr->availableForWrite();
+  } else { // streamPtr should always be non-NULL
+#if defined(ESP_PLATFORM) || defined(ARDUINO_ARCH_ESP8266)
+    return 0;    // ESP stream does not have availableForWrite
+#else
+    avail = streamPtr->availableForWrite();
+#endif
+  }
+  //  keep one space in Serial TX, ESP32 blocks if availableForWrite returns 1, needed for ESP8266 which returns 128 max buffer size, but may only be actually 127
+  if (avail >= 1) {
+    avail -= 1;  // returns 0 if == 1
+  }
+  return avail;
+}
+
 // ignores waitForWrite includes allowance for 4 bytes for ~~\r\n
+// but only in rb_buffer
 int BufferedOutput::internalAvailableForWrite() {
   if (!streamPtr) {
     return 0;
   }
-  int rtn = 0;
-  if (txBufferSize) {
-    size_t avail = serialPtr->availableForWrite();
-    if (avail > 1) {
-      rtn += (avail - 1);
-    }
-  }
+  int rtn = internalStreamAvailableForWrite();
   int ringAvail = rb_availableForWrite();
   if (ringAvail <= 4) {
     ringAvail = 0;
@@ -283,22 +376,19 @@ size_t BufferedOutput::write(const uint8_t *buffer, size_t size) {
   // reduce size to fit
   size_t initSize = size;
   size_t strWriteLen = 0; // nothing written yet
-  if ((rb_available() == 0) && txBufferSize) {  // nothing in the ringBuffer and using Serial Tx buffer
-    size_t avail = serialPtr->availableForWrite();
-    if (avail > 1) { // keep one space in Serial TX, needed for ESP8266 which returns 128 max buffer size, but may only be actually 127
-      avail -= 1;
-      strWriteLen = size; // try to write it all
-      if (avail < strWriteLen) { // only write some of it
-        strWriteLen = avail;
-      }
-      if (strWriteLen > 0) {
-        serialPtr->write(buffer, strWriteLen);
-        lastCharWritten = buffer[strWriteLen - 1]; // strWriteLen > 0 here
-        dropMarkWritten = false;
-        buffer += strWriteLen; // update buffer ptr for what has been written
-        size -= strWriteLen;  // reduce size left to be written
-      }
-    } // else avail <= 1 skip and write to ringBuffer
+  if (rb_available() == 0) { // nothing in the ringBuffer
+    size_t avail = internalStreamAvailableForWrite(); // includes -1
+    strWriteLen = size; // try to write it all
+    if (avail < strWriteLen) { // only write some of it
+      strWriteLen = avail;
+    }
+    if (strWriteLen > 0) { // write directly to Serial Tx Buffer
+      streamPtr->write(buffer, strWriteLen);
+      lastCharWritten = buffer[strWriteLen - 1]; // strWriteLen > 0 here
+      dropMarkWritten = false;
+      buffer += strWriteLen; // update buffer ptr for what has been written
+      size -= strWriteLen;  // reduce size left to be written
+    }
   }
   size_t rbWriteLen = size; // try to write what is left (may be 0) to ringBuffer
   if (rbWriteLen != 0) {
@@ -319,14 +409,15 @@ size_t BufferedOutput::write(const uint8_t *buffer, size_t size) {
     }
   } // else all written to Serial Tx buffer and so ringBuffer is empty
 
-  if ((rbWriteLen + strWriteLen) < initSize) { // dropped something
+  size_t rtnLen = rbWriteLen + strWriteLen;
+  if (rtnLen < initSize) { // dropped something
     if (!dropMarkWritten) {
       writeDropMark();
     }
     waitForEmpty = true;
   }
   allOrNothing = allOrNothingSetting; // cleared on clear() and makeSpace, reset to input setting
-  return rbWriteLen + strWriteLen;
+  return rtnLen;
 }
 
 size_t BufferedOutput::write(uint8_t c) {
@@ -346,16 +437,16 @@ size_t BufferedOutput::write(uint8_t c) {
       return 0;
     }
     // else have some ringBuffer space
-    if ((txBufferSize) && (rb_available() == 0)) {
-      if (serialPtr->availableForWrite() > 1) { // allow at least on for ESP32/ESP8266 problems
+    if ((rb_available() == 0)) { //(txBufferSize) &&
+      if (internalStreamAvailableForWrite()) {
         lastCharWritten = c;
-        serialPtr->write(lastCharWritten);
+        streamPtr->write(lastCharWritten);
         dropMarkWritten = false;
         allOrNothing = allOrNothingSetting; // cleared on clear() and makeSpace, reset to input setting
         return 1;
       }
     }
-    // else now stream Tx buffer space
+    // else no stream Tx buffer space
     if (rb_availableForWrite() > 4) { // leave space for next |\r\n
       dropMarkWritten = false;
       lastCharWritten = c;
@@ -400,8 +491,10 @@ size_t BufferedOutput::write(uint8_t c) {
 size_t BufferedOutput::bytesToBeSent() {
   size_t btbs = (size_t)rb_available();
   if (txBufferSize) { // using Serial Tx buffer
-    size_t avail = (size_t)serialPtr->availableForWrite();
-    if (txBufferSize < (size_t)avail) txBufferSize = avail;
+    int avail = internalStreamAvailableForWrite(); // includes -1
+    if (txBufferSize < avail) {
+      txBufferSize = avail;
+    }
     btbs += (txBufferSize - avail); // now always >= 0
   }
   return btbs;
@@ -410,26 +503,27 @@ size_t BufferedOutput::bytesToBeSent() {
 // NOTE nextByteOut will block if baudRate is set higher then actual i/o baudrate
 void BufferedOutput::nextByteOut() {
   if (!streamPtr) {
+    SafeString::Output.println();
+    SafeString::Output.println(F("BufferedOutput Error: need to call connect(..) first in setup()"));
+    SafeString::Output.println();
+    SafeString::Output.flush();
+    delay(5000);
     return;
   }
   if (mode != DROP_UNTIL_EMPTY) {
     waitForEmpty = false; // always skips a lot of the code below
   }
 
-  int serialAvail = 0;
-  if (serialPtr) { // have HardwareSerial
-    serialAvail = serialPtr->availableForWrite();
-  }
+  int serialAvail = internalStreamAvailableForWrite();
   if (rb_available() == 0) { // nothing to send from ringBuffer
-    if (serialPtr) { // have HardwareSerial
-      if ( (serialAvail + 1) >= ((long)(txBufferSize))) { // works is txBufferSize == 0 also
-        // fudge this a little
-        // Serial tx buffer (almost) empty, all of txBufferSize availableForWrite
+    if (txBufferSize != 0) {
+      if (serialAvail >= txBufferSize) { // works is txBufferSize == 0 also
+        txBufferSize = serialAvail;
         waitForEmpty = false; // both buffers empty
       }
-    } else { // no serialPtr so cannot call availableForWrite, just using ringBuffer and baudrate
+    } else { // no txBuffer
       waitForEmpty = false; // ringBuffer empty
-      // not HardwareSerial so using baudrate to release bytes instead of availableForWrite()
+      // no txBuffer so using baudrate to release bytes instead of availableForWrite()
       sendTimerStart = micros(); // restart baudrate release timer
     }
     return; // nothing to release
@@ -438,43 +532,42 @@ void BufferedOutput::nextByteOut() {
   // here have something to release
   //  serialAvail set above
   bool serialBytesWritten = false;
-  if (serialPtr) { // common case use streamPtr->avaiableForWrite() to throttle output
+  if (txBufferSize != 0) { // common case use internalStreamAvailableForWrite() to throttle output
     // check if space available and fill from ringBuffer  some boards return 0 for availableForWrite
-    if (serialAvail >= 2) { // have at least 1 space
-      int toWrite = serialAvail - 1;
+    if (serialAvail > 0) { // have at least 1 space have already adjusted for ESP32 bug in internalStreamAvailableForWrite
+      int toWrite = serialAvail;
       int rbAvail = rb_available();
       if (rbAvail < toWrite) { // limit by number of ringBuffer chars
         toWrite = rbAvail;
       }
       serialBytesWritten = (toWrite > 0); //set once here
       for (int i = 0; i < toWrite; i++) {
-      	uint8_t b = (uint8_t)rb_read();
-      	if (b) {
-          serialPtr->write(b);
-        } 
-        // else  skip protect bytes '\0'        
+        uint8_t b = (uint8_t)rb_read();
+        if (b) {
+          streamPtr->write(b);
+        }
+        // else  skip protect bytes '\0'
       }
     }
-
-    if ((!waitForEmpty) || (serialBytesWritten && (txBufferSize !=0)) || rb_available() ) { // if just wrote somthing or still have something to write then => waitForEmpty unchanged,
+    // here have either filled txBuffer OR emptied rb_buffer
+    // if serialBytesWritten then wrote to txBuffer
+    if ((!waitForEmpty) || serialBytesWritten || rb_available() ) { // if just wrote somthing or still have something to write then => waitForEmpty unchanged,
       //  also if waitForEmpty false no need to check (wrong mode)
       return; // not empty
     }
-    // else need to check for waitForEmpty false
+    // here waitForEmpty true && noBytesWritten to txBuffer && rb_buffer empty
+
+    // else need to check for waitForEmpty -> false
     // else waitForEmpty && !serialBytesWritten && !rb has bytes (i.e.ringBuffer is empty)
-    if (!txBufferSize) { // NOT using Serial tx buffer and rb_available() == 0
+    // using Serial tx buffer
+    int avail = internalStreamAvailableForWrite();  // bytesToBeSent() updates txBufferSize
+    if (avail >= txBufferSize) { // empty
       waitForEmpty = false;
-    } else {
-      // using Serial tx buffer
-      int avail = (size_t)serialPtr->availableForWrite(); // bytesToBeSent() updates txBufferSize
-      if ( (((size_t)avail) + 1) >= txBufferSize) { // almost empty
-        waitForEmpty = false;
-      }
     }
     return;
-  } // else not serialPtr release on timer
+  } // else no txBuffer release on timer
 
-  // serialPtr == NULL and txBufferSize == 0 so use timer to throttle output
+  // txBufferSize == 0 so use timer to throttle output
   // sendTimerStart will have been set above
 
   unsigned long uS = micros();
@@ -499,7 +592,7 @@ void BufferedOutput::nextByteOut() {
 // always expect there to be at least 4 spaces available in the ringBuffer when this is called
 void BufferedOutput::writeDropMark() {
   if (rb_availableForWrite() < 4) {
-     rb_write((const uint8_t*)"~~\n", 3); // skip the \r if not enough space in rb_buf due to protect byte
+    rb_write((const uint8_t*)"~~\n", 3); // skip the \r if not enough space in rb_buf due to protect byte
   } else {
     rb_write((const uint8_t*)"~~\r\n", 4); // will truncate if not enough room
   }
@@ -675,30 +768,30 @@ bool BufferedOutput::rb_clearSpace(size_t len) {
     return false; // nothing dropped
   }
   if (len >= rb_bufSize) {
-  	rb_clear();
-  	return true;
+    rb_clear();
+    return true;
   }
-  
+
   int avail = rb_availableForWrite();
   if (((long)len) <= avail) {
     return false;
   }
   // else avail < len
   size_t tobedropped = len - (size_t)(avail);
- // for (; tobedropped > 0; tobedropped--) {
-//    rb_unWrite(); // this stops unWriting at first '\0'
-//  }
+  // for (; tobedropped > 0; tobedropped--) {
+  //    rb_unWrite(); // this stops unWriting at first '\0'
+  //  }
   for (; tobedropped > 0; tobedropped--) {
     if (rb_buffer_count == 0) {
       return true; // empty
     }
     // else
-    size_t head = rb_buffer_head-1; // will wrap to very large number if idx == 0
-    if (head > (rb_bufSize - 1)) {
+    size_t head = rb_buffer_head - 1; // will wrap to very large number if idx == 0
+    if (head > rb_bufSize) { // actually (head > (rb_bufSize-1) but ESP8266 complains about this so just assume head will be very big
       head = (rb_bufSize - 1);
-    }	
+    }
     if (!rb_buf[head]) { // true if == '\0' else false
-     return true; // stop at '\0'
+      return true; // stop at '\0'
     }
     // else update for this unWrite
     rb_buffer_head = head;
@@ -713,31 +806,11 @@ bool BufferedOutput::rb_lastBufferedByteProtect() {
     return true; // empty so no need to write another one here as nothing to protect
   }
   // else
-  size_t head = rb_buffer_head-1; // will wrap to very large number if idx == 0
-  if (head > (rb_bufSize - 1)) {
+  size_t head = rb_buffer_head - 1; // will wrap to very large number if idx == 0
+  if (head > rb_bufSize) { // actually (head > (rb_bufSize-1) but ESP8266 complains about this so just assume head will be very big
     head = (rb_bufSize - 1);
-  }	
+  }
   return (!rb_buf[head]);  // true if == '\0' else false
 }
-
-/**
-void BufferedOutput::rb_unWrite() {
-  if (rb_buffer_count == 0) {
-    return; // empty cannot unWrite
-  }
-  // else
-  size_t head = rb_buffer_head-1; // will wrap to very large number if idx == 0
-  if (head > (rb_bufSize - 1)) {
-    head = (rb_bufSize - 1);
-  }	
-  if (!rb_buf[head]) { // true if == '\0' else false
-  	//  Serial.println("!~!");
-    return; // stop at '\0'
-  }
-  // update for unWrite
-  rb_buffer_head = head; 
-  rb_buffer_count--;
-}
-**/
 
 

@@ -25,7 +25,7 @@ class SafeStringStream : public Stream {
     // the sf set here can be replaced in the begin( ) call
     explicit SafeStringStream(SafeString &sf, SafeString &sfRxBuffer);
     
-    void begin(const uint32_t baudRate = 0); // start to release at this baud rate, 0 means infinite baudRate
+    void begin(const uint32_t baudRate = 0); // start to release at this baud rate, 0 means infinite baudRate //uint32_t 
     void begin(SafeString &sf, const uint32_t baudRate = 0); // start to release sf contents at this baud rate, 0 means infinite baudRate
     // this begin replaces any previous sf with the sf passed here.
     size_t write(uint8_t b);
@@ -34,6 +34,11 @@ class SafeStringStream : public Stream {
     int peek();
     void flush(); // for ESP32 etc
     int availableForWrite();
+    
+    // number of chars dropped due to SafeStringStream Rx buffer overflow
+    // count is reset to zero at the end of this call 
+    size_t RxBufferOverflow();    
+
   private:
   	SafeStringStream(const SafeStringStream& other);
   	void init();
@@ -43,7 +48,7 @@ class SafeStringStream : public Stream {
     unsigned long sendTimerStart;
     char Rx_BUFFER[9]; // 8char + null
     SafeString* sfRxBufferPtr;
-
+    size_t missedCharsCount;
   protected:
   	 SafeString *sfPtr;
 };
