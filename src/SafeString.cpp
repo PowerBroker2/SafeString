@@ -3525,9 +3525,10 @@ bool SafeString::readUntilInternal(Stream& input, const char* delimitersIn, cons
 /*
       NON-blocking readUntilToken
       returns true if a delimited token is found, else false
-      ONLY delimited tokens of length less than this SafeString's capacity will return true. Streams of chars that overflow this SafeString's capacity are ignored.
+      ONLY delimited tokens of length less than this SafeString's capacity will return true with a non-empty token.
+      Streams of chars that overflow this SafeString's capacity are ignored and return an empty token on the next delimiter
       That is this SafeString's capacity should be at least 1 more then the largest expected token.
-      If the SaftString & token return argument is too small to hold the result it is returned empty and an error message output if debugging is enabled.
+      If this SafeString OR the SaftString & token return argument is too small to hold the result, the token is returned empty and an error message output if debugging is enabled.
       The delimiter is NOT included in the SaftString & token return.  It will the first char of the this SafeString when readUntilToken returns true
       It is recommended that the capacity of the SafeString & token argument be >= this SaftString's capacity
       Each call to this method removes any leading delimiters so if you need to check the delimiter do it BEFORE the next call to readUntilToken()
@@ -3541,7 +3542,7 @@ bool SafeString::readUntilInternal(Stream& input, const char* delimitersIn, cons
         timeout_mS - defaults to never timeout, pass a non-zero mS to autoterminate the last token if no new chars received for that time.
 
       returns true if a delimited series of chars found that fit in this SafeString else false
-      If the SaftString & token argument is too small to hold the result it is returned empty
+      If this SafeString OR the SaftString & token argument is too small to hold the result, the returned token is returned empty
       The delimiter is NOT included in the SaftString & token return. It will the first char of the this SafeString when readUntilToken returns true
  **/
  
@@ -3629,8 +3630,12 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
   // NOTE: this method's contract says you can set skipToDelimiter true at any time
   // so here stop reading on first delimiter and process results
   // loop here until either isFill() OR no more chars avail OR found delimiter
-  while (input.available() && (len < (capacity()))) {
+  // read at most capacity() each time if skipping 
+  // this prevent infinite loop if using SafeStringStream with echoOn and rx buffer overflow has dropped all the delimiters
+  size_t charRead = 0;
+  while (input.available() && (len < capacity()) && (charRead < capacity()) ) {
     int c = input.read();
+    charRead++;
     if (c == '\0') {
       continue; // skip nulls  // don't update timer on null chars
     }
@@ -3648,21 +3653,25 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
     if (strchr(delimiters, c) != NULL) {
       if (skipToDelimiter) {
         // if skipToDelimiter then started with empty SafeString
-        skipToDelimiter = false; // found next delimiter
-      	clear(); // and keep looping
+        skipToDelimiter = false; // found next delimiter not added above because skipToDelimiter
+      	clear(); 
+        concat((char)c); // is a delimiter
+        return true; // empty token
       } else {
+      	// added c above
       	break; // process this token
       }
     }
   }
   // here either isFill() OR no more chars avail OR found delimiter
   // skipToDelimiter may still be true here if no delimiter found above
-  if ((!skipToDelimiter) && (nextToken(token, delimiters))) {  // removes leading delimiters if any
+  if (nextToken(token, delimiters)) {  // removes leading delimiters if any
      // returns true only if have found delimited token, returns false if full and no delimiter
     // IF found delimited token, delimiter was add just now and so timer reset
     // skipToDelimiter is false here since found delimiter
     return true; // not full and not timeout and have new token
   }
+  
   // else
   if (isFull()) { // note if full here then > max token as capacity needs to allow for one delimiter
       // SafeString is full of chars but no delimiter
@@ -3683,8 +3692,8 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
         input.print(delimiters[0]);
       }
       if (debugPtr) {
-        debugPtr->println();
-        debugPtr->println("!! Input timed out !!");
+        debugPtr->println(); debugPtr->print("!! ");outputName();
+        debugPtr->println(" -- Input timed out.");
       }
       if (skipToDelimiter) {
       	  skipToDelimiter = false;

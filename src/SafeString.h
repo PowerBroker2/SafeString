@@ -224,8 +224,9 @@ class __FlashStringHelper;
 #define cSFPS createSafeStringFromCharPtrWithSize
 
 class SafeString : public Printable, public Print {
-
+  
   public:
+  	  
     explicit SafeString(size_t maxLen, char *buf, const char* cstr, const char* _name = NULL, bool _fromBuffer = false, bool _fromPtr = true);
     // _fromBuffer true does extra checking before each method execution for SafeStrings created from existing char[] buffers
     // _fromPtr is not checked unless _fromBuffer is true
@@ -755,22 +756,25 @@ class SafeString : public Printable, public Print {
     
     /*
       NON-blocking readUntilToken
-      returns true if a delimited token is found, else false 
-      ONLY delimited tokens of length less than this SafeString's capacity will return true. Streams of chars that overflow this SafeString's capacity are ignored.
+      returns true if a delimited token is found, else false
+      ONLY delimited tokens of length less than this SafeString's capacity will return true with a non-empty token.
+      Streams of chars that overflow this SafeString's capacity are ignored and return an empty token on the next delimiter
       That is this SafeString's capacity should be at least 1 more then the largest expected token.
-      If the SaftString & token return argument is too small to hold the result it is returned empty and an error message output if debugging is enabled.
+      If this SafeString OR the SaftString & token return argument is too small to hold the result, the token is returned empty and an error message output if debugging is enabled.
       The delimiter is NOT included in the SaftString & token return.  It will the first char of the this SafeString when readUntilToken returns true
       It is recommended that the capacity of the SafeString & token argument be >= this SaftString's capacity
+      Each call to this method removes any leading delimiters so if you need to check the delimiter do it BEFORE the next call to readUntilToken()
 
       params
         input - the Stream object to read from
+        token - the SafeString to return the token found if any, always cleared at the start of this method
         delimiters - string of valid delimieters
         skipToDelimiter - a bool variable to hold the skipToDelimiter state between calls
         echoInput - defaults to true to echo the chars read
         timeout_mS - defaults to never timeout, pass a non-zero mS to autoterminate the last token if no new chars received for that time.
-        
+
       returns true if a delimited series of chars found that fit in this SafeString else false
-      If the SaftString & token argument is too small to hold the result it is returned empty
+      If this SafeString OR the SaftString & token argument is too small to hold the result, the returned token is returned empty
       The delimiter is NOT included in the SaftString & token return. It will the first char of the this SafeString when readUntilToken returns true
     **/
     bool readUntilToken(Stream & input, SafeString & token, const char delimiter, bool & skipToDelimiter, uint8_t echoInput = true, unsigned long timeout_mS = 0);
@@ -796,6 +800,8 @@ class SafeString : public Printable, public Print {
           (void)(length);
           return 0;
         };
+    public:
+        void flush() { }
     };
 
     static SafeString::noDebugPrint emptyPrint;
@@ -809,6 +815,14 @@ class SafeString : public Printable, public Print {
         size_t write(const uint8_t *buffer, size_t length) {
           return currentOutput->write(buffer, length);
         };
+    public:
+        void flush() {
+#if defined(ESP_PLATFORM)
+    	// ESP32 has no flush in Print!! but ESP8266 has
+#else
+        	currentOutput->flush();
+#endif
+        }
     };
 
   public:
