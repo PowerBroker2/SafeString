@@ -27,16 +27,23 @@ SafeStringReader::SafeStringReader(SafeString &sfInput_, size_t bufSize, char* t
 	
 void SafeStringReader::init(SafeString& sfInput_,const char* delimiters_, bool skipToDelimiterFlag_, uint8_t echoInput_, unsigned long timeout_mS_) {
   sfInputPtr = &sfInput_;
-  sfInputPtr->clear();
+  end();
   delimiters = delimiters_;
   skipToDelimiterFlag = skipToDelimiterFlag_;
   echoInput = echoInput_;
   timeout_mS = timeout_mS_;
-  streamPtr = NULL;
 }
 
 void SafeStringReader::connect(Stream& stream) {
   streamPtr = &stream;
+}
+
+void SafeStringReader::end() {
+  sfInputPtr->clear();
+  skipToDelimiterFlag = false;
+  echoInput = false;
+  timeout_mS = 0;
+  streamPtr = NULL;
 }
 
 //set back to false at next delimiter

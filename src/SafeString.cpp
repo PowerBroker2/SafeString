@@ -3526,7 +3526,7 @@ bool SafeString::readUntilInternal(Stream& input, const char* delimitersIn, cons
       NON-blocking readUntilToken
       returns true if a delimited token is found, else false
       ONLY delimited tokens of length less than this SafeString's capacity will return true with a non-empty token.
-      Streams of chars that overflow this SafeString's capacity are ignored and return an empty token on the next delimiter
+      Streams of chars that overflow this SafeString's capacity are ignored and return an empty token on the next delimiter or timeout
       That is this SafeString's capacity should be at least 1 more then the largest expected token.
       If this SafeString OR the SaftString & token return argument is too small to hold the result, the token is returned empty and an error message output if debugging is enabled.
       The delimiter is NOT included in the SaftString & token return.  It will the first char of the this SafeString when readUntilToken returns true
@@ -3687,21 +3687,22 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
       // no new chars for timeout add terminator
       timeoutRunning = false;
       // put in delimiter   
-      concat(delimiters[0]);   // certainly NOT full from above  	 
-      if (echoInput) {
-        input.print(delimiters[0]);
-      }
-      if (debugPtr) {
-        debugPtr->println(); debugPtr->print("!! ");outputName();
-        debugPtr->println(" -- Input timed out.");
-      }
-      if (skipToDelimiter) {
-      	  skipToDelimiter = false;
-      	  clear();
-      	  return false;
-      } // else pick up token
-      nextToken(token, delimiters); // collect this token just delimited, this will clear input
-      return true;
+      if ((len != 0) || skipToDelimiter) { // have something to delimit or had somthing, else just stop timer
+       concat(delimiters[0]);   // certainly NOT full from above  	 
+       if (echoInput) {
+         input.print(delimiters[0]);
+       }
+       if (debugPtr) {
+         debugPtr->println(); debugPtr->print("!! ");outputName();
+         debugPtr->println(" -- Input timed out.");
+       }
+       if (skipToDelimiter) {
+       	  skipToDelimiter = false;
+      	  return true;
+       } // else pick up token
+       nextToken(token, delimiters); // collect this token just delimited, this will clear input
+       return true;
+     }
     }
   }
   return false; // no token 

@@ -40,6 +40,7 @@ public:
     explicit SafeStringReader(SafeString& _sfInput, size_t bufSize, char *tokenBuf, const char* _name, const char* delimiters, bool skipToDelimiterFlag=false, uint8_t echoInput = false, unsigned long timeout_mS = 0 );
     explicit SafeStringReader(SafeString& _sfInput, size_t bufSize, char *tokenBuf, const char* _name, const char delimiter, bool skipToDelimiterFlag=false, uint8_t echoInput = false, unsigned long timeout_mS = 0 );
     void connect(Stream& stream);
+    void end(); // disconnect from stream, turn echo off, set timeout to 0 and clear skipToDelimiter
    bool read();
   void echoOn();
   void echoOff();

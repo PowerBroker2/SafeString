@@ -111,7 +111,7 @@
 #include <Print.h>
 #include <Printable.h>
 // This include handles the rename of Stream for MBED compiles
-#if defined(ARDUINO_ARDUINO_NANO33BLE)
+#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD)
   #include <Stream.h>
 #elif defined( __MBED__ ) || defined( MBED_H )
   #include <WStream.h>
@@ -120,7 +120,7 @@
   #include <Stream.h>
 #endif
 
-#ifdef ARDUINO_ARDUINO_NANO33BLE
+#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD)
 namespace arduino {
 #endif
 
@@ -861,7 +861,8 @@ class SafeString : public Printable, public Print {
 };
 
 
-#ifdef ARDUINO_ARDUINO_NANO33BLE
+#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD)
+
 } // namespace arduino
 #endif
 
