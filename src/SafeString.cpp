@@ -3428,8 +3428,10 @@ size_t SafeString::writeTo(SafeString & output, size_t startIdx) {
 bool SafeString::read(Stream& input) {
   cleanUp();
   bool rtn = false;
+  noCharsRead = 0;
   while (input.available() && (len < _capacity)) {
     int c = input.read();
+    noCharsRead++;
     if (c != '\0') { // skip any nulls read
       concat((char)c);
       rtn = true;
@@ -3504,9 +3506,10 @@ bool SafeString::readUntilInternal(Stream& input, const char* delimitersIn, cons
   if (delimiters == NULL) {
   	delimiters = charDelim;
   }  
-
+  noCharsRead = 0;
   while (input.available() && (len < (capacity()))) {
     int c = input.read();
+    noCharsRead++;
     if (c == '\0') {
       continue; // skip nulls
     }
@@ -3632,10 +3635,11 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
   // loop here until either isFill() OR no more chars avail OR found delimiter
   // read at most capacity() each time if skipping 
   // this prevent infinite loop if using SafeStringStream with echoOn and rx buffer overflow has dropped all the delimiters
-  size_t charRead = 0;
-  while (input.available() && (len < capacity()) && (charRead < capacity()) ) {
+  //size_t charRead = 0;
+  noCharsRead = 0;
+  while (input.available() && (len < capacity()) && (noCharsRead < capacity()) ) {
     int c = input.read();
-    charRead++;
+    noCharsRead++;
     if (c == '\0') {
       continue; // skip nulls  // don't update timer on null chars
     }
@@ -3706,6 +3710,10 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
     }
   }
   return false; // no token 
+}
+
+size_t SafeString::getLastReadCount() {
+	return noCharsRead;
 }
 
 /** end of NON-Blocking reads from Stream,  read() and readUntil() *******************/

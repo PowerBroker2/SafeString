@@ -1,4 +1,5 @@
 #include <millisDelay.h>
+// see the tutorial https://www.forward.com.au/pfod/ArduinoProgramming/TimingDelaysInArduino.html
 
 /*
    (c)2018 Forward Computing and Control Pty. Ltd.
@@ -52,21 +53,21 @@ void setup() {
 
 void loop() {
 
-  if (mainDelay.isRunning()) {
+  if (mainDelay.isRunning()) { // set true by mainDelay.start(...) and false by mainDelay.justFinished() or mainDelay.stop()
     digitalWrite(led, HIGH); // led on while main delay is running
   } else {
     digitalWrite(led, LOW); // led off otherwise
   }
 
-  if (mainDelay.justFinished()) {
+  if (mainDelay.justFinished()) { // don't combine this test with any other condition, sets isRunning() false when timed out
     digitalWrite(led, LOW); // turn the led off
 #ifdef DEBUG
     Serial.print("mainDelay finished at:"); Serial.print(millis()); Serial.println();
 #endif
   }
 
-  if (firstPartDelay.justFinished()) { // finished first part of main delay
-    if (mainDelay.isRunning()) {
+  if (firstPartDelay.justFinished()) { // finished first part of main delay // don't combine this test with any other condition
+    if (mainDelay.isRunning()) {  // put any extra conditions inside here
       mainRemainingTime = mainDelay.remaining();  // remember how long left to run in the main delay
       // NOTE: need to call remaining() BEFORE  calling stop().  After calling stop() remaining will return 0 (ALWAYS)
       mainDelay.stop(); // stop mainDelay.  NOTE: mainDelay.justFinished() is NEVER true after stop()
@@ -81,8 +82,8 @@ void loop() {
     }
   }
 
-  if (freezeDelay.justFinished()) {
-    if (mainRemainingTime > 0) {
+  if (freezeDelay.justFinished()) { // don't combine this test with any other condition
+    if (mainRemainingTime > 0) { // put any extra conditions inside here
       // start mainDelay again
       currentMillis = millis(); // capture current time for print
       mainDelay.start(mainRemainingTime);

@@ -39,13 +39,14 @@ class SafeStringReader : public SafeString {
 public:
     explicit SafeStringReader(SafeString& _sfInput, size_t bufSize, char *tokenBuf, const char* _name, const char* delimiters, bool skipToDelimiterFlag=false, uint8_t echoInput = false, unsigned long timeout_mS = 0 );
     explicit SafeStringReader(SafeString& _sfInput, size_t bufSize, char *tokenBuf, const char* _name, const char delimiter, bool skipToDelimiterFlag=false, uint8_t echoInput = false, unsigned long timeout_mS = 0 );
-    void connect(Stream& stream);
-    void end(); // disconnect from stream, turn echo off, set timeout to 0 and clear skipToDelimiter
+    void connect(Stream& stream); // clears getReadCount() as well
+    bool end(); // returns true if have another token, terminates last token if any, disconnect from stream, turn echo off, set timeout to 0 and clear skipToDelimiter,  clears getReadCount()
    bool read();
   void echoOn();
   void echoOff();
   void skipToDelimiter(); // sets skipToDelimiter to true
   void setTimeout(unsigned long mS);
+  size_t getReadCount(); // number of chars read since last connect called, cleared when end() called
 
   // return the delimiter that terminated the last token
   // only valid when read() returns true
@@ -67,6 +68,7 @@ public:
     unsigned long timeout_mS;
     bool haveToken; // true if have token but read() not called yet
     Stream *streamPtr;
+    size_t charCounter; // counts bytes read, useful for http streams
     char internalCharDelimiter[2]; // used if char delimiter passed
 };
 
