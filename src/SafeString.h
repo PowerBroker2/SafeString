@@ -780,7 +780,8 @@ class SafeString : public Printable, public Print {
     bool readUntilToken(Stream & input, SafeString & token, const char delimiter, bool & skipToDelimiter, uint8_t echoInput = true, unsigned long timeout_mS = 0);
     bool readUntilToken(Stream & input, SafeString & token, const char* delimiters, bool & skipToDelimiter, uint8_t echoInput = true, unsigned long timeout_mS = 0);
     bool readUntilToken(Stream & input, SafeString & token, SafeString & delimiters, bool & skipToDelimiter, uint8_t echoInput = true, unsigned long timeout_mS = 0);
-
+    
+    size_t getLastReadCount(); // number of chars read on previous call to read, readUntil or readUntilToken (includes '\0' read if any)  each call read, readUntil, readUntilToken first clears this count
     /* *** END OF PUBLIC METHODS ************/
 
   protected:
@@ -844,6 +845,7 @@ class SafeString : public Printable, public Print {
     const char *name;
     unsigned long timeoutStart_mS;
     bool timeoutRunning;
+    size_t noCharsRead; // number of char read on last call to readUntilToken
     // reserve returns 0 if _capacity < size
     bool reserve(size_t size);
     static char nullBufferSafeStringBuffer[1];

@@ -36,14 +36,26 @@ void SafeStringReader::init(SafeString& sfInput_,const char* delimiters_, bool s
 
 void SafeStringReader::connect(Stream& stream) {
   streamPtr = &stream;
+  charCounter = 0;
 }
 
-void SafeStringReader::end() {
+bool SafeStringReader::end() {
+  bool rtn = sfInputPtr->nextToken(*this, delimiters);
+  if (!rtn && (!sfInputPtr->isEmpty())) {
+	sfInputPtr->concat(delimiters[0]);
+	rtn =sfInputPtr->nextToken(*this, delimiters);
+  }
   sfInputPtr->clear();
   skipToDelimiterFlag = false;
   echoInput = false;
   timeout_mS = 0;
   streamPtr = NULL;
+  charCounter = 0;
+  return rtn;
+}
+
+size_t SafeStringReader::getReadCount() {
+	return charCounter;
 }
 
 //set back to false at next delimiter
@@ -92,6 +104,7 @@ bool SafeStringReader::read() {
   bool rtn = false;
   bool skipToDelimiterPrior = skipToDelimiterFlag;
   rtn = sfInputPtr->readUntilToken(*streamPtr, *this, delimiters, skipToDelimiterFlag, echoInput, timeout_mS);
+  charCounter += sfInputPtr->getLastReadCount();
   if ((!skipToDelimiterPrior) && skipToDelimiterFlag) {
   	skipMsg = true;
   }
@@ -99,6 +112,7 @@ bool SafeStringReader::read() {
   // try to read some more may return true if delimiter found this time
   if ((!rtn) && (skipToDelimiterFlag)) {
     rtn = sfInputPtr->readUntilToken(*streamPtr, *this, delimiters, skipToDelimiterFlag, echoInput, timeout_mS);
+    charCounter += sfInputPtr->getLastReadCount();
   }
   if (skipMsg) {
 #ifdef SSTRING_DEBUG

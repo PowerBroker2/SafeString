@@ -1,4 +1,5 @@
 #include <millisDelay.h>
+// see the tutorial https://www.forward.com.au/pfod/ArduinoProgramming/TimingDelaysInArduino.html
 
 /*
  * (c)2018 Forward Computing and Control Pty. Ltd.
@@ -44,7 +45,7 @@ void setup() {
 }
 
 void loop() {
-  if (printDelay.justFinished()) {
+  if (printDelay.justFinished()) { // don't combine this test with any other condition
     printDelay.repeat(); // for next print
     Serial.print(" ledDelay remaining:"); Serial.println(ledDelay.remaining());
   }
@@ -78,7 +79,7 @@ void loop() {
     Serial.print("Invalid cmd:"); Serial.println(c);
   }
 
-  if (ledDelay.justFinished()) {
+  if (ledDelay.justFinished()) { // don't combine this test with any other condition
     // delay timed out
     digitalWrite(led, LOW); // turn led off
     Serial.println("Delay finished and stopped. Led Turned off.");
