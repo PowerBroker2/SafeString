@@ -23,7 +23,7 @@ void setup() {
   // see the SafeString_ConstructorAndDebugging example for debugging settings
   SafeString::setOutput(Serial); // enable full debugging error msgs
 
-  char line[] = "23.5, 44a ,, , -5. , +.5, 7a, 33,fred5, 6.5.3, a.5,b.3";
+  char line[] = ",23.5, 44a ,, , -5. , +.5, 7a, 33,fred5, 6.5.3, a.5,b.3";
   cSFP(sfLine, line);
   Serial.print(F("Input line is '")); Serial.print(sfLine); Serial.println('\'');
   createSafeString(field, 10); // for the field strings. Should have capacity > largest field length

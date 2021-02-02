@@ -408,7 +408,7 @@ void SafeString::setVerbose(bool verbose) {
 // will work as expected
 const char* SafeString::debug(bool verbose) { // verbose optional defaults to true
   debug((const char*) NULL, verbose); // calls cleanUp();
-  emptyDebugRtnBuffer[0] = '\0'; // the last return was changed
+  emptyDebugRtnBuffer[0] = '\0'; // if the last return was changed
   return emptyDebugRtnBuffer;
 }
 
@@ -423,7 +423,7 @@ const char* SafeString::debug(const __FlashStringHelper * pstr, bool verbose) { 
     }
     debugInternal(verbose);
   }
-  emptyDebugRtnBuffer[0] = '\0'; // the last return was changed
+  emptyDebugRtnBuffer[0] = '\0'; // if the last return was changed
   return emptyDebugRtnBuffer;
 }
 
@@ -437,7 +437,7 @@ const char* SafeString::debug(const char *title, bool verbose) { // verbose opti
     }
     debugInternal(verbose);
   }
-  emptyDebugRtnBuffer[0] = '\0'; // the last return was changed
+  emptyDebugRtnBuffer[0] = '\0'; // if the last return was changed
   return emptyDebugRtnBuffer;
 }
 
@@ -452,7 +452,7 @@ const char* SafeString::debug(SafeString &stitle, bool verbose) { // verbose opt
     }
     debugInternal(verbose);
   }
-  emptyDebugRtnBuffer[0] = '\0'; // the last return was changed
+  emptyDebugRtnBuffer[0] = '\0'; // if the last return was changed
   return emptyDebugRtnBuffer;
 }
 
@@ -1929,6 +1929,8 @@ char SafeString::operator[]( size_t index ) {
 
 const char* SafeString::c_str() {
   cleanUp();
+  // mark as subject to external modification now as we have exposed the internal buffer
+  fromBuffer = true;  // added V3.0.4
   return buffer;
 }
 
@@ -3090,7 +3092,7 @@ bool SafeString::toDouble(double  &d) {
               In this case the return (nextIndex) is still updated.
       fromIndex -- where to start the search from  0 to length() is valid for fromIndex
       delimiters - the characters that any one of which can delimit a token. The end of the SafeString is always a delimiter.
-      returnEmptyFields -- default false, if true only skip one leading delimiter each call
+      returnEmptyFields -- default false, if true only skip one leading delimiter after each call. If the fromIndex is 0 and there is a delimiter at the beginning of the SafeString, an empty token will be returned  
       useAsDelimiters - default true, if false then token consists only of chars in the delimiters and any other char terminates the token
 
       return -- nextIndex, the next index in this SafeString after the end of the token just found.
@@ -3182,8 +3184,11 @@ size_t SafeString::stokenInternal(SafeString &token, size_t fromIndex, const cha
   if (returnEmptyFields) {
     // only step over one
     if (count > 0) {
+      if (fromIndex == 0) {
+        return 1; // leading empty token
+      } // else skip over only one of the last delimiters
       count = 1;
-    }
+    } 
   }
   fromIndex += count;
   if (fromIndex == len) {

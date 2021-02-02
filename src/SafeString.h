@@ -660,7 +660,7 @@ class SafeString : public Printable, public Print {
               In this case the return (nextIndex) is still updated.
       fromIndex -- where to start the search from  0 to length() is valid for fromIndex
       delimiters - the characters that any one of which can delimit a token. The end of the SafeString is always a delimiter.     
-      returnEmptyFields -- default false, if true only skip one leading delimiter each call  
+      returnEmptyFields -- default false, if true only skip one leading delimiter after each call. If the fromIndex is 0 and there is a delimiter at the beginning of the SafeString, an empty token will be returned  
       useAsDelimiters - default true, if false then token consists only of chars in the delimiters and any other char terminates the token
                          
       return -- nextIndex, the next index in this SafeString after the end of the token just found.
