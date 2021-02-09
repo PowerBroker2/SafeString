@@ -103,9 +103,13 @@
 #include "SafeString.h"
 #include <limits.h>
 
-#ifdef ARDUINO_ARDUINO_NANO33BLE
+// to skip this for SparkFun RedboardTurbo
+#ifndef ARDUINO_SAMD_ZERO
+#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD)
 using namespace arduino;
 #endif
+#endif // #ifndef ARDUINO_SAMD_ZERO
+
 
 // to remove all the error debug outputs, comment out
 // #define SSTRING_DEBUG
@@ -3877,3 +3881,9 @@ void SafeString::prefixErr() const {
 }
 /*****************  end of private internal debug support methods *************************/
 
+// to skip this for SparkFun RedboardTurbo
+#ifndef ARDUINO_SAMD_ZERO
+#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD)
+} // namespace arduino
+#endif
+#endif // #ifndef ARDUINO_SAMD_ZERO

@@ -119,10 +119,12 @@
 #else
   #include <Stream.h>
 #endif
-
+// to skip this for SparkFun RedboardTurbo
+#ifndef ARDUINO_SAMD_ZERO
 #if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD)
 namespace arduino {
 #endif
+#endif // #ifndef ARDUINO_SAMD_ZERO
 
 class __FlashStringHelper;
 #ifndef F
@@ -818,7 +820,7 @@ class SafeString : public Printable, public Print {
         };
     public:
         void flush() {
-#if defined(ESP_PLATFORM)
+#if defined(ESP_PLATFORM) || defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4)
     	// ESP32 has no flush in Print!! but ESP8266 has
 #else
         	currentOutput->flush();
@@ -862,11 +864,12 @@ class SafeString : public Printable, public Print {
     void outputFromIndexIfFullDebug(size_t fromIndex) const ;
 };
 
-
+// to skip this for SparkFun RedboardTurbo
+#ifndef ARDUINO_SAMD_ZERO
 #if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD)
-
 } // namespace arduino
 #endif
+#endif  // #ifndef ARDUINO_SAMD_ZERO
 
 #endif  // __cplusplus
 #endif  // SafeString_class_h
