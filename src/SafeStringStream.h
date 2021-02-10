@@ -12,9 +12,12 @@
 #include <Arduino.h>
 #include "SafeString.h"
 
-#ifdef ARDUINO_ARDUINO_NANO33BLE
+// to skip this for SparkFun RedboardTurbo
+#ifndef ARDUINO_SAMD_ZERO
+#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR)
 namespace arduino {
 #endif
+#endif // #ifndef ARDUINO_SAMD_ZERO
 
 class SafeStringStream : public Stream {
   public:
@@ -55,9 +58,12 @@ class SafeStringStream : public Stream {
 
 
 
-#ifdef ARDUINO_ARDUINO_NANO33BLE
+// to skip this for SparkFun RedboardTurbo
+#ifndef ARDUINO_SAMD_ZERO
+#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR)
 } // namespace arduino
 #endif
+#endif  // #ifndef ARDUINO_SAMD_ZERO
 
 
 #endif  // __cplusplus

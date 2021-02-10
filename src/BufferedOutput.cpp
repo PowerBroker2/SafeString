@@ -1,9 +1,12 @@
 #include <Arduino.h>
 #include "BufferedOutput.h"
 
-#ifdef ARDUINO_ARDUINO_NANO33BLE
+// to skip this for SparkFun RedboardTurbo
+#ifndef ARDUINO_SAMD_ZERO
+#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR)
 using namespace arduino;
 #endif
+#endif // #ifndef ARDUINO_SAMD_ZERO
 
 /**
   BufferedOutput.cpp
