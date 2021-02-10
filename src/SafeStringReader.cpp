@@ -11,9 +11,12 @@
 #include "SafeString.h" // for SSTRING_DEBUG
 // un comment this to get SafeString output messages about skip to delimiter when input buffer fills up
 
-#ifdef ARDUINO_ARDUINO_NANO33BLE
+// to skip this for SparkFun RedboardTurbo
+#ifndef ARDUINO_SAMD_ZERO
+#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR)
 using namespace arduino;
 #endif
+#endif // #ifndef ARDUINO_SAMD_ZERO
 
 SafeStringReader::SafeStringReader(SafeString &sfInput_, size_t bufSize, char* tokenBuffer, const char* _name, const char delimiter, bool skipToDelimiterFlag_, uint8_t echoInput_, unsigned long timeout_mS_) : SafeString(bufSize, tokenBuffer, "", _name) {
   internalCharDelimiter[0] = delimiter;

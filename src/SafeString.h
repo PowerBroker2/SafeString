@@ -119,6 +119,13 @@
 #else
   #include <Stream.h>
 #endif
+
+class __FlashStringHelper;
+#ifndef F
+#define F(string_literal) (reinterpret_cast<const __FlashStringHelper *>(PSTR(string_literal)))
+// ESP32 breaks this define into two defines and gives warnings about redfinition of the F( ) macro which can be ignored
+#endif
+
 // to skip this for SparkFun RedboardTurbo
 #ifndef ARDUINO_SAMD_ZERO
 #if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR)
@@ -126,11 +133,6 @@ namespace arduino {
 #endif
 #endif // #ifndef ARDUINO_SAMD_ZERO
 
-class __FlashStringHelper;
-#ifndef F
-#define F(string_literal) (reinterpret_cast<const __FlashStringHelper *>(PSTR(string_literal)))
-// ESP32 breaks this define into two defines and gives warnings about redfinition of the F( ) macro which can be ignored
-#endif
 
 // to remove all the error messages, comment out
 #define SSTRING_DEBUG
@@ -215,7 +217,7 @@ class __FlashStringHelper;
 #else
 #define createSafeString(name, size,...) char name ## _SAFEBUFFER[(size)+1]; SafeString name(sizeof(name ## _SAFEBUFFER),name ## _SAFEBUFFER, ""  __VA_ARGS__);
 #define createSafeStringFromCharArray(name,charArray)  SafeString name(sizeof(charArray),charArray, charArray, NULL, true, false);
-#define createSafeStringFromCharPtr(name charPtr) SafeString name((size_t)-1,charPtr, charPtr, NULL, true);
+#define createSafeStringFromCharPtr(name, charPtr) SafeString name((size_t)-1,charPtr, charPtr, NULL, true);
 #define createSafeStringFromCharPtrWithSize(name, charPtr, arraySize) SafeString name((arraySize),charPtr, charPtr, NULL, true);
 #endif
 

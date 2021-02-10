@@ -22,9 +22,12 @@
   #include <Stream.h>
 #endif
 
-#ifdef ARDUINO_ARDUINO_NANO33BLE
+// to skip this for SparkFun RedboardTurbo
+#ifndef ARDUINO_SAMD_ZERO
+#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR)
 namespace arduino {
 #endif
+#endif // #ifndef ARDUINO_SAMD_ZERO
 
 
 #define createSafeStringReader(name, size, ...) \
@@ -72,9 +75,12 @@ public:
     char internalCharDelimiter[2]; // used if char delimiter passed
 };
 
-#ifdef ARDUINO_ARDUINO_NANO33BLE
+// to skip this for SparkFun RedboardTurbo
+#ifndef ARDUINO_SAMD_ZERO
+#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR)
 } // namespace arduino
 #endif
+#endif  // #ifndef ARDUINO_SAMD_ZERO
 
 #endif  // __cplusplus
 #endif // SAFE_STRING_READER_H

@@ -47,9 +47,12 @@
 
 #include "SafeString.h" // for SSTRING_DEBUG and SafeString::Output
 
-#ifdef ARDUINO_ARDUINO_NANO33BLE
+// to skip this for SparkFun RedboardTurbo
+#ifndef ARDUINO_SAMD_ZERO
+#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR)
 namespace arduino {
 #endif
+#endif // #ifndef ARDUINO_SAMD_ZERO
 
 #define createBufferedInput(name, size) uint8_t name ## _INPUT_BUFFER[(size)]; BufferedInput name(sizeof(name ## _INPUT_BUFFER),name ## _INPUT_BUFFER);
 
@@ -127,9 +130,12 @@ class BufferedInput : public Stream {
     void rb_internalWrite(uint8_t b);
 };
 
-#ifdef ARDUINO_ARDUINO_NANO33BLE
+// to skip this for SparkFun RedboardTurbo
+#ifndef ARDUINO_SAMD_ZERO
+#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR)
 } // namespace arduino
 #endif
+#endif  // #ifndef ARDUINO_SAMD_ZERO
 
 #endif  // __cplusplus
 #endif // BufferedInput_h

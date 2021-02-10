@@ -47,9 +47,12 @@
 
 #include "SafeString.h"  // for Output and #define SSTRING_DEBUG
 
-#ifdef ARDUINO_ARDUINO_NANO33BLE
+// to skip this for SparkFun RedboardTurbo
+#ifndef ARDUINO_SAMD_ZERO
+#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR)
 namespace arduino {
 #endif
+#endif // #ifndef ARDUINO_SAMD_ZERO
 
 #define createBufferedOutput(name, size, ...) uint8_t name ## _OUTPUT_BUFFER[(size)+4]; BufferedOutput name(sizeof(name ## _OUTPUT_BUFFER),name ## _OUTPUT_BUFFER,  __VA_ARGS__ ); // add 4 for dropMark
 
@@ -166,9 +169,12 @@ class BufferedOutput : public Stream {
     void rb_internalWrite(uint8_t b);
 };
 
-#ifdef ARDUINO_ARDUINO_NANO33BLE
+// to skip this for SparkFun RedboardTurbo
+#ifndef ARDUINO_SAMD_ZERO
+#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR)
 } // namespace arduino
 #endif
+#endif  // #ifndef ARDUINO_SAMD_ZERO
 
 #endif  // __cplusplus
 #endif // BufferedOutput_h
