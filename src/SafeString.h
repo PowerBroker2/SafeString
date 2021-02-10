@@ -1,6 +1,6 @@
 // !!!!!!!!! WARNING in V2 substring endIdx is EXCLUSIVE !!!!!!!!!! change from V1 inclusive
 /*
-   The SafeString class V2.0.2
+   The SafeString class V3.0.6
    Note: ESP32 gives warning: "F" redefined which can be ignored
 
   -----------------  creating SafeStrings ---------------------------------
@@ -121,7 +121,7 @@
 #endif
 // to skip this for SparkFun RedboardTurbo
 #ifndef ARDUINO_SAMD_ZERO
-#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD)
+#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR)
 namespace arduino {
 #endif
 #endif // #ifndef ARDUINO_SAMD_ZERO
@@ -866,7 +866,7 @@ class SafeString : public Printable, public Print {
 
 // to skip this for SparkFun RedboardTurbo
 #ifndef ARDUINO_SAMD_ZERO
-#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD)
+#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR)
 } // namespace arduino
 #endif
 #endif  // #ifndef ARDUINO_SAMD_ZERO
