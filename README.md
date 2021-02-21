@@ -23,6 +23,7 @@ See the top of each file for its license
 Note, this is NOT my work, I am simply hosting it for easy access. The original code belongs to [Forward Computing and Control Pty. Ltd](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
 
 # Revisions
+V3.1.0 adds hasError() method
 V3.0.6 adds support for Arduino megaAVR boards
 V3.0.5 adds support for SparkFun Redboard Turbo,but may interfer with other SAM ZERO based boards, also adds support for Due and STM32F1 and STM32F4
 

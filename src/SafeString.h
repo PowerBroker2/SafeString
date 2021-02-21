@@ -252,6 +252,14 @@ class SafeString : public Printable, public Print {
     // use this to control error messages verbose output
     static void setVerbose(bool verbose); // turn verbose error msgs on/off.  setOutput( ) sets verbose to true
 
+    // returns true if error detected, errors are detected even is setOutput has not been called
+    // each call to hasError() clears the errorFlag
+    bool hasError();
+    
+    // returns true if error detected in any SafeString object, errors are detected even is setOutput has not been called
+    // each call to errorDetected() clears the classErrorFlag
+    static bool errorDetected();
+    
     // these methods print out info on this SafeString object, iff setOutput has been called
     // setVerbose( ) does NOT effect these methods which have their own verbose argument
     // Each of these debug( ) methods defaults to outputing the string contents.  Set the optional verbose argument to false to suppress outputing string contents
@@ -284,7 +292,7 @@ class SafeString : public Printable, public Print {
     size_t print(unsigned long, int = DEC);
     size_t print(double, int = 2);
     size_t print(const __FlashStringHelper *);
-    size_t print(const char[]);
+    size_t print(const char*);
     size_t print(char);
     size_t print(SafeString &str);
 
@@ -295,7 +303,7 @@ class SafeString : public Printable, public Print {
     size_t println(unsigned long, int = DEC);
     size_t println(double, int = 2);
     size_t println(const __FlashStringHelper *);
-    size_t println(const char[]);
+    size_t println(const char*);
     size_t println(char);
     size_t println(SafeString &str);
     size_t println(void);
@@ -838,6 +846,15 @@ class SafeString : public Printable, public Print {
     SafeString & concatln(char c);
     SafeString & concatln(const char *cstr, size_t length);
     void outputName() const ;
+    SafeString & concatInternal(const char *cstr, size_t length, bool assignOp = false); // concat at most length chars from cstr
+    SafeString & concatInternal(const __FlashStringHelper * str, size_t length, bool assignOp = false); // concat at most length chars
+
+    SafeString & concatInternal(const char *cstr, bool assignOp = false);
+    SafeString & concatInternal(char c, bool assignOp = false);
+    SafeString & concatInternal(const __FlashStringHelper * str, bool assignOp = false);
+    size_t printInternal(long, int = DEC, bool assignOp = false);
+    size_t printInternal(unsigned long, int = DEC, bool assignOp = false);
+    size_t printInternal(double, int = 2, bool assignOp = false);
 
   private:
     bool readUntilTokenInternal(Stream & input, SafeString & token, const char* delimitersIn, char delimiterIn, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_mS);
@@ -845,6 +862,9 @@ class SafeString : public Printable, public Print {
     bool nextTokenInternal(SafeString & token, const char* delimitersIn, char delimiterIn);
     size_t stokenInternal(SafeString &token, size_t fromIndex, const char* delimitersIn, char delimiterIn, bool returnEmptyFields, bool useAsDelimiters);
     bool fromBuffer; // true if createSafeStringFromBuffer created this object
+    bool errorFlag; // set to true if error detected, cleared on each call to hasError()
+    static bool classErrorFlag; // set to true if any error detected in any SafeString, cleared on each call to SafeString::errorDetected()
+    void setError();
     void cleanUp(); // reterminates buffer at capacity and resets len to current strlen
     const char *name;
     unsigned long timeoutStart_mS;
@@ -858,10 +878,13 @@ class SafeString : public Printable, public Print {
     void debugInternalMsg(bool _fullDebug) const ;
     void debugInternalResultMsg(bool _fullDebug) const ;
     void concatErr()const ;
+    void concatAssignError() const;
     void prefixErr()const ;
     void capError(const __FlashStringHelper * methodName, size_t neededCap, const char* cstr, const __FlashStringHelper *pstr = NULL, char c = '\0', size_t length = 0)const ;
+    void assignError(size_t neededCap, const char* cstr, const __FlashStringHelper *pstr = NULL, char c = '\0', bool numberFlag = false) const;
     void printlnErr()const ;
     void errorMethod(const __FlashStringHelper * methodName) const ;
+    void assignErrorMethod() const ;
     void warningMethod(const __FlashStringHelper * methodName) const ;
     void outputFromIndexIfFullDebug(size_t fromIndex) const ;
 };
