@@ -1,6 +1,7 @@
 /*
   Appending to SafeStrings using the += operator and concat()
   Examples of how to append different data types to SafeStrings
+  Also has examples of using hasError() method
 
   by Matthew Ford
   Mods Copyright(c)2020 Forward Computing and Control Pty. Ltd.
@@ -95,13 +96,23 @@ void setup() {
 
   Serial.println();
   Serial.println(F("Error checking.."));
+  Serial.println(F("  hasError() returns true if any error detected. "));
+  Serial.println(F("  each call to hasError() clears the internal errorFlag for that SafeString "));
+  Serial.println(F("  each SafeString has its own errorFlag "));
+  Serial.println(F("  hasError() ALWAYS detects errors, even if SafeString::setOutput( ) has NOT been called "));
   Serial.println();
 
   Serial.println(F("stringTwo.concat('\\0');"));
   stringTwo.concat('\0');
+  if (stringTwo.hasError()) {
+    Serial.println(F("hasError() detected concat() error in stringTwo"));
+  }
   Serial.println();
   Serial.println(F("stringTwo += '\\0';"));
   stringTwo += '\0';
+  if (stringTwo.hasError()) {
+    Serial.println(F("hasError() detected += error in stringTwo"));
+  }
   Serial.println();
 
   char *nullPtr = NULL;
@@ -111,6 +122,9 @@ void setup() {
   Serial.println();
   Serial.println(F("stringTwo += nullPtr;"));
   stringTwo += nullPtr;
+  if (stringTwo.hasError()) { // check the last two operations
+    Serial.println(F("hasError() detected  some error in stringTwo"));
+  }
   Serial.println();
 
   Serial.println(F("char testChars[] = \"test characters\";"));
@@ -118,17 +132,49 @@ void setup() {
 
   Serial.println(F("stringOne.concat(testChars,24);"));
   stringOne.concat(testChars, 24);
+  if (stringOne.hasError()) { // check the last two operations
+    Serial.println(F("hasError() detected  concat error in stringOne"));
+  } else {
+    Serial.println(F("hasError() detected  NO ERRORS in stringOne"));
+  }
   Serial.println();
 
   Serial.println(F("stringOne.concat(F(\"This is a long string\"),30);"));
   stringOne.concat(F("This is a long string"), 30);
+  if (stringOne.hasError()) {
+    Serial.println(F("hasError() detected  concat error in stringOne"));
+  } else {
+    Serial.println(F("hasError() detected  NO ERRORS in stringOne"));
+  }
   Serial.println();
+  Serial.println(F("stringOne.clear();"));
+  stringOne.clear();
   Serial.println(F("stringOne.concat(F(\"This is a long F(string)\");"));
   stringOne.concat(F("This is a very long F(string) "));
+  if (stringOne.hasError()) { // last call to hasError() cleared error flag and no new errors
+    Serial.println(F("hasError() detected  concat error in stringOne"));
+  } else {
+    Serial.println(F("hasError() detected  NO ERRORS in stringOne"));
+  }
   Serial.println();
 
   Serial.println(F("stringOne.concat(\"This is a another very long string\");"));
   stringOne.concat("This is a another very long string ");
+  if (stringOne.hasError()) { // check the last operations since hasError() was called on stringOne
+    Serial.println(F("hasError() detected  some error in stringOne"));
+  }
+  Serial.println();
+
+  char str[] = "str[] is a test char[]";
+  createSafeStringFromCharArray(sfStr, str);
+  Serial.println(sfStr);
+  Serial.println(F(" cause a buffer overrun using strcat(str,\"more text\");"));
+  strcat(str, "more text");
+  Serial.println(F(" Serial.println(sfStr); again"));
+  Serial.println(sfStr);
+  if (sfStr.hasError()) { // check the last operations since hasError() was called on stringOne
+    Serial.println(F("hasError() detected  an error in sfStr"));
+  }
   Serial.println();
 
 }

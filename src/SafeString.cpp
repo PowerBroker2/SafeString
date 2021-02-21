@@ -128,6 +128,7 @@ Print* SafeString::currentOutput = &SafeString::emptyPrint; // nowhere to send O
 SafeString::noDebugPrint SafeString::emptyPrint;
 SafeString::DebugPrint SafeString::Output;
 bool SafeString::fullDebug = true; // output current contents of SafeString and input arg
+bool SafeString::classErrorFlag = false; // set true if any SafeString object has an error.
 
 /*********************************************/
 /**  Constructor                             */
@@ -138,6 +139,7 @@ bool SafeString::fullDebug = true; // output current contents of SafeString and 
 // _fromPtr is not checked unless _fromBuffer is true
 // _fromPtr true allows for any array size, if false it prevents passing char* by checking sizeof(charArray) != sizeof(char*)
 SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _name, bool _fromBuffer, bool _fromPtr) {
+  errorFlag = false;
   name = _name; // save name
   fromBuffer = _fromBuffer;
   timeoutRunning = false;
@@ -153,6 +155,7 @@ SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _
     _capacity = 0;
     len = 0;
     buffer[0] = '\0';
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       debugPtr->print(F("Error: createSafeStringFromCharArray("));
@@ -173,6 +176,7 @@ SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _
           _capacity = 0;
           len = 0;
           buffer[0] = '\0';
+          setError();
 #ifdef SSTRING_DEBUG
           if (debugPtr) {
             debugPtr->print(F("Error: createSafeStringFromCharArrayWithSize("));
@@ -190,6 +194,7 @@ SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _
         _capacity = 0;
         len = 0;
         buffer[0] = '\0';
+        setError();
 #ifdef SSTRING_DEBUG
         if (debugPtr) {
           debugPtr->print(F("Error: createSafeStringFromCharArray("));
@@ -211,6 +216,7 @@ SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _
     _capacity = 0;
     len = 0;
     buffer[0] = '\0';
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       debugPtr->print(F("Error: SafeString("));
@@ -222,6 +228,7 @@ SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _
   }
 
   if (cstr == NULL) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       debugPtr->print(F("Error: SafeString("));
@@ -243,6 +250,7 @@ SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _
       len = _capacity;
       buffer[len] = '\0'; // truncate buffer to given size
     }
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       if (!keepBufferContents) {
@@ -277,10 +285,12 @@ SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _
   // does cleanUp for all new objects
   len = cstrLen;
   buffer[len] = '\0';
+  buffer[_capacity] = '\0';
 }
 
 // this is private and should never be called.
 SafeString::SafeString(const SafeString& other ) {
+  //  setError();
   //#ifdef SSTRING_DEBUG
   //    if (debugPtr) {
   //      debugPtr->println(F("Error: SafeString arguments must be declared as references, SafeString&  e.g. void test(SafeString& strIn)"));
@@ -292,9 +302,26 @@ SafeString::SafeString(const SafeString& other ) {
   len = 0;
   buffer[0] = '\0';
   timeoutRunning = false;
+  errorFlag = false;
 }
 /**  end of Constructor methods ***********/
 
+bool SafeString::errorDetected() {
+  bool rtn = classErrorFlag;
+  classErrorFlag = false;
+  return rtn;
+}
+
+void SafeString::setError() {
+  classErrorFlag = true;
+  errorFlag = true;
+}
+
+bool SafeString::hasError() {
+  bool rtn = errorFlag;
+  errorFlag = false;
+  return rtn;
+}
 
 /*********************************************/
 /**  Information and utility methods         */
@@ -347,8 +374,21 @@ void SafeString::cleanUp() {
   if (!fromBuffer) {
     return; // skip scanning for length changes in the buffer in normal SafeString
   }
+  bool bufferOverrun = false;
+  if (buffer[_capacity] != '\0') {
+    setError(); // buffer overrun
+    bufferOverrun = true;
+  }
   buffer[_capacity] = '\0'; // make sure the buffer is terminated to prevent memory overruns
   len = strlen(buffer);  // scan for current length to pickup an changes made outside SafeString methods
+  if (bufferOverrun) {
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      debugPtr->print(F("SafeString cleanUp detected buffer overrun by external code."));
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+  }
 }
 /** end of  Information and utility methods ****************/
 
@@ -483,6 +523,7 @@ size_t SafeString::printTo(Print& p) const {
 size_t SafeString::write(uint8_t b) {
   cleanUp();
   if (b == 0) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("write"));
@@ -494,6 +535,7 @@ size_t SafeString::write(uint8_t b) {
   }
   size_t newlen = len + 1;
   if (!reserve(newlen)) {
+    setError();
 #ifdef SSTRING_DEBUG
     capError(F("write"), newlen, NULL, NULL);
 #endif // SSTRING_DEBUG
@@ -511,6 +553,7 @@ size_t SafeString::write(const uint8_t *buffer, size_t length) {
   size_t initialLen = len;
   size_t newlen = len + length;
   if (length > strlen((char *)buffer)) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("write"));
@@ -530,6 +573,7 @@ size_t SafeString::write(const uint8_t *buffer, size_t length) {
     return 0;
   }
   if (!reserve(newlen)) {
+    setError();
 #ifdef SSTRING_DEBUG
     capError(F("write"), newlen, (const char*)buffer, NULL, '\0', length);
 #endif // SSTRING_DEBUG
@@ -543,6 +587,7 @@ size_t SafeString::println() {
   cleanUp();
   size_t newlen = len + 2;
   if (!reserve(newlen)) {
+    setError();
 #ifdef SSTRING_DEBUG
     capError(F("println"), newlen, NULL, NULL);
 #endif // SSTRING_DEBUG
@@ -561,6 +606,7 @@ SafeString & SafeString::newline() {
 SafeString & SafeString::concatln(char c) {
   cleanUp();
   if (c == '\0') {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       printlnErr();
@@ -572,6 +618,7 @@ SafeString & SafeString::concatln(char c) {
   }
   size_t newlen = len + 1 + 2;
   if (!reserve(newlen)) {
+    setError();
 #ifdef SSTRING_DEBUG
     capError(F("println"), newlen, NULL, NULL, c);
 #endif // SSTRING_DEBUG
@@ -585,6 +632,7 @@ SafeString & SafeString::concatln(char c) {
 SafeString & SafeString::concatln(const __FlashStringHelper * pstr) {
   cleanUp();
   if (!pstr) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       printlnErr();
@@ -597,6 +645,7 @@ SafeString & SafeString::concatln(const __FlashStringHelper * pstr) {
   size_t pLen = strlen_P((PGM_P)pstr);
   size_t newlen = len + pLen + 2;
   if (!reserve(newlen)) {
+    setError();
 #ifdef SSTRING_DEBUG
     capError(F("println"), newlen, NULL, pstr);
 #endif // SSTRING_DEBUG
@@ -611,6 +660,7 @@ SafeString & SafeString::concatln(const char *cstr, size_t length) {
   cleanUp();
   size_t newlen = len + length + 2;
   if (!cstr)  {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       printlnErr();
@@ -622,6 +672,7 @@ SafeString & SafeString::concatln(const char *cstr, size_t length) {
   }
 
   if (!reserve(newlen)) {
+    setError();
 #ifdef SSTRING_DEBUG
     capError(F("println"), newlen, cstr, NULL, '\0', length);
 #endif // SSTRING_DEBUG
@@ -632,47 +683,29 @@ SafeString & SafeString::concatln(const char *cstr, size_t length) {
   return *this;
 }
 
-// concat at most length chars from cstr
 SafeString & SafeString::concat(const char *cstr, size_t length) {
-  cleanUp();
-  size_t newlen = len + length;
-  if (!cstr)  {
-#ifdef SSTRING_DEBUG
-    if (debugPtr) {
-      concatErr();
-      debugPtr->print(F(" was passed a NULL pointer"));
-      debugInternalMsg(fullDebug);
-    }
-#endif // SSTRING_DEBUG
-    return *this;
-  }
-  if (length == 0) {
-    return *this;
-  }
-  if (length > strlen(cstr)) {
-#ifdef SSTRING_DEBUG
-    if (debugPtr) {
-      concatErr();
-      debugPtr->print(F(" length ")); debugPtr->print(length); debugPtr->print(F(" > char* arg strlen."));
-      if (fullDebug) {
-        debugPtr->println(); debugPtr->print(F("       "));
-        debugPtr->print(F(" Input arg was '")); debugPtr->print(cstr); debugPtr->print('\'');
-      }
-      debugInternalMsg(fullDebug);
-    }
-#endif // SSTRING_DEBUG
-    return *this;
-  }
-  if (!reserve(newlen)) {
-#ifdef SSTRING_DEBUG
-    capError(F("concat"), newlen, cstr, NULL, '\0', length);
-#endif // SSTRING_DEBUG
-    return *this;
-  }
-  memmove(buffer + len, cstr, length);
-  len = newlen;
-  buffer[len] = '\0';
-  return *this;
+  return concatInternal(cstr, length); // calls cleanUp()
+}
+
+
+//============= public print methods ===========
+size_t SafeString::print(unsigned char c, int d) {
+  return printInternal((unsigned long)c, d); // calls cleanUp()
+}
+size_t SafeString::print(int i, int d) {
+  return printInternal((long)i, d); // calls cleanUp()
+}
+size_t SafeString::print(unsigned int u, int d) {
+  return printInternal((unsigned long)u, d); // calls cleanUp()
+}
+size_t SafeString::print(long l, int d) {
+  return printInternal(l, d); // calls cleanUp()
+}
+size_t SafeString::print(unsigned long l, int d) {
+  return printInternal(l, d); // calls cleanUp()
+}
+size_t SafeString::print(double d, int decs) {
+  return printInternal(d, decs); // calls cleanUp()
 }
 
 size_t SafeString::print(SafeString &str) {
@@ -681,6 +714,7 @@ size_t SafeString::print(SafeString &str) {
   size_t addLen = str.len;
   size_t newlen = len + addLen;
   if (!reserve(newlen)) {
+    setError();
 #ifdef SSTRING_DEBUG
     capError(F("print"), newlen, str.buffer, NULL);
 #endif // SSTRING_DEBUG
@@ -690,25 +724,10 @@ size_t SafeString::print(SafeString &str) {
   return addLen;
 }
 
-size_t SafeString::println(SafeString &str) {
-  str.cleanUp();
-  cleanUp();
-  size_t newlen = len + str.len + 2;
-  if (!reserve(newlen)) {
-#ifdef SSTRING_DEBUG
-    capError(F("println"), newlen, str.buffer);
-#endif // SSTRING_DEBUG
-    return 0;
-  }
-  size_t addLen = str.len + 2;
-  concat(str);
-  Print::println();
-  return addLen;
-}
-
 size_t SafeString::print(const char* cstr) {
   cleanUp();
   if (!cstr)  {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("print"));
@@ -721,6 +740,7 @@ size_t SafeString::print(const char* cstr) {
   size_t str_len = strlen(cstr);
   size_t newlen = len + str_len;
   if (!reserve(newlen)) {
+    setError();
 #ifdef SSTRING_DEBUG
     capError(F("print"), newlen, cstr, NULL);
 #endif // SSTRING_DEBUG
@@ -733,6 +753,7 @@ size_t SafeString::print(const char* cstr) {
 size_t SafeString::print(char c) {
   cleanUp();
   if (c == '\0') {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("print"));
@@ -745,6 +766,7 @@ size_t SafeString::print(char c) {
 
   size_t newlen = len + 1;
   if (!reserve(newlen)) {
+    setError();
 #ifdef SSTRING_DEBUG
     capError(F("print"), newlen, NULL, NULL, c);
 #endif // SSTRING_DEBUG
@@ -754,71 +776,11 @@ size_t SafeString::print(char c) {
   return 1;
 }
 
-size_t SafeString::print(unsigned char b, int base) {
-  return print((unsigned long) b, base); // calls cleanUp()
-}
-
-size_t SafeString::print(int n, int base) {
-  return print((long) n, base); // calls cleanUp()
-}
-
-
-size_t SafeString::print(unsigned int n, int base) {
-  return print((unsigned long) n, base); // calls cleanUp()
-}
-
-size_t SafeString::print(long num, int base) {
-  cleanUp();
-  createSafeString(temp, 8 * sizeof(long) + 4); // null + sign + nl
-  size_t n = temp.Print::print(num, base);
-  size_t newlen = len + temp.length();
-  if (!reserve(newlen)) {
-#ifdef SSTRING_DEBUG
-    capError(F("print"), newlen, temp.buffer, NULL);
-#endif // SSTRING_DEBUG
-    return 0;
-  }
-  concat(temp);
-  return n;
-}
-
-size_t SafeString::print(unsigned long num, int base) {
-  cleanUp();
-  createSafeString(temp, 8 * sizeof(long) + 4); // null + sign + nl
-  size_t n = temp.Print::print(num, base);
-  size_t newlen = len + temp.length();
-  if (!reserve(newlen)) {
-#ifdef SSTRING_DEBUG
-    capError(F("print"), newlen, temp.buffer, NULL);
-#endif // SSTRING_DEBUG
-    return 0;
-  }
-  concat(temp);
-  return n;
-}
-
-size_t SafeString::print(double num, int digits) {
-  cleanUp();
-  createSafeString(temp, 8 * sizeof(long) + 4); // null + sign + nl
-  if (digits > 7) {
-    digits = 7; // seems to be the limit for print
-  }
-  size_t n = temp.Print::print(num, digits);
-  size_t newlen = len + temp.length();
-  if (!reserve(newlen)) {
-#ifdef SSTRING_DEBUG
-    capError(F("print"), newlen, temp.buffer, NULL);
-#endif // SSTRING_DEBUG
-    return 0;
-  }
-  concat(temp);
-  return n;
-}
-
 size_t SafeString::print(const __FlashStringHelper *pstr) {
   cleanUp();
   size_t newlen = len + strlen_P((PGM_P)pstr);
   if (!reserve(newlen)) {
+    setError();
 #ifdef SSTRING_DEBUG
     capError(F("print"), newlen, NULL, pstr);
 #endif // SSTRING_DEBUG
@@ -828,6 +790,112 @@ size_t SafeString::print(const __FlashStringHelper *pstr) {
   return (strlen_P((PGM_P)pstr));
 }
 
+// =========================================
+
+// ============ protected internal print methods =============
+
+size_t SafeString::printInternal(long num, int base, bool assignOp) {
+  cleanUp();
+  createSafeString(temp, 8 * sizeof(long) + 4); // null + sign + nl
+  size_t n = temp.Print::print(num, base);
+  size_t newlen = len + temp.length();
+  if (assignOp) {
+    newlen = temp.length();
+  }
+  if (!reserve(newlen)) {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (assignOp) {
+      assignError(newlen, temp.buffer, NULL, '\0', true);
+    } else {
+      capError(F("print"), newlen, temp.buffer, NULL);
+    }
+#endif // SSTRING_DEBUG
+    return 0;
+  }
+  if (assignOp) {
+    clear(); // clear first
+  }
+  concat(temp);
+  return n;
+}
+
+size_t SafeString::printInternal(unsigned long num, int base, bool assignOp) {
+  cleanUp();
+  createSafeString(temp, 8 * sizeof(long) + 4); // null + sign + nl
+  size_t n = temp.Print::print(num, base);
+  size_t newlen = len + temp.length();
+  if (assignOp) {
+    newlen = temp.length();
+  }
+  if (!reserve(newlen)) {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (assignOp) {
+      assignError(newlen, temp.buffer, NULL,  '\0', true);
+    } else {
+      capError(F("print"), newlen, temp.buffer, NULL);
+    }
+#endif // SSTRING_DEBUG
+    return 0;
+  }
+  if (assignOp) {
+    clear(); // clear first
+  }
+  concat(temp);
+  return n;
+}
+
+size_t SafeString::printInternal(double num, int digits, bool assignOp) {
+  cleanUp();
+  createSafeString(temp, 8 * sizeof(long) + 4); // null + sign + nl
+  if (digits > 7) {
+    digits = 7; // seems to be the limit for print
+  }
+  size_t n = temp.Print::print(num, digits);
+  size_t newlen = len + temp.length();
+  if (assignOp) {
+    newlen = temp.length();
+  }
+  if (!reserve(newlen)) {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (assignOp) {
+      assignError(newlen, temp.buffer, NULL,  '\0', true);
+    } else {
+      capError(F("print"), newlen, temp.buffer, NULL);
+    }
+#endif // SSTRING_DEBUG
+    return 0;
+  }
+  if (assignOp) {
+    clear(); // clear first
+  }
+  concat(temp);
+  return n;
+}
+
+// =========================================================================
+
+// ============ println =========================================
+
+size_t SafeString::println(SafeString &str) {
+  str.cleanUp();
+  cleanUp();
+  size_t newlen = len + str.len + 2;
+  if (!reserve(newlen)) {
+    setError();
+#ifdef SSTRING_DEBUG
+    capError(F("println"), newlen, str.buffer);
+#endif // SSTRING_DEBUG
+    return 0;
+  }
+  size_t addLen = str.len + 2;
+  concat(str);
+  Print::println();
+  return addLen;
+}
+
 size_t SafeString::println(const __FlashStringHelper *pstr) {
   concatln(pstr); // calls cleanUp()
   return (strlen_P((PGM_P)pstr) + 2);
@@ -835,6 +903,7 @@ size_t SafeString::println(const __FlashStringHelper *pstr) {
 
 size_t SafeString::println(const char* cstr) {
   if (!cstr)  {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       printlnErr();
@@ -923,19 +992,22 @@ SafeString & SafeString::operator = (SafeString &rhs) {
   if (buffer == rhs.buffer) { // allow for same buffer in different SafeStrings
     return *this;
   }
-  clear();
-  return concat(rhs.buffer);//print(rhs);
-  //return *this;
+  return concatInternal(rhs.buffer, true);
+}
+
+SafeString & SafeString::operator = (char c) {
+  return concatInternal(c, true);
 }
 
 SafeString & SafeString::operator = (const char *cstr) {
   cleanUp();
   if (!cstr) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       debugPtr->print(F("Error:"));
       outputName();
-      debugPtr->print(F(" = NULL assigned "));
+      debugPtr->print(F(" = NULL pointer "));
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
@@ -944,73 +1016,58 @@ SafeString & SafeString::operator = (const char *cstr) {
   if (cstr == buffer) { // assign to itself
     return *this;
   }
-  clear();
-  return concat(cstr);
+  return concatInternal(cstr, strlen(cstr), true);
 }
 
 SafeString & SafeString::operator = (const __FlashStringHelper *pstr) {
   cleanUp();
   if (!pstr) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       debugPtr->print(F("Error:"));
       outputName();
-      debugPtr->print(F(" = NULL assigned "));
+      debugPtr->print(F(" = NULL F( ) ptr "));
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
     return *this;
   } // else
-  clear();
-  return concat(pstr);
-  //return *this;
-}
-
-SafeString & SafeString::operator = (char c) {
-  clear();  // calls cleanUp()
-  return concat(c);
-  //return *this;
+  return concatInternal(pstr, true);
 }
 
 SafeString & SafeString::operator = (unsigned char c) {
-  clear(); // calls cleanUp()
-  print(c);
+  printInternal((unsigned long)c, DEC, true);
   return *this;
 }
 
 SafeString & SafeString::operator = (int num) {
-  clear(); // calls cleanUp()
-  print(num);
+  printInternal((long)num, DEC, true);
   return *this;
 }
 
 SafeString & SafeString::operator = (unsigned int num) {
-  clear(); // calls cleanUp()
-  print(num);
+  printInternal((unsigned long)num, DEC, true);
   return *this;
 }
 
 SafeString & SafeString::operator = (long num) {
-  clear(); // calls cleanUp()
-  print(num);
+  printInternal(num, DEC, true);
   return *this;
 }
 
 SafeString & SafeString::operator = (unsigned long num) {
-  clear(); // calls cleanUp()
-  print(num);
+  printInternal(num, DEC, true);
   return *this;
 }
 
 SafeString & SafeString::operator = (float num) {
-  clear(); // calls cleanUp()
-  print(num);
+  printInternal(num, 2, true);
   return *this;
 }
 
 SafeString & SafeString::operator = (double num) {
-  clear(); // calls cleanUp()
-  print(num);
+  printInternal(num, 2, true);
   return *this;
 }
 /**********  assignment operator methods *************/
@@ -1024,6 +1081,7 @@ SafeString & SafeString::operator = (double num) {
 SafeString & SafeString::prefix(char c) {
   cleanUp();
   if (c == '\0') {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       prefixErr();
@@ -1043,6 +1101,7 @@ SafeString & SafeString::prefix(const char *cstr, size_t length) {
   cleanUp();
   size_t newlen = len + length;
   if (!cstr) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       prefixErr();
@@ -1056,6 +1115,7 @@ SafeString & SafeString::prefix(const char *cstr, size_t length) {
     return *this;
   }
   if (length > strlen(cstr)) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       prefixErr();
@@ -1071,6 +1131,7 @@ SafeString & SafeString::prefix(const char *cstr, size_t length) {
   }
 
   if (!reserve(newlen)) {
+    setError();
 #ifdef SSTRING_DEBUG
     capError(F("prefix"), newlen, cstr, NULL, '\0', length);
 #endif // SSTRING_DEBUG
@@ -1090,6 +1151,7 @@ SafeString & SafeString::prefix(const char *cstr, size_t length) {
 SafeString & SafeString::prefix(const __FlashStringHelper * pstr) {
   cleanUp();
   if (!pstr) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       prefixErr();
@@ -1105,6 +1167,7 @@ SafeString & SafeString::prefix(const __FlashStringHelper * pstr) {
 SafeString & SafeString::prefix(const __FlashStringHelper * pstr, size_t length) {
   cleanUp();
   if (!pstr) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       prefixErr();
@@ -1118,6 +1181,7 @@ SafeString & SafeString::prefix(const __FlashStringHelper * pstr, size_t length)
     return *this;
   }
   if (length > strlen_P((PGM_P)pstr)) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       prefixErr();
@@ -1134,6 +1198,7 @@ SafeString & SafeString::prefix(const __FlashStringHelper * pstr, size_t length)
 
   size_t newlen = len + length;
   if (!reserve(newlen)) {
+    setError();
 #ifdef SSTRING_DEBUG
     capError(F("prefix"), newlen, NULL, pstr, '\0', length);
 #endif // SSTRING_DEBUG
@@ -1156,6 +1221,7 @@ SafeString & SafeString::prefix(SafeString &s) {
 SafeString & SafeString::prefix(const char *cstr) {
   cleanUp();
   if (!cstr) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       prefixErr();
@@ -1218,21 +1284,10 @@ SafeString & SafeString::prefix(double num) {
 /**    see the SafeString.h file                 */
 /*************************************************/
 SafeString & SafeString::concat(char c) {
-  cleanUp();
-  if (c == '\0') {
-#ifdef SSTRING_DEBUG
-    if (debugPtr) {
-      concatErr();
-      debugPtr->print(F(" of '\\0'"));
-      debugInternalMsg(fullDebug);
-    }
-#endif // SSTRING_DEBUG
-    return *this;
-  }
-  char buf[2];
-  buf[0] = c;
-  buf[1] = 0;
-  return concat(buf, 1);
+  return concatInternal(c);
+}
+SafeString & SafeString::concat(const char *cstr) {
+  return concatInternal(cstr);
 }
 
 // you can concat to yourself if there is enough room, i.e. str.concat(str);
@@ -1241,20 +1296,6 @@ SafeString & SafeString::concat(SafeString &s) {
   return concat(s.buffer, s.len);
 }
 
-SafeString & SafeString::concat(const char *cstr) {
-  cleanUp();
-  if (!cstr) {
-#ifdef SSTRING_DEBUG
-    if (debugPtr) {
-      concatErr();
-      debugPtr->print(F(" was passed a NULL pointer"));
-      debugInternalMsg(fullDebug);
-    }
-#endif // SSTRING_DEBUG
-    return *this;
-  } // else
-  return concat(cstr, strlen(cstr));
-}
 
 SafeString & SafeString::concat(unsigned char num) {
   createSafeString(temp, 2 + 3 * sizeof(unsigned char));
@@ -1297,29 +1338,94 @@ SafeString & SafeString::concat(double num) {
   temp.print(num);
   return concat(temp); // calls cleanUp()
 }
-
 SafeString & SafeString::concat(const __FlashStringHelper * pstr) {
+  return concatInternal(pstr);
+}
+
+// concat at most length chars
+SafeString & SafeString::concat(const __FlashStringHelper * pstr, size_t length) {
+  return concatInternal(pstr, length);
+}
+
+// ============== internal concat methods
+// concat at most length chars from cstr
+// this method applies assignOp
+SafeString & SafeString::concatInternal(const char *cstr, size_t length, bool assignOp) {
   cleanUp();
-  if (!pstr) {
+  size_t newlen = len + length;
+  if (assignOp) {
+    newlen = length;
+  }
+  if (!cstr)  {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
-      concatErr();
+      if (assignOp) {
+        assignErrorMethod();
+      }  else {
+        concatErr();
+      }
       debugPtr->print(F(" was passed a NULL pointer"));
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
     return *this;
   }
-  return concat(pstr, strlen_P((PGM_P)pstr));
+  if (length == 0) {
+    return *this;
+  }
+  if (length > strlen(cstr)) {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      if (assignOp) {
+        assignErrorMethod();
+      }  else {
+        concatErr();
+      }
+      debugPtr->print(F(" length ")); debugPtr->print(length); debugPtr->print(F(" > char* arg strlen."));
+      if (fullDebug) {
+        debugPtr->println(); debugPtr->print(F("       "));
+        debugPtr->print(F(" Input arg was '")); debugPtr->print(cstr); debugPtr->print('\'');
+      }
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    return *this;
+  }
+  if (!reserve(newlen)) {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (assignOp) {
+      assignError(newlen, cstr, NULL);
+    }  else {
+      capError(F("concat"), newlen, cstr, NULL, '\0', length);
+    }
+#endif // SSTRING_DEBUG
+    return *this;
+  }
+  if (assignOp) {
+    clear();
+  }
+  memmove(buffer + len, cstr, length);
+  len = newlen;
+  buffer[len] = '\0';
+  return *this;
 }
 
 // concat at most length chars
-SafeString & SafeString::concat(const __FlashStringHelper * pstr, size_t length) {
+// this method applies assignOp
+SafeString & SafeString::concatInternal(const __FlashStringHelper * pstr, size_t length, bool assignOp) {
   cleanUp();
   if (!pstr) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
-      concatErr();
+      if (assignOp) {
+        assignErrorMethod();
+      }  else {
+        concatErr();
+      }
       debugPtr->print(F(" was passed a NULL pointer"));
       debugInternalMsg(fullDebug);
     }
@@ -1330,9 +1436,14 @@ SafeString & SafeString::concat(const __FlashStringHelper * pstr, size_t length)
     return *this;
   }
   if (length > strlen_P((PGM_P)pstr)) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
-      concatErr();
+      if (assignOp) {
+        assignErrorMethod();
+      }  else {
+        concatErr();
+      }
       debugPtr->print(F(" length ")); debugPtr->print(length); debugPtr->print(F(" > F() arg strlen."));
       if (fullDebug) {
         debugPtr->println(); debugPtr->print(F("       "));
@@ -1345,17 +1456,100 @@ SafeString & SafeString::concat(const __FlashStringHelper * pstr, size_t length)
   }
 
   size_t newlen = len + length;
+  if (assignOp) {
+    newlen = length;
+  }
   if (!reserve(newlen)) {
+    setError();
 #ifdef SSTRING_DEBUG
-    capError(F("concat"), newlen, NULL, pstr, '\0', length);
+    if (assignOp) {
+      assignError(newlen, NULL, pstr);
+    }  else {
+      capError(F("concat"), newlen, NULL, pstr, '\0', length);
+    }
 #endif // SSTRING_DEBUG
     return *this;
+  }
+  if (assignOp) {
+    clear();
   }
   memcpy_P(buffer + len, (PGM_P)pstr, length);
   len = newlen;
   buffer[len] = '\0';
   return *this;
 }
+
+SafeString & SafeString::concatInternal(char c, bool assignOp) {
+  cleanUp();
+  if (c == '\0') {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      if (assignOp) {
+        concatAssignError();
+      } else {
+        concatErr();
+      }
+      debugPtr->print(F(" of '\\0'"));
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    return *this;
+  }
+  if ((assignOp) && (_capacity < 1)) {
+    setError();
+#ifdef SSTRING_DEBUG
+    assignError(1, NULL, NULL,c);
+#endif
+   return *this;
+  }
+  char buf[2];
+  buf[0] = c;
+  buf[1] = 0;
+  return concatInternal(buf, 1, assignOp);
+}
+
+
+SafeString & SafeString::concatInternal(const char *cstr, bool assignOp) {
+  cleanUp();
+  if (!cstr) {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      if (assignOp) {
+        concatAssignError();
+      } else {
+        concatErr();
+      }
+      debugPtr->print(F(" was passed a NULL pointer"));
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    return *this;
+  } // else
+  return concatInternal(cstr, strlen(cstr), assignOp);
+}
+
+SafeString & SafeString::concatInternal(const __FlashStringHelper * pstr, bool assignOp) {
+  cleanUp();
+  if (!pstr) {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      if (assignOp) {
+        concatAssignError();
+      } else {
+        concatErr();
+      }
+      debugPtr->print(F(" was passed a NULL pointer"));
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    return *this;
+  }
+  return concatInternal(pstr, strlen_P((PGM_P)pstr), assignOp);
+}
+
 
 /******** end of concat methods **************************/
 
@@ -1390,6 +1584,7 @@ int SafeString::compareTo(SafeString &s) {
 int SafeString::compareTo(const char* cstr) {
   cleanUp();
   if (!cstr) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("compareTo"));
@@ -1412,6 +1607,7 @@ bool SafeString::equals(SafeString &s2) {
 bool SafeString::equals(const char *cstr) {
   cleanUp();
   if (!cstr) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("equals"));
@@ -1448,6 +1644,7 @@ bool SafeString::equals(const char c) {
 bool SafeString::equalsIgnoreCase(const char *str2) {
   cleanUp();
   if (!str2) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("equalsIgnoreCase"));
@@ -1550,6 +1747,7 @@ bool SafeString::startsWith( const char *str2) {
 bool SafeString::startsWith( const char *str2, size_t fromIndex ) {
   cleanUp();
   if (!str2) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("startsWith"));
@@ -1562,6 +1760,7 @@ bool SafeString::startsWith( const char *str2, size_t fromIndex ) {
   }
   size_t str2Len = strlen(str2);
   if (str2Len == 0) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("startsWith"));
@@ -1577,6 +1776,7 @@ bool SafeString::startsWith( const char *str2, size_t fromIndex ) {
     return false;
   }
   if (fromIndex > len) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("startsWith"));
@@ -1600,6 +1800,7 @@ bool SafeString::startsWith( SafeString &s2, size_t fromIndex ) {
   s2.cleanUp();
   cleanUp();
   if (s2.len == 0) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("startsWith"));
@@ -1615,6 +1816,7 @@ bool SafeString::startsWith( SafeString &s2, size_t fromIndex ) {
     return false;
   }
   if (fromIndex > len) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("startsWith"));
@@ -1648,6 +1850,7 @@ bool SafeString::startsWithIgnoreCase( SafeString &s2, size_t fromIndex ) {
   s2.cleanUp();
   cleanUp();
   if (s2.len == 0) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("startsWithIgnoreCase"));
@@ -1663,6 +1866,7 @@ bool SafeString::startsWithIgnoreCase( SafeString &s2, size_t fromIndex ) {
     return false;
   }
   if (fromIndex > len) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("startsWithIgnoreCase"));
@@ -1697,6 +1901,7 @@ bool SafeString::startsWithIgnoreCase( const char *str2 ) {
 bool SafeString::startsWithIgnoreCase( const char *str2, size_t fromIndex ) {
   cleanUp();
   if (!str2) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("startsWithIgnoreCase"));
@@ -1710,6 +1915,7 @@ bool SafeString::startsWithIgnoreCase( const char *str2, size_t fromIndex ) {
 
   size_t str2Len = strlen(str2);
   if (str2Len == 0) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("startsWithIgnoreCase"));
@@ -1725,6 +1931,7 @@ bool SafeString::startsWithIgnoreCase( const char *str2, size_t fromIndex ) {
     return false;
   }
   if (fromIndex > len) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("startsWithIgnoreCase"));
@@ -1755,6 +1962,7 @@ bool SafeString::endsWith( SafeString &s2 ) {
   s2.cleanUp();
   cleanUp();
   if (s2.len == 0) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("endsWith"));
@@ -1777,6 +1985,7 @@ bool SafeString::endsWith( SafeString &s2 ) {
 bool SafeString::endsWith(const char *suffix) {
   cleanUp();
   if (!suffix) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("endsWith"));
@@ -1788,6 +1997,7 @@ bool SafeString::endsWith(const char *suffix) {
   }
   size_t str2Len = strlen(suffix);
   if (str2Len == 0) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("endsWith"));
@@ -1809,6 +2019,7 @@ bool SafeString::endsWithCharFrom(SafeString &s2) {
   s2.cleanUp();
   cleanUp();
   if (s2.len == 0) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("endsWithCharFrom"));
@@ -1828,6 +2039,7 @@ bool SafeString::endsWithCharFrom(SafeString &s2) {
 bool SafeString::endsWithCharFrom(const char *suffix) {
   cleanUp();
   if (!suffix) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("endsWithCharFrom"));
@@ -1839,6 +2051,7 @@ bool SafeString::endsWithCharFrom(const char *suffix) {
   }
   size_t str2Len = strlen(suffix);
   if (str2Len == 0) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("endsWithCharFrom"));
@@ -1866,6 +2079,7 @@ bool SafeString::endsWithCharFrom(const char *suffix) {
 char SafeString::charAt(size_t index) {
   cleanUp();
   if (index >= len ) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       debugPtr->print(F("Error: "));
@@ -1882,6 +2096,7 @@ char SafeString::charAt(size_t index) {
 SafeString& SafeString::setCharAt(size_t index, char c) {
   cleanUp();
   if (c == '\0') {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       debugPtr->print(F("Error:"));
@@ -1897,6 +2112,7 @@ SafeString& SafeString::setCharAt(size_t index, char c) {
     return *this;
   }
   if (index >= len) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       debugPtr->print(F("Error:"));
@@ -1918,6 +2134,7 @@ SafeString& SafeString::setCharAt(size_t index, char c) {
 char SafeString::operator[]( size_t index ) {
   cleanUp();
   if (index >= len ) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       debugPtr->print(F("Error: "));
@@ -1934,7 +2151,7 @@ char SafeString::operator[]( size_t index ) {
 const char* SafeString::c_str() {
   cleanUp();
   // mark as subject to external modification now as we have exposed the internal buffer
-  fromBuffer = true;  // added V3.0.4
+  fromBuffer = true;  // added V3.0.4 will check overflow in return cleanUp and set errorFlag
   return buffer;
 }
 
@@ -1968,6 +2185,7 @@ size_t SafeString::indexOf(char c) {
 size_t SafeString::indexOf( char c, size_t fromIndex ) {
   cleanUp();
   if (c == '\0') {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("indexOf"));
@@ -1983,6 +2201,7 @@ size_t SafeString::indexOf( char c, size_t fromIndex ) {
     return len;
   }
   if (fromIndex > len) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("indexOf"));
@@ -2008,6 +2227,7 @@ size_t SafeString::indexOf(SafeString &s2) {
   s2.cleanUp();
   cleanUp();
   if (s2.len == 0) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("indexOf"));
@@ -2029,6 +2249,7 @@ size_t SafeString::indexOf(SafeString &s2, size_t fromIndex) {
   s2.cleanUp();
   cleanUp();
   if (s2.len == 0) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("indexOf"));
@@ -2045,6 +2266,7 @@ size_t SafeString::indexOf(SafeString &s2, size_t fromIndex) {
   }
 
   if (fromIndex > len) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("indexOf"));
@@ -2077,6 +2299,7 @@ size_t SafeString::indexOf( const char* str ) {
 size_t SafeString::indexOf(const char* cstr , size_t fromIndex) {
   cleanUp();
   if (!cstr) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("indexOf"));
@@ -2089,6 +2312,7 @@ size_t SafeString::indexOf(const char* cstr , size_t fromIndex) {
   }
   size_t cstrLen = strlen(cstr);
   if (cstrLen == 0) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("indexOf"));
@@ -2104,6 +2328,7 @@ size_t SafeString::indexOf(const char* cstr , size_t fromIndex) {
     return len;
   }
   if (fromIndex > len) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("indexOf"));
@@ -2136,6 +2361,7 @@ size_t SafeString::lastIndexOf( char theChar ) {
 size_t SafeString::lastIndexOf(char ch, size_t fromIndex) {
   cleanUp();
   if (ch == '\0') {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("lastIndexOf"));
@@ -2153,6 +2379,7 @@ size_t SafeString::lastIndexOf(char ch, size_t fromIndex) {
     fromIndex = len - 1;
   }
   if (fromIndex > len) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("lastIndexOf"));
@@ -2187,6 +2414,7 @@ size_t SafeString::lastIndexOf(SafeString &s2) {
 
 size_t SafeString::lastIndexOf( const char *cstr ) {
   if (!cstr) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("lastIndexOf"));
@@ -2207,6 +2435,7 @@ size_t SafeString::lastIndexOf(SafeString &s2, size_t fromIndex) {
   s2.cleanUp();
   cleanUp();
   if (s2.len == 0) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("lastIndexOf"));
@@ -2224,6 +2453,7 @@ size_t SafeString::lastIndexOf(SafeString &s2, size_t fromIndex) {
     fromIndex = len - 1;
   }
   if (fromIndex > len) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("lastIndexOf"));
@@ -2247,6 +2477,7 @@ size_t SafeString::lastIndexOf(SafeString &s2, size_t fromIndex) {
 size_t SafeString::lastIndexOf(const char* cstr, size_t fromIndex) {
   cleanUp();
   if (!cstr) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("lastIndexOf"));
@@ -2260,6 +2491,7 @@ size_t SafeString::lastIndexOf(const char* cstr, size_t fromIndex) {
 
   size_t cstrlen = strlen(cstr);
   if (cstrlen == 0) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("lastIndexOf"));
@@ -2280,6 +2512,7 @@ size_t SafeString::lastIndexOf(const char* cstr, size_t fromIndex) {
   }
 
   if (fromIndex > len) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("lastIndexOf"));
@@ -2330,6 +2563,7 @@ size_t SafeString::indexOfCharFrom(const char* chars) {
 size_t SafeString::indexOfCharFrom(const char* chars, size_t fromIndex) {
   cleanUp();
   if (!chars) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("indexOfCharFrom"));
@@ -2342,6 +2576,7 @@ size_t SafeString::indexOfCharFrom(const char* chars, size_t fromIndex) {
   }
   size_t charsLen = strlen(chars);
   if (charsLen == 0) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("indexOfCharFrom"));
@@ -2356,6 +2591,7 @@ size_t SafeString::indexOfCharFrom(const char* chars, size_t fromIndex) {
     return len;
   }
   if (fromIndex > len) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("indexOfCharFrom"));
@@ -2411,6 +2647,7 @@ SafeString & SafeString::substring(SafeString &result, size_t beginIdx) {
     }
 
     if (beginIdx > len) {
+      setError();
 #ifdef SSTRING_DEBUG
       if (debugPtr) {
         errorMethod(F("substring"));
@@ -2441,6 +2678,7 @@ SafeString & SafeString::substring(SafeString &result, size_t beginIdx, size_t e
   }
 
   if (beginIdx > len) { //== len is OK
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("substring"));
@@ -2452,6 +2690,7 @@ SafeString & SafeString::substring(SafeString &result, size_t beginIdx, size_t e
   }
 
   if (endIdx < beginIdx) {  // beginIdx == len == endIdx is OK
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("substring"));
@@ -2463,6 +2702,7 @@ SafeString & SafeString::substring(SafeString &result, size_t beginIdx, size_t e
   }
 
   if (endIdx > len) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("substring"));
@@ -2484,6 +2724,7 @@ SafeString & SafeString::substring(SafeString &result, size_t beginIdx, size_t e
   // copy to result
   size_t copyLen = endIdx - beginIdx; // endIdx is exclusive 5,5 copies 0 chars 5,6 copies 1 char char[5].
   if (copyLen > result.capacity()) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("substring"));
@@ -2515,6 +2756,7 @@ SafeString & SafeString::replace(char f, char r) {
     return *this;
   }
   if (f == '\0') {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("replace"));
@@ -2525,6 +2767,7 @@ SafeString & SafeString::replace(char f, char r) {
     return *this;
   }
   if (r == '\0') {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("replace"));
@@ -2548,6 +2791,7 @@ SafeString & SafeString::replace(SafeString& f, SafeString& r) {
   r.cleanUp();
   cleanUp();
   if (f.len == 0) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("replace"));
@@ -2563,6 +2807,7 @@ SafeString & SafeString::replace(SafeString& f, SafeString& r) {
 SafeString & SafeString::replace(const char* find, const char *replace) {
   cleanUp();
   if (!find) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("replace"));
@@ -2573,6 +2818,7 @@ SafeString & SafeString::replace(const char* find, const char *replace) {
     return *this;
   }
   if (!replace) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("replace"));
@@ -2589,6 +2835,7 @@ SafeString & SafeString::replace(const char* find, const char *replace) {
     return *this;
   }
   if (find == buffer) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("replace"));
@@ -2599,6 +2846,7 @@ SafeString & SafeString::replace(const char* find, const char *replace) {
     return *this;
   }
   if (replace == buffer) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("replace"));
@@ -2609,6 +2857,7 @@ SafeString & SafeString::replace(const char* find, const char *replace) {
     return *this;
   }
   if (findLen == 0) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("replace"));
@@ -2645,6 +2894,7 @@ SafeString & SafeString::replace(const char* find, const char *replace) {
       newlen += diff;
     }
     if (!reserve(newlen)) {
+      setError();
 #ifdef SSTRING_DEBUG
       capError(F("replace"), newlen, find);
       if (fullDebug) {
@@ -2698,6 +2948,7 @@ SafeString & SafeString::remove(size_t index, size_t count) {
     return *this;
   }
   if (index > len) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("remove"));
@@ -2709,6 +2960,7 @@ SafeString & SafeString::remove(size_t index, size_t count) {
   }
   if (count == 0) {
     /**
+        setError();
       #ifdef SSTRING_DEBUG
       if (debugPtr) {
       errorMethod(F("remove"));
@@ -2720,6 +2972,7 @@ SafeString & SafeString::remove(size_t index, size_t count) {
     return *this;
   }
   if ((count + index) > len) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("remove"));
@@ -2752,6 +3005,7 @@ SafeString & SafeString::removeLast(size_t count) {
     return *this;
   }
   if (count > len) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("removeLast"));
@@ -2780,6 +3034,7 @@ SafeString & SafeString::keepLast(size_t count) {
     return *this;
   }
   if (count > len) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("keepLast"));
@@ -3096,7 +3351,7 @@ bool SafeString::toDouble(double  &d) {
               In this case the return (nextIndex) is still updated.
       fromIndex -- where to start the search from  0 to length() is valid for fromIndex
       delimiters - the characters that any one of which can delimit a token. The end of the SafeString is always a delimiter.
-      returnEmptyFields -- default false, if true only skip one leading delimiter after each call. If the fromIndex is 0 and there is a delimiter at the beginning of the SafeString, an empty token will be returned  
+      returnEmptyFields -- default false, if true only skip one leading delimiter after each call. If the fromIndex is 0 and there is a delimiter at the beginning of the SafeString, an empty token will be returned
       useAsDelimiters - default true, if false then token consists only of chars in the delimiters and any other char terminates the token
 
       return -- nextIndex, the next index in this SafeString after the end of the token just found.
@@ -3112,6 +3367,7 @@ bool SafeString::toDouble(double  &d) {
 
 size_t SafeString::stoken(SafeString & token, size_t fromIndex, const char delimiter, bool returnEmptyFields, bool useAsDelimiters) {
   if (!delimiter) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("stoken"));
@@ -3120,7 +3376,7 @@ size_t SafeString::stoken(SafeString & token, size_t fromIndex, const char delim
     }
 #endif // SSTRING_DEBUG
     return len + 1;
-  }  	  
+  }
   return stokenInternal(token, fromIndex, NULL, delimiter, returnEmptyFields,  useAsDelimiters);
 }
 
@@ -3131,6 +3387,7 @@ size_t SafeString::stoken(SafeString &token, size_t fromIndex, SafeString &delim
 
 size_t SafeString::stoken(SafeString &token, size_t fromIndex, const char* delimiters, bool returnEmptyFields, bool useAsDelimiters) {
   if (!delimiters) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("stoken"));
@@ -3141,6 +3398,7 @@ size_t SafeString::stoken(SafeString &token, size_t fromIndex, const char* delim
     return len + 1;
   }
   if (*delimiters == '\0') {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("stoken"));
@@ -3152,7 +3410,7 @@ size_t SafeString::stoken(SafeString &token, size_t fromIndex, const char* delim
   }
   return stokenInternal(token, fromIndex, delimiters, '\0', returnEmptyFields,  useAsDelimiters);
 }
-	
+
 size_t SafeString::stokenInternal(SafeString &token, size_t fromIndex, const char* delimitersIn, char delimiterIn, bool returnEmptyFields, bool useAsDelimiters) {
   cleanUp();
   token.clear(); // no need to clean up token
@@ -3161,7 +3419,7 @@ size_t SafeString::stokenInternal(SafeString &token, size_t fromIndex, const cha
   charDelim[1] = '\0';
   const char *delimiters = delimitersIn;
   if (delimiters == NULL) {
-  	delimiters = charDelim;
+    delimiters = charDelim;
   }
   if (fromIndex == len) {
     return len; // reached end of input return empty token and len
@@ -3169,6 +3427,7 @@ size_t SafeString::stokenInternal(SafeString &token, size_t fromIndex, const cha
   }
   // else invalid fromIndex
   if (fromIndex > len) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("stoken"));
@@ -3192,7 +3451,7 @@ size_t SafeString::stokenInternal(SafeString &token, size_t fromIndex, const cha
         return 1; // leading empty token
       } // else skip over only one of the last delimiters
       count = 1;
-    } 
+    }
   }
   fromIndex += count;
   if (fromIndex == len) {
@@ -3208,6 +3467,7 @@ size_t SafeString::stokenInternal(SafeString &token, size_t fromIndex, const cha
     return fromIndex; // not found and empty token returned
   }
   if (count > token._capacity) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("stoken"));
@@ -3245,6 +3505,7 @@ size_t SafeString::stokenInternal(SafeString &token, size_t fromIndex, const cha
 **/
 bool SafeString::nextToken(SafeString& token, const char delimiter) {
   if (!delimiter) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("nextToken"));
@@ -3253,9 +3514,9 @@ bool SafeString::nextToken(SafeString& token, const char delimiter) {
     }
 #endif // SSTRING_DEBUG
     return len + 1;
-  }  	
+  }
   return nextTokenInternal(token, NULL, delimiter);
-}	
+}
 
 bool SafeString::nextToken(SafeString& token, SafeString &delimiters) {
   delimiters.cleanUp();
@@ -3264,6 +3525,7 @@ bool SafeString::nextToken(SafeString& token, SafeString &delimiters) {
 
 bool SafeString::nextToken(SafeString& token, const char* delimiters) {
   if (!delimiters) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("nextToken"));
@@ -3274,6 +3536,7 @@ bool SafeString::nextToken(SafeString& token, const char* delimiters) {
     return false;
   }
   if (*delimiters == '\0') {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("nextToken"));
@@ -3297,9 +3560,9 @@ bool SafeString::nextTokenInternal(SafeString& token, const char* delimitersIn, 
   charDelim[1] = '\0';
   const char *delimiters = delimitersIn;
   if (delimiters == NULL) {
-  	delimiters = charDelim;
+    delimiters = charDelim;
   }
-  
+
   // remove leading delimiters
   size_t delim_count = 0;
   // skip leading delimiters  (prior to V2.0.2 leading delimiters not skipped)
@@ -3314,6 +3577,7 @@ bool SafeString::nextTokenInternal(SafeString& token, const char* delimitersIn, 
     return false; // delimited token not found
   }
   if (token_count > token._capacity) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("nextToken"));
@@ -3352,6 +3616,7 @@ size_t SafeString::readFrom(SafeString & input, size_t startIdx) {
   input.cleanUp();
   cleanUp();
   if (startIdx > input.len) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("readFrom"));
@@ -3395,6 +3660,7 @@ size_t SafeString::writeTo(SafeString & output, size_t startIdx) {
   output.cleanUp();
   cleanUp();
   if (startIdx > len) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("writeTo"));
@@ -3444,6 +3710,8 @@ bool SafeString::read(Stream& input) {
     if (c != '\0') { // skip any nulls read
       concat((char)c);
       rtn = true;
+    } else {
+      setError(); // found '\0' in input
     }
   }
   return rtn; // true if something added to string
@@ -3464,6 +3732,7 @@ bool SafeString::read(Stream& input) {
 **/
 bool SafeString::readUntil(Stream& input, const char delimiter) {
   if (!delimiter) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("readUntil"));
@@ -3472,7 +3741,7 @@ bool SafeString::readUntil(Stream& input, const char delimiter) {
     }
 #endif // SSTRING_DEBUG
     return len + 1;
-  }  	
+  }
   return readUntilInternal(input, NULL, delimiter);
 }
 
@@ -3483,6 +3752,7 @@ bool SafeString::readUntil(Stream& input, SafeString &delimiters) {
 
 bool SafeString::readUntil(Stream& input, const char* delimiters) {
   if (!delimiters) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("readUntil"));
@@ -3493,6 +3763,7 @@ bool SafeString::readUntil(Stream& input, const char* delimiters) {
     return false; // no match
   }
   if (*delimiters == '\0') {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("readUntil"));
@@ -3505,7 +3776,7 @@ bool SafeString::readUntil(Stream& input, const char* delimiters) {
   return readUntilInternal(input, delimiters, '\0');
 }
 
-	
+
 bool SafeString::readUntilInternal(Stream& input, const char* delimitersIn, const char delimiterIn) {
   cleanUp();
   char charDelim[2];
@@ -3513,13 +3784,14 @@ bool SafeString::readUntilInternal(Stream& input, const char* delimitersIn, cons
   charDelim[1] = '\0';
   const char *delimiters = delimitersIn;
   if (delimiters == NULL) {
-  	delimiters = charDelim;
-  }  
+    delimiters = charDelim;
+  }
   noCharsRead = 0;
   while (input.available() && (len < (capacity()))) {
     int c = input.read();
     noCharsRead++;
     if (c == '\0') {
+      setError(); // found '\0' in input
       continue; // skip nulls
     }
     concat((char)c); // add char may be delimiter
@@ -3557,9 +3829,10 @@ bool SafeString::readUntilInternal(Stream& input, const char* delimitersIn, cons
       If this SafeString OR the SaftString & token argument is too small to hold the result, the returned token is returned empty
       The delimiter is NOT included in the SaftString & token return. It will the first char of the this SafeString when readUntilToken returns true
  **/
- 
+
 bool SafeString::readUntilToken(Stream & input, SafeString& token, const char delimiter, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_mS) {
-   if (!delimiter) {
+  if (!delimiter) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("readUntilToken"));
@@ -3568,8 +3841,8 @@ bool SafeString::readUntilToken(Stream & input, SafeString& token, const char de
     }
 #endif // SSTRING_DEBUG
     return len + 1;
-  }  	
-  return readUntilTokenInternal(input,token,NULL,delimiter,skipToDelimiter,echoInput, timeout_mS);
+  }
+  return readUntilTokenInternal(input, token, NULL, delimiter, skipToDelimiter, echoInput, timeout_mS);
 }
 
 bool SafeString::readUntilToken(Stream & input, SafeString& token, SafeString& delimiters, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_mS) {
@@ -3579,6 +3852,7 @@ bool SafeString::readUntilToken(Stream & input, SafeString& token, SafeString& d
 
 bool SafeString::readUntilToken(Stream & input, SafeString& token, const char* delimiters, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_mS) {
   if (!delimiters) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("readUntilToken"));
@@ -3589,6 +3863,7 @@ bool SafeString::readUntilToken(Stream & input, SafeString& token, const char* d
     return false; // no match
   }
   if (*delimiters == '\0') {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("readUntilToken"));
@@ -3598,12 +3873,13 @@ bool SafeString::readUntilToken(Stream & input, SafeString& token, const char* d
 #endif // SSTRING_DEBUG
     return false; // no match
   }
-  return readUntilTokenInternal(input,token,delimiters,'\0',skipToDelimiter,echoInput, timeout_mS);
+  return readUntilTokenInternal(input, token, delimiters, '\0', skipToDelimiter, echoInput, timeout_mS);
 }
 
 bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const char* delimitersIn, const char delimiterIn, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_mS) {
-   token.clear(); // always
-	if ((echoInput != 0) && (echoInput != 1) && (timeout_mS == 0)) {
+  token.clear(); // always
+  if ((echoInput != 0) && (echoInput != 1) && (timeout_mS == 0)) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("readUntilToken"));
@@ -3613,9 +3889,10 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
 #endif // SSTRING_DEBUG
     timeout_mS = echoInput; // swap to timeout
     echoInput = true; // use default
-  }	  
-  
+  }
+
   if (capacity() < 2) {
+    setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("readUntilToken"));
@@ -3623,7 +3900,7 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
     }
 #endif // SSTRING_DEBUG
     return false;
-  }	  
+  }
 
   cleanUp();
   char charDelim[2];
@@ -3631,9 +3908,9 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
   charDelim[1] = '\0';
   const char *delimiters = delimitersIn;
   if (delimiters == NULL) {
-  	delimiters = charDelim;
-  }  
-  // remove leading delimiters 
+    delimiters = charDelim;
+  }
+  // remove leading delimiters
   size_t delim_count = 0;
   // skip leading delimiters  (prior to V2.0.2 leading delimiters not skipped)
   delim_count = strspn(buffer, delimiters); // count char ONLY in delimiters
@@ -3642,7 +3919,7 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
   // NOTE: this method's contract says you can set skipToDelimiter true at any time
   // so here stop reading on first delimiter and process results
   // loop here until either isFill() OR no more chars avail OR found delimiter
-  // read at most capacity() each time if skipping 
+  // read at most capacity() each time if skipping
   // this prevent infinite loop if using SafeStringStream with echoOn and rx buffer overflow has dropped all the delimiters
   //size_t charRead = 0;
   noCharsRead = 0;
@@ -3650,6 +3927,7 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
     int c = input.read();
     noCharsRead++;
     if (c == '\0') {
+      setError(); // found '\0' in input
       continue; // skip nulls  // don't update timer on null chars
     }
     if (echoInput) {
@@ -3661,68 +3939,68 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
       timeoutStart_mS = millis(); // start timer
     }
     if (!skipToDelimiter) {
-    	concat((char)c); // add char may be delimiter
+      concat((char)c); // add char may be delimiter
     }
     if (strchr(delimiters, c) != NULL) {
       if (skipToDelimiter) {
         // if skipToDelimiter then started with empty SafeString
         skipToDelimiter = false; // found next delimiter not added above because skipToDelimiter
-      	clear(); 
+        clear();
         concat((char)c); // is a delimiter
         return true; // empty token
       } else {
-      	// added c above
-      	break; // process this token
+        // added c above
+        break; // process this token
       }
     }
   }
   // here either isFill() OR no more chars avail OR found delimiter
   // skipToDelimiter may still be true here if no delimiter found above
   if (nextToken(token, delimiters)) {  // removes leading delimiters if any
-     // returns true only if have found delimited token, returns false if full and no delimiter
+    // returns true only if have found delimited token, returns false if full and no delimiter
     // IF found delimited token, delimiter was add just now and so timer reset
     // skipToDelimiter is false here since found delimiter
     return true; // not full and not timeout and have new token
   }
-  
+
   // else
   if (isFull()) { // note if full here then > max token as capacity needs to allow for one delimiter
-      // SafeString is full of chars but no delimiter
-      // discard the chars and skip input until get next delimiter
-      clear();  // not full now
-      skipToDelimiter = true;
-      return false; // will do timeout check next call.  No token found return false
-   }
-   
-   // else no token found AND not full AND last char NOT a delimiter
+    // SafeString is full of chars but no delimiter
+    // discard the chars and skip input until get next delimiter
+    clear();  // not full now
+    skipToDelimiter = true;
+    return false; // will do timeout check next call.  No token found return false
+  }
+
+  // else no token found AND not full AND last char NOT a delimiter
   if (timeoutRunning) { // here not full because called nextToken OR checked for full
     if ((millis() - timeoutStart_mS) > timeout_mS) {
       // no new chars for timeout add terminator
       timeoutRunning = false;
-      // put in delimiter   
+      // put in delimiter
       if ((len != 0) || skipToDelimiter) { // have something to delimit or had somthing, else just stop timer
-       concat(delimiters[0]);   // certainly NOT full from above  	 
-       if (echoInput) {
-         input.print(delimiters[0]);
-       }
-       if (debugPtr) {
-         debugPtr->println(); debugPtr->print("!! ");outputName();
-         debugPtr->println(" -- Input timed out.");
-       }
-       if (skipToDelimiter) {
-       	  skipToDelimiter = false;
-      	  return true;
-       } // else pick up token
-       nextToken(token, delimiters); // collect this token just delimited, this will clear input
-       return true;
-     }
+        concat(delimiters[0]);   // certainly NOT full from above
+        if (echoInput) {
+          input.print(delimiters[0]);
+        }
+        if (debugPtr) {
+          debugPtr->println(); debugPtr->print("!! "); outputName();
+          debugPtr->println(F(" -- Input timed out."));
+        }
+        if (skipToDelimiter) {
+          skipToDelimiter = false;
+          return true;
+        } // else pick up token
+        nextToken(token, delimiters); // collect this token just delimited, this will clear input
+        return true;
+      }
     }
   }
-  return false; // no token 
+  return false; // no token
 }
 
 size_t SafeString::getLastReadCount() {
-	return noCharsRead;
+  return noCharsRead;
 }
 
 /** end of NON-Blocking reads from Stream,  read() and readUntil() *******************/
@@ -3748,6 +4026,7 @@ void SafeString::debugInternal(bool verbose) const {
 // this internal msg debug does not add line indent if not fullDebug
 // always need to add debugPtr->println() at end of debug output
 void SafeString::debugInternalMsg(bool verbose) const {
+  (void)(verbose);
 #ifdef SSTRING_DEBUG
   if (debugPtr) {
     if (verbose) {
@@ -3771,6 +4050,7 @@ void SafeString::debugInternalMsg(bool verbose) const {
 }
 
 void SafeString::debugInternalResultMsg(bool verbose) const {
+  (void)(verbose);
 #ifdef SSTRING_DEBUG
   if (verbose) {
     debugPtr->println(); // terminate first line
@@ -3802,7 +4082,42 @@ void SafeString::outputName() const {
   }
 }
 
+void SafeString::assignError(size_t neededCap, const char* cstr, const __FlashStringHelper * pstr, char c, bool numberFlag) const {
+  (void)(neededCap);   (void)(cstr);   (void)(pstr);   (void)(c);   (void)(numberFlag);
+#ifdef SSTRING_DEBUG
+  if (debugPtr) {
+    debugPtr->print(F("Error:"));
+    outputName();
+    debugPtr->print(F(" = "));
+      if (cstr || pstr || (c != '\0')) {
+        if (cstr) {
+          if (!numberFlag) {
+            debugPtr->print('\"');
+          }
+          debugPtr->print(cstr);
+          if (!numberFlag) {
+            debugPtr->print('\"');
+          }
+        } else if (pstr) { 
+          debugPtr->print(F("F(\""));
+          debugPtr->print(pstr);
+          debugPtr->print("\")");
+        } else if (c != '\0') {
+          debugPtr->print('\'');
+          debugPtr->print(c);
+          debugPtr->print('\'');
+        }
+      }
+    debugPtr->println();
+    debugPtr->print(F(" needs capacity of "));
+    debugPtr->print(neededCap);
+    debugInternalMsg(fullDebug);
+  }
+#endif
+}
+
 void SafeString::capError(const __FlashStringHelper * methodName, size_t neededCap, const char* cstr, const __FlashStringHelper * pstr, char c, size_t length) const {
+  (void)(methodName); (void)(neededCap);   (void)(cstr);   (void)(pstr);   (void)(c);   (void)(length);
 #ifdef SSTRING_DEBUG
   if (debugPtr) {
     errorMethod(methodName);
@@ -3817,16 +4132,21 @@ void SafeString::capError(const __FlashStringHelper * methodName, size_t neededC
       debugPtr->println();
       debugPtr->print(F("       ")); // indent next line
       if (cstr || pstr || (c != '\0')) {
-        debugPtr->print(F(" Input arg was '"));
+        debugPtr->print(F(" Input arg was "));
         if (cstr) {
+          debugPtr->print('\'');
           debugPtr->print(cstr);
-        } else if (pstr) { // for nl
+          debugPtr->print('\'');
+        } else if (pstr) { 
+          debugPtr->print(F("F(\""));
           debugPtr->print(pstr);
+          debugPtr->print("\")");
         } else if (c != '\0') {
+          debugPtr->print('\'');
           debugPtr->print(c);
+          debugPtr->print('\'');
         }
       }
-      debugPtr->print('\'');
       debugInternalMsg(fullDebug);
     }
   }
@@ -3834,6 +4154,7 @@ void SafeString::capError(const __FlashStringHelper * methodName, size_t neededC
 }
 
 void SafeString::errorMethod(const __FlashStringHelper * methodName) const {
+  (void)(methodName);
 #ifdef SSTRING_DEBUG
   debugPtr->print(F("Error:"));
   outputName();
@@ -3844,6 +4165,7 @@ void SafeString::errorMethod(const __FlashStringHelper * methodName) const {
 }
 
 void SafeString::warningMethod(const __FlashStringHelper * methodName) const {
+  (void)(methodName);
 #ifdef SSTRING_DEBUG
   debugPtr->print(F("Warning:"));
   outputName();
@@ -3854,6 +4176,7 @@ void SafeString::warningMethod(const __FlashStringHelper * methodName) const {
 }
 
 void SafeString::outputFromIndexIfFullDebug(size_t fromIndex) const {
+  (void)(fromIndex);
 #ifdef SSTRING_DEBUG
   if (fullDebug) {
     debugPtr->println(); debugPtr->print(F("       "));
@@ -3865,6 +4188,20 @@ void SafeString::outputFromIndexIfFullDebug(size_t fromIndex) const {
 void SafeString::concatErr() const {
 #ifdef SSTRING_DEBUG
   errorMethod(F("concat"));
+#endif
+}
+
+void SafeString::assignErrorMethod() const {
+#ifdef SSTRING_DEBUG
+  debugPtr->print(F("Error:"));
+  outputName();
+  debugPtr->print(F(" = "));
+#endif
+}
+
+void SafeString::concatAssignError() const {
+#ifdef SSTRING_DEBUG
+  assignErrorMethod();
 #endif
 }
 
