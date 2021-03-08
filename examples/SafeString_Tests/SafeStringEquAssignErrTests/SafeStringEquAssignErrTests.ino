@@ -26,24 +26,42 @@ void setup() {
   Serial.println(F("Test Errors for Assignment to a SafeString using ="));
   Serial.println(F("SafeString::setOutput(Serial); // verbose output "));
   SafeString::setOutput(Serial); // enable debugging error msgs
+  SafeString::setVerbose(false);
   // see the SafeString_ConstructorAndDebugging example for debugging settings
   Serial.println();
 
-
+  Serial.println(F("stringZeroCapacity = 'a';"));
   stringZeroCapacity = 'a';
+  Serial.print(F("stringZeroCapacity.hasError():"));  Serial.println(stringZeroCapacity.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
+  Serial.println(F("stringOne = \"test\";"));
   stringOne = "test";
+  Serial.print(F("stringOne.hasError():"));  Serial.println(stringOne.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
+  Serial.println(F("stringOne = nullPtr;"));
   char *nullPtr = NULL;
   stringOne = nullPtr;
+  Serial.print(F("stringOne.hasError():"));  Serial.println(stringOne.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
+  Serial.println(F("stringOne = F(\"some text\");"));
   stringOne = F("some text");
+  Serial.print(F("stringOne.hasError():"));  Serial.println(stringOne.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
+  Serial.println(F("stringOne = 5.5;"));
   stringOne = 5.5;
+  Serial.print(F("stringOne.hasError():"));  Serial.println(stringOne.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
+  Serial.println(F("stringOne = 100;"));
   stringOne = 100;
+  Serial.print(F("stringOne.hasError():"));  Serial.println(stringOne.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
 }

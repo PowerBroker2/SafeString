@@ -94,6 +94,7 @@ char SafeStringReader::getDelimiter() {
 }
 
 // Each call to this method removes any leading delimiters so if you need to check the delimiter do it BEFORE the next call to read()
+// NOTE: this call always clears the SafeStringReader so no need to call clear() on sfReader at end of processing.
 bool SafeStringReader::read() {
   if (!streamPtr) {
     SafeString::Output.println();
@@ -155,5 +156,53 @@ const char* SafeStringReader::debugInputBuffer(const char *title, bool verbose) 
 const char* SafeStringReader::debugInputBuffer(SafeString &stitle, bool verbose) { // verbose optional defaults to true
   return sfInputPtr->debug(stitle, verbose);
 }
+
+/*************************************************/
+/**  assignment operator methods                 */
+/*************************************************/
+SafeStringReader & SafeStringReader::operator = (SafeString &rhs) {
+	return 	(SafeStringReader &)((*this).SafeString::operator= (rhs));
+}
+
+SafeStringReader & SafeStringReader::operator = (char c) {
+	return 	(SafeStringReader &)((*this).SafeString::operator= (c));
+}
+
+SafeStringReader & SafeStringReader::operator = (const char *cstr) {
+  return 	(SafeStringReader &)((*this).SafeString::operator= (cstr));
+}
+
+SafeStringReader & SafeStringReader::operator = (const __FlashStringHelper *pstr) {
+	return 	(SafeStringReader &)((*this).SafeString::operator= (pstr));
+}
+
+SafeStringReader & SafeStringReader::operator = (unsigned char c) {
+	return 	(SafeStringReader &)((*this).SafeString::operator= (c));
+}
+
+SafeStringReader & SafeStringReader::operator = (int num) {
+	return 	(SafeStringReader &)((*this).SafeString::operator= (num));
+}
+
+SafeStringReader & SafeStringReader::operator = (unsigned int num) {
+	return 	(SafeStringReader &)((*this).SafeString::operator= (num));
+}
+
+SafeStringReader & SafeStringReader::operator = (long num) {
+ return 	(SafeStringReader &)((*this).SafeString::operator= (num));
+}
+
+SafeStringReader & SafeStringReader::operator = (unsigned long num) {
+	return 	(SafeStringReader &)((*this).SafeString::operator= (num));
+}
+
+SafeStringReader & SafeStringReader::operator = (float num) {
+	return 	(SafeStringReader &)((*this).SafeString::operator= (num));
+}
+
+SafeStringReader & SafeStringReader::operator = (double num) {
+	return 	(SafeStringReader &)((*this).SafeString::operator= (num));
+}
+/**********  assignment operator methods *************/
 
 /*****************  end public debug methods *************************/

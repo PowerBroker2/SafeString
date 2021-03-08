@@ -49,14 +49,14 @@ void setup() {
   stringTwo.debug(F("stringTwo.replace(\"<\", \"</\"); => "));
   Serial.println();
 
-  createSafeString(find, 5);   createSafeString(replace, 5);
-  Serial.println(F("createSafeString(find,5);   createSafeString(replace,5);"));
-  find = "</";
-  find.debug(F("find = \"</\"; => "));
-  replace = "<";
-  replace.debug(F("replace = \"<\"; => "));
-  stringTwo.replace(find, replace);
-  stringTwo.debug(F("stringTwo.replace(find,replace); => "));
+  createSafeString(findStr, 5);   createSafeString(replaceStr, 5);
+  Serial.println(F("createSafeString(findStr,5);   createSafeString(replaceStr,5);"));
+  findStr = "</";
+  findStr.debug(F("findStr = \"</\"; => "));
+  replaceStr = "<";
+  replaceStr.debug(F("replaceStr = \"<\"; => "));
+  stringTwo.replace(findStr, replaceStr);
+  stringTwo.debug(F("stringTwo.replace(findStr,replaceStr); => "));
   Serial.println();
 
   Serial.println(F("Error checking.."));
@@ -64,30 +64,51 @@ void setup() {
 
   Serial.println(F("stringTwo.replace(\"<\", \"<_____\");"));
   stringTwo.replace("<", "<_____");
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
-  Serial.println(F("stringTwo.replace(stringTwo,replace);"));
-  stringTwo.replace(stringTwo, replace);
+  Serial.println(F("stringTwo.replace(stringTwo,replaceStr);"));
+  stringTwo.replace(stringTwo, replaceStr);
+  stringTwo.debug();
   Serial.println();
+
+  stringTwo = stringOne;
+  stringTwo.debug(F("stringTwo = stringOne; => "));
 
   Serial.println(F("stringTwo.replace(find,stringTwo);"));
-  stringTwo.replace(find, stringTwo);
+  stringTwo.replace(findStr, stringTwo);
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
   createSafeString(emptyString, 3);
   emptyString.debug();
-  Serial.println(F("stringTwo.replace(emptyString,replace);"));
-  stringTwo.replace(emptyString, replace);
+  Serial.println(F("stringTwo.replace(findStr,emptyString);"));
+  stringTwo.replace(findStr, emptyString);
+  stringTwo.debug();
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
+  Serial.println();
+
+  Serial.println(F("stringTwo.replace(emptyString,replaceStr);"));
+  stringTwo.replace(emptyString, replaceStr);
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
   char *nullStr = NULL;
   Serial.println(F("char *nullStr = NULL;"));
   Serial.println(F("stringTwo.replace(nullStr,\"\");"));
   stringTwo.replace(nullStr, "");
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
   Serial.println(F("stringTwo.replace(\"<\",nullStr);"));
   stringTwo.replace("<", nullStr);
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
 }

@@ -1,17 +1,28 @@
-// SafeString_read.ino
+// SafeStringStream_testdata.ino
 //
-// This example takes commmands from the Arduino Monitor input and acts on them
+// This example can either read data from the Serial input OR from a pre-defined test data SafeString
+// #define TEST_DATA determines which. Currently set to read from test data.
+//
+// For Serial input this example takes commmands from the Arduino Monitor input and acts on them
 // the available commands are start stop and reset
 // Commands are delimited by space dot comma NL or CR
-// If you set the Arduino Monitor to No line ending then the command will be ignored until you terminate it with a space or ,
+// If you set the Arduino Monitor to No line ending then the last command will be ignored until it is terminated by a space or ,
 //  Use the settings Newline or Carrage Return or Both NL & CR
 //
 // These commands can be picked out of a line of user input
 // start  stop  reset
 //
-// download and install the SafeString library from library manager OR from
+// download and install the SafeString library from
 // www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html
 #include "SafeString.h"
+#include "SafeStringStream.h"
+
+#define TEST_DATA
+
+#ifdef TEST_DATA
+SafeStringStream sfStream;
+cSF(sfTestData, 128);
+#endif
 
 char startCmd[] = "start";
 char stopCmd[] = "stop";
@@ -42,12 +53,24 @@ void setup() {
   Serial.println(F("  separated by space , CR or NL"));
   Serial.println(F(" Arduino monitor must be set to Newline or Carrage Return or Both NL & CR for this sketch to work."));
   Serial.println();
-  Serial.println(F(" The SafeString readUntilToken() method does all of this work in one call and also has the option to echo the input."));
-  Serial.println(F(" See the SafeString_readUntilToken() example sketch."));
+  Serial.println(F(" The SafeString readUntilToken() method does all the work. By default it echos the input, but you can turn that off."));
+  Serial.println(F(" See the SafeString_read() example sketch for the internals of readUntilToken()."));
   Serial.println();
   if (running) {
     Serial.println(F(" Counter Started"));
   }
+#ifdef TEST_DATA
+  sfTestData = F("looooooooooooong stop input, start,, nothing, stop, reset\n"); // initialized the test data
+  //sfTestData.debug();
+  Serial.println("Using test data input");
+  Serial.println(sfTestData);
+  sfStream.begin(sfTestData, 1200);
+#define StreamInput sfStream
+#else
+  Serial.println("Reading input from IDE monitor, Serial");
+#define StreamInput Serial
+#endif
+
 }
 
 void handleStartCmd() {
@@ -60,37 +83,18 @@ void handleResetCmd() {
   loopCounter = 0; Serial.print(F("reset Counter:")); Serial.println(loopCounter);
 }
 
+
 void loop() {
-  if (input.read(Serial)) {  // read from Serial, returns true if at least one character was added to SafeString input
-    input.debug("after read => ");
-  }
-
-  if (skipToDelimiter) {
-    if (input.endsWithCharFrom(delimiters)) {
-      skipToDelimiter = false; // found next delimiter
+  if (input.readUntilToken(StreamInput, token, delimiters, skipToDelimiter, true)) { // echo true on makes TEST_DATA, sfStream, loop continually as read chars are just written back on the end
+    if (token == startCmd) {
+      handleStartCmd();
+    } else if (token == stopCmd) {
+      handleStopCmd();
+    } else if (token == resetCmd) {
+      handleResetCmd();
     }
-    input.clear(); // discard these chars
+  } // else token is empty
 
-  } else {
-    if (input.nextToken(token, delimiters)) { // process at most one token per loop does not return tokens longer than input.capacity()
-      token.debug("after nextToken => ");
-
-      if (token == startCmd) {
-        handleStartCmd();
-      } else if (token == stopCmd) {
-        handleStopCmd();
-      } else if (token == resetCmd) {
-        handleResetCmd();
-      }// else  // not a valid cmd ignore
-
-    } else { // no terminating delimiter found
-      if (input.isFull()) {
-        // SafeString is full of chars but no delimiter discard the chars and skip input until get next delimiter
-        skipToDelimiter = true;
-        input.clear();
-      }
-    }
-  }
   // rest of code here is executed while the user typing in commands
   if (running) {
     loopCounter++;

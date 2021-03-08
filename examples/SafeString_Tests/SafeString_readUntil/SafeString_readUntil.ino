@@ -36,6 +36,11 @@ void setup() {
   Serial.println(F("Using SafeString readUntil() to read a comma separated line from Serial and parse it into fields."));
   Serial.println(F("  The input SafeString is only a capacity 10 >= the size of the largest field + 2 delimiters."));
   Serial.println(F("  This sketch assumes CSV lines are terminated by Newline (\\n) or Carrage Return (\\r) or Both "));
+  Serial.println(F("  Example inputs ... empty final field, non-empty final field and fiels are that too long "));
+  Serial.println(F("5.33 , abcd,33 ,test,"));
+  Serial.println(F("5.33 , abcd,33 ,test, 66"));
+  Serial.println(F("1234567890123abcdefghijklmn,441234567890123,33"));
+  Serial.println();
   // see the SafeString_ConstructorAndDebugging example for debugging settings
   //SafeString::setOutput(Serial); // uncomment this line to see the input debugging
 
@@ -58,7 +63,7 @@ void processField() {
     return;
   }
   // else have delimiter since readUntil only returns true when a delimiter is read or input full
-  bool endOfLine = input.endsWithCharFrom("\n\r"); // is this the end of the line  test this here as input may be just \n or \r
+  //bool endOfLine = input.endsWithCharFrom("\n\r"); // is this the end of the line  test this here as input may be just \n or \r
   input.nextToken(field, delimiters); // skip delimiters and pick up and remove the field.  Leaves space for more input
   // returns true if not just delimiters
   if (processingOverflowField) {

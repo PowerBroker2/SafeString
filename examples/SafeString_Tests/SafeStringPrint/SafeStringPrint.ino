@@ -75,27 +75,37 @@ void setup() {
 
   Serial.println("stringOne.print('\\0');");
   stringOne.print('\0');
+  Serial.print(F("stringOne.hasError():"));  Serial.println(stringOne.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
   Serial.println("stringOne.write(0);");
   stringOne.write(0);
+  Serial.print(F("stringOne.hasError():"));  Serial.println(stringOne.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
   uint8_t bytes[] = { 35, 33, 0, 55, 66 };
   Serial.println(F("uint8_t bytes[] = { 35, 33, 0, 55, 66 };"));
   Serial.println("stringOne.write(bytes,sizeof(bytes));  // try to write byte array containing a 0 byte i.e. '\\0' ");
-  stringOne.write(bytes,sizeof(bytes));
+  stringOne.write(bytes, sizeof(bytes));
+  Serial.print(F("stringOne.hasError():"));  Serial.println(stringOne.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
-  
+
   char *nullStr = NULL;
   Serial.println("stringOne.print(nullStr);");
   stringOne.print(nullStr);
+  Serial.print(F("stringOne.hasError():"));  Serial.println(stringOne.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
   createSafeString(smallSafeStr, 2);
   smallSafeStr.debug(F("createSafeString(smallSafeStr, 2); => "));
   Serial.println("smallSafeStr.println('a'); // i.e. append char a and \\r\\n");
   smallSafeStr.println('a');
+  Serial.print(F("smallSafeStr.hasError():"));  Serial.println(smallSafeStr.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
 

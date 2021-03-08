@@ -67,11 +67,14 @@ void setup() {
   Serial.println(F(" Unit tests for createSafeStringFromCharArray."));
   Serial.println(F(" createSafeStringFromCharArray needs to be created from an actual char[] not a char* "));
   Serial.println(F("   because SafeString needs to use sizeof( ) to determine the size of the charArray."));
+  Serial.println(F("       (to wrap a char* use createSafeStringFromCharPtr (cSFP) instead) "));
   char *charArrayPtr = charArray;
   Serial.println(F("Check passing char* (NULL or otherwise) as the char[] to createSafeStringFromCharArray, prints error msg but does not blow up program."));
   Serial.println(F("char *charArrayPtr = charArray;"));
   Serial.println(F("cSFA(testStr1,charArrayPtr); // using the typing shortcut name"));
   cSFA(testStr1, charArrayPtr);
+  Serial.print(F("testStr1.hasError():"));  Serial.println(testStr1.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
   Serial.println(F("The resulting testStr1 is valid, but with zero capacity."));
   testStr1.debug(F("testStr1.debug(); => "));
@@ -82,6 +85,8 @@ void setup() {
   char emptyArray[0];
   Serial.println(F("cSFA(testStr2,emptyArray); // using the typing shortcut name"));
   cSFA(testStr2, emptyArray);
+  Serial.print(F("testStr2.hasError():"));  Serial.println(testStr2.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
   Serial.println(F("The resulting testStr1 is valid, but with zero capacity."));
   testStr1.debug(F("testStr2.debug(); => "));
@@ -108,6 +113,8 @@ void setup() {
   Serial.println(F("You can safely use createSafeStringFromCharArray (cSFA) on buffer_1 to create as valid SafeString."));
   Serial.println(F("cSFA(sfBuffer_1,buffers.buffer_1);"));
   cSFA(sfBuffer_1, buffers.buffer_1);
+  Serial.print(F("sfBuffer_1.hasError():"));  Serial.println(sfBuffer_1.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
   Serial.println(F("You can now safely access and update buffers.buffer_1 via the SafeString, sfBuffer_1."));

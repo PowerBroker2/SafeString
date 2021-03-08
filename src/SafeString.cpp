@@ -205,6 +205,9 @@ SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _
         return;
       }
     } else { //    if (maxLen > 0) and != (size_t)-1 {
+      if (maxLen >= INT_MAX) {
+        maxLen = INT_MAX - 1; // limit due to using int for indexOf returns
+      }
       _capacity = maxLen - 1;
     }
     if (!keepBufferContents) {
@@ -262,7 +265,7 @@ SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _
         }
         debugInternalMsg(fullDebug);
       } else {
-        debugPtr->print(F("Warning: SafeString("));
+        debugPtr->print(F("Error: SafeString("));
         outputName(); debugPtr->print(F(", ...) passed unterminated buffer of length ")); debugPtr->print(cstrLen);
         if (_fromPtr) {
           debugPtr->print(F(" to createSafeStringFromCharPtrWithSize."));
@@ -306,7 +309,7 @@ SafeString::SafeString(const SafeString& other ) {
 }
 /**  end of Constructor methods ***********/
 
-bool SafeString::errorDetected() {
+unsigned char SafeString::errorDetected() {
   bool rtn = classErrorFlag;
   classErrorFlag = false;
   return rtn;
@@ -317,7 +320,7 @@ void SafeString::setError() {
   errorFlag = true;
 }
 
-bool SafeString::hasError() {
+unsigned char SafeString::hasError() {
   bool rtn = errorFlag;
   errorFlag = false;
   return rtn;
@@ -337,25 +340,45 @@ SafeString & SafeString::clear(void) {
   return *this;
 }
 
-// return the equalent of strlen( ) for this SafeString
-size_t SafeString::length(void) {
+/*****************
+  // truncates SafeString to this length
+  void SafeString::setLength(unsigned int newLength) {
+  cleanUp();
+  if (newLength > len) {
+    setError();
+  #ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      debugPtr->print(F("Error:"));
+      outputName();
+      debugPtr->print(F(".setLength() newLength ")); debugPtr->print(newLength); debugPtr->print(F(" > ")); outputName(); debugPtr->print(F(".length() : ")); debugPtr->print(len);
+      debugInternalMsg(fullDebug);
+    }
+  #endif // SSTRING_DEBUG
+    return;
+  }
+  buffer[newLength] = '\0';
+  len = newLength;
+  }
+************/
+// return the equivalent of strlen( ) for this SafeString
+unsigned int SafeString::length(void) {
   cleanUp();
   return len;
 }
 
 // return the maximum number of chars that this SafeString can store
-size_t SafeString::capacity(void) {
+unsigned int SafeString::capacity(void) {
   cleanUp();
   return _capacity;
 }
 
 // cannot store any more chars in this SafeString
-bool SafeString::isFull(void) {
+unsigned char SafeString::isFull(void) {
   return (length() == capacity()); // each calls cleanUp()
 }
 
 // no chars stored in this SafeString
-bool SafeString::isEmpty(void) {
+unsigned char SafeString::isEmpty(void) {
   return length() == 0; // calls cleanUp()
 }
 
@@ -975,7 +998,7 @@ size_t SafeString::println(double num, int digits) {
 /* No Memory Management methods              */
 /*********************************************/
 // just checks there is enough spare space
-bool SafeString::reserve(size_t size) {
+unsigned char SafeString::reserve(unsigned int size) {
   if (_capacity >= size) { // buffer never NULL
     return true;
   }
@@ -1369,9 +1392,15 @@ SafeString & SafeString::concatInternal(const char *cstr, size_t length, bool as
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
+    if (assignOp) {
+      clear();
+    }
     return *this;
   }
   if (length == 0) {
+    if (assignOp) {
+      clear();
+    }
     return *this;
   }
   if (length > strlen(cstr)) {
@@ -1391,6 +1420,9 @@ SafeString & SafeString::concatInternal(const char *cstr, size_t length, bool as
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
+    if (assignOp) {
+      clear();
+    }
     return *this;
   }
   if (!reserve(newlen)) {
@@ -1402,6 +1434,9 @@ SafeString & SafeString::concatInternal(const char *cstr, size_t length, bool as
       capError(F("concat"), newlen, cstr, NULL, '\0', length);
     }
 #endif // SSTRING_DEBUG
+    if (assignOp) {
+      clear();
+    }
     return *this;
   }
   if (assignOp) {
@@ -1430,9 +1465,15 @@ SafeString & SafeString::concatInternal(const __FlashStringHelper * pstr, size_t
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
+    if (assignOp) {
+      clear();
+    }
     return *this;
   }
   if (length == 0) {
+    if (assignOp) {
+      clear();
+    }
     return *this;
   }
   if (length > strlen_P((PGM_P)pstr)) {
@@ -1452,6 +1493,9 @@ SafeString & SafeString::concatInternal(const __FlashStringHelper * pstr, size_t
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
+    if (assignOp) {
+      clear();
+    }
     return *this;
   }
 
@@ -1468,6 +1512,9 @@ SafeString & SafeString::concatInternal(const __FlashStringHelper * pstr, size_t
       capError(F("concat"), newlen, NULL, pstr, '\0', length);
     }
 #endif // SSTRING_DEBUG
+    if (assignOp) {
+      clear();
+    }
     return *this;
   }
   if (assignOp) {
@@ -1494,19 +1541,25 @@ SafeString & SafeString::concatInternal(char c, bool assignOp) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
+    if (assignOp) {
+      clear();
+    }
     return *this;
   }
-  if ((assignOp) && (_capacity < 1)) {
+  if ((assignOp) && (_capacity < 1)) { // && (c != '\0')) {
     setError();
 #ifdef SSTRING_DEBUG
-    assignError(1, NULL, NULL,c);
+    assignError(1, NULL, NULL, c);
 #endif
-   return *this;
+    if (assignOp) {
+      clear();
+    }
+    return *this;
   }
   char buf[2];
   buf[0] = c;
   buf[1] = 0;
-  return concatInternal(buf, 1, assignOp);
+  return concatInternal(buf, strlen(buf), assignOp);
 }
 
 
@@ -1525,6 +1578,9 @@ SafeString & SafeString::concatInternal(const char *cstr, bool assignOp) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
+    if (assignOp) {
+      clear();
+    }
     return *this;
   } // else
   return concatInternal(cstr, strlen(cstr), assignOp);
@@ -1545,6 +1601,9 @@ SafeString & SafeString::concatInternal(const __FlashStringHelper * pstr, bool a
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
+    if (assignOp) {
+      clear();
+    }
     return *this;
   }
   return concatInternal(pstr, strlen_P((PGM_P)pstr), assignOp);
@@ -1597,14 +1656,14 @@ int SafeString::compareTo(const char* cstr) {
   return strcmp(buffer, cstr);
 }
 
-bool SafeString::equals(SafeString &s2) {
+unsigned char SafeString::equals(SafeString &s2) {
   s2.cleanUp();
   cleanUp();
   return ((len == s2.len) && (strcmp(buffer, s2.buffer) == 0));
 }
 
 // error if cstr is NULL
-bool SafeString::equals(const char *cstr) {
+unsigned char SafeString::equals(const char *cstr) {
   cleanUp();
   if (!cstr) {
     setError();
@@ -1624,7 +1683,7 @@ bool SafeString::equals(const char *cstr) {
 }
 
 // compare string to char
-bool SafeString::equals(const char c) {
+unsigned char SafeString::equals(const char c) {
   cleanUp();
   if (c == '\0') {
     if (len == 0) {
@@ -1641,7 +1700,7 @@ bool SafeString::equals(const char c) {
   return buffer[0] == c;
 }
 
-bool SafeString::equalsIgnoreCase(const char *str2) {
+unsigned char SafeString::equalsIgnoreCase(const char *str2) {
   cleanUp();
   if (!str2) {
     setError();
@@ -1674,7 +1733,7 @@ bool SafeString::equalsIgnoreCase(const char *str2) {
   return true;
 }
 
-bool SafeString::equalsIgnoreCase( SafeString &s2 ) {
+unsigned char SafeString::equalsIgnoreCase( SafeString &s2 ) {
   s2.cleanUp();
   cleanUp();
   if (buffer == s2.buffer) { // allow for same buffer in different SafeStrings
@@ -1696,7 +1755,7 @@ bool SafeString::equalsIgnoreCase( SafeString &s2 ) {
   return true;
 }
 
-bool SafeString::equalsConstantTime(SafeString &s2) {
+unsigned char SafeString::equalsConstantTime(SafeString &s2) {
   s2.cleanUp();
   cleanUp();
   // To avoid possible time-based attacks present function
@@ -1724,14 +1783,14 @@ bool SafeString::equalsConstantTime(SafeString &s2) {
   //the following should force a constant time eval of the condition without a compiler "logical shortcut"
   bool equalcond = (equalchars == len);
   bool diffcond = (diffchars == 0);
-  return (bool)(equalcond & diffcond); //bitwise AND
+  return (unsigned char)(equalcond & diffcond); //bitwise AND
 }
 /******** end of comparison methods **************************/
 
 /*********************************************/
 /** startsWith(), endsWith()  methods        */
 /*********************************************/
-bool SafeString::startsWith( SafeString &s2 ) {
+unsigned char SafeString::startsWith( SafeString &s2 ) {
   s2.cleanUp();
   cleanUp();
   if (len < s2.len) {
@@ -1740,11 +1799,11 @@ bool SafeString::startsWith( SafeString &s2 ) {
   return startsWith(s2, 0);
 }
 
-bool SafeString::startsWith( const char *str2) {
+unsigned char SafeString::startsWith( const char *str2) {
   return startsWith(str2, 0); // calls cleanUp()
 }
 
-bool SafeString::startsWith( const char *str2, size_t fromIndex ) {
+unsigned char SafeString::startsWith( const char *str2, unsigned int fromIndex ) {
   cleanUp();
   if (!str2) {
     setError();
@@ -1758,23 +1817,25 @@ bool SafeString::startsWith( const char *str2, size_t fromIndex ) {
 #endif // SSTRING_DEBUG
     return false;
   }
+  if (fromIndex == ((unsigned int)(-1))) {
+    fromIndex = len;
+  }
   size_t str2Len = strlen(str2);
-  if (str2Len == 0) {
-    setError();
-#ifdef SSTRING_DEBUG
-    if (debugPtr) {
-      errorMethod(F("startsWith"));
-      debugPtr->print(F(" was passed an empty char array"));
-      outputFromIndexIfFullDebug(fromIndex);
-      debugInternalMsg(fullDebug);
+  // zero length is OK
+  /*********
+    if (str2Len == 0) {
+      setError();
+    #ifdef SSTRING_DEBUG
+      if (debugPtr) {
+        errorMethod(F("startsWith"));
+        debugPtr->print(F(" was passed an empty char array"));
+        outputFromIndexIfFullDebug(fromIndex);
+        debugInternalMsg(fullDebug);
+      }
+    #endif // SSTRING_DEBUG
+      return false;
     }
-#endif // SSTRING_DEBUG
-    return false;
-  }
-
-  if (fromIndex == len) {
-    return false;
-  }
+  *********/
   if (fromIndex > len) {
     setError();
 #ifdef SSTRING_DEBUG
@@ -1790,31 +1851,44 @@ bool SafeString::startsWith( const char *str2, size_t fromIndex ) {
 #endif // SSTRING_DEBUG
     return false;
   }
-  if ((fromIndex > (len - str2Len)) ) {
+  if ((fromIndex + str2Len) > len ) {
     return false;
+  }
+  if (str2Len == 0) {
+    if (fromIndex == len) {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    // str2Len != 0
+    //(fromIndex + str2Len) > len check for fromIndex == len
   }
   return strncmp( &buffer[fromIndex], str2, str2Len ) == 0;
 }
 
-bool SafeString::startsWith( SafeString &s2, size_t fromIndex ) {
+unsigned char SafeString::startsWith( SafeString &s2, unsigned int fromIndex ) {
   s2.cleanUp();
   cleanUp();
-  if (s2.len == 0) {
+  // zero length is OK
+  /**
+    if (s2.len == 0) {
     setError();
-#ifdef SSTRING_DEBUG
+    #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("startsWith"));
       debugPtr->print(F(" was passed an empty SafeString ")); s2.outputName();
       outputFromIndexIfFullDebug(fromIndex);
       debugInternalMsg(fullDebug);
     }
-#endif // SSTRING_DEBUG
+    #endif // SSTRING_DEBUG
     return false;
+    }
+  **/
+  if (fromIndex == ((unsigned int)(-1))) {
+    fromIndex = len;
   }
 
-  if (fromIndex == len) {
-    return false;
-  }
   if (fromIndex > len) {
     setError();
 #ifdef SSTRING_DEBUG
@@ -1833,11 +1907,22 @@ bool SafeString::startsWith( SafeString &s2, size_t fromIndex ) {
   if ((fromIndex + s2.len) > len ) {
     return false;
   }
+  if (s2.len == 0) {
+    if (fromIndex == len) {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    //  s2.len != 0
+    //  (fromIndex + s2.len) > len  checks for fromIdx == len
+  }
+
   return strncmp( &buffer[fromIndex], s2.buffer, s2.len ) == 0;
 }
 
 
-bool SafeString::startsWithIgnoreCase( SafeString &s2 ) {
+unsigned char SafeString::startsWithIgnoreCase( SafeString &s2 ) {
   s2.cleanUp();
   cleanUp();
   if (len < s2.len) {
@@ -1846,25 +1931,28 @@ bool SafeString::startsWithIgnoreCase( SafeString &s2 ) {
   return startsWithIgnoreCase(s2, 0);
 }
 
-bool SafeString::startsWithIgnoreCase( SafeString &s2, size_t fromIndex ) {
+unsigned char SafeString::startsWithIgnoreCase( SafeString &s2, unsigned int fromIndex ) {
   s2.cleanUp();
   cleanUp();
-  if (s2.len == 0) {
+  // zero length is OK
+  /**
+    if (s2.len == 0) {
     setError();
-#ifdef SSTRING_DEBUG
+    #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("startsWithIgnoreCase"));
       debugPtr->print(F(" was passed an empty SafeString ")); s2.outputName();
       outputFromIndexIfFullDebug(fromIndex);
       debugInternalMsg(fullDebug);
     }
-#endif // SSTRING_DEBUG
+    #endif // SSTRING_DEBUG
     return false;
+    }
+  */
+  if (fromIndex == ((unsigned int)(-1))) {
+    fromIndex = len;
   }
 
-  if (fromIndex == len) {
-    return false;
-  }
   if (fromIndex > len) {
     setError();
 #ifdef SSTRING_DEBUG
@@ -1883,6 +1971,17 @@ bool SafeString::startsWithIgnoreCase( SafeString &s2, size_t fromIndex ) {
   if ((fromIndex + s2.len) > len) {
     return false;
   }
+  if (s2.len == 0) {
+    if (fromIndex == len) {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    // s2.len != 0
+    // and (fromIndex + str2Len) > len checks for fromIdx == len
+  }
+
   const char *p1 = &buffer[fromIndex];
   const char *p2 = s2.buffer;
   while (*p2) { // loop through str2 have check lengths above
@@ -1893,12 +1992,12 @@ bool SafeString::startsWithIgnoreCase( SafeString &s2, size_t fromIndex ) {
   return true;
 }
 
-bool SafeString::startsWithIgnoreCase( const char *str2 ) {
+unsigned char SafeString::startsWithIgnoreCase( const char *str2 ) {
   return startsWithIgnoreCase(str2, 0); // calls cleanUp()
 }
 
 // return 0 false 1 true
-bool SafeString::startsWithIgnoreCase( const char *str2, size_t fromIndex ) {
+unsigned char SafeString::startsWithIgnoreCase( const char *str2, unsigned int fromIndex ) {
   cleanUp();
   if (!str2) {
     setError();
@@ -1914,21 +2013,8 @@ bool SafeString::startsWithIgnoreCase( const char *str2, size_t fromIndex ) {
   }
 
   size_t str2Len = strlen(str2);
-  if (str2Len == 0) {
-    setError();
-#ifdef SSTRING_DEBUG
-    if (debugPtr) {
-      errorMethod(F("startsWithIgnoreCase"));
-      debugPtr->print(F(" was passed an empty char array"));
-      outputFromIndexIfFullDebug(fromIndex);
-      debugInternalMsg(fullDebug);
-    }
-#endif // SSTRING_DEBUG
-    return false;
-  }
-
-  if (fromIndex == len) {
-    return false;
+  if (fromIndex == ((unsigned int)(-1))) {
+    fromIndex = len;
   }
   if (fromIndex > len) {
     setError();
@@ -1948,6 +2034,17 @@ bool SafeString::startsWithIgnoreCase( const char *str2, size_t fromIndex ) {
   if ((fromIndex + str2Len) > len) {
     return false;
   }
+  if (str2Len == 0) {
+    if (fromIndex == len) {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    // str2Len != 0
+    // and (fromIndex + str2Len) > len checks for fromIdx == len
+  }
+
   const char *p1 = &buffer[fromIndex];
   const char *p2 = str2;
   while (*p2) { // loop through str2 have check lengths above
@@ -1958,31 +2055,36 @@ bool SafeString::startsWithIgnoreCase( const char *str2, size_t fromIndex ) {
   return true;
 }
 
-bool SafeString::endsWith( SafeString &s2 ) {
+unsigned char SafeString::endsWith( SafeString &s2 ) {
   s2.cleanUp();
   cleanUp();
-  if (s2.len == 0) {
-    setError();
-#ifdef SSTRING_DEBUG
-    if (debugPtr) {
-      errorMethod(F("endsWith"));
-      debugPtr->print(F(" was passed an empty SafeString ")); s2.outputName();
-      debugInternalMsg(fullDebug);
-    }
-#endif // SSTRING_DEBUG
-    return false;
-  }
-
   if (buffer == s2.buffer) {
     return true; // same SafeString
   }
   if ( len < s2.len ) {
     return false;
   }
+  // strcmp works with empty versus empty
+  if (s2.len == 0) {
+    if (len == 0) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+  /**
+    if (len == 0) {
+    if (s2.len == 0) {
+      return true;
+    } else {
+      return false;
+    }
+    }
+  **/
   return strcmp(&buffer[len - s2.len], s2.buffer) == 0;
 }
 
-bool SafeString::endsWith(const char *suffix) {
+unsigned char SafeString::endsWith(const char *suffix) {
   cleanUp();
   if (!suffix) {
     setError();
@@ -1996,47 +2098,37 @@ bool SafeString::endsWith(const char *suffix) {
     return false;
   }
   size_t str2Len = strlen(suffix);
-  if (str2Len == 0) {
-    setError();
-#ifdef SSTRING_DEBUG
-    if (debugPtr) {
-      errorMethod(F("endsWith"));
-      debugPtr->print(F(" was passed an empty char array"));
-      debugInternalMsg(fullDebug);
-    }
-#endif // SSTRING_DEBUG
+  if (len < str2Len ) {
     return false;
   }
+  // strcmp works with empty versus empty
 
-  size_t s_len = strlen(suffix);
-  if (len < s_len ) {
-    return false;
+  if (str2Len == 0) {
+    if (len == 0) {
+      return true;
+    } else {
+      return false;
+    }
   }
-  return strcmp(&buffer[len - s_len], suffix) == 0;
+  /**
+    if (len == 0) {
+    if (str2Len == 0) {
+      return true;
+    } else {
+      return false;
+    }
+    }
+  **/
+  return strcmp(&buffer[len - str2Len], suffix) == 0;
 }
 
-bool SafeString::endsWithCharFrom(SafeString &s2) {
+unsigned char SafeString::endsWithCharFrom(SafeString &s2) {
   s2.cleanUp();
   cleanUp();
-  if (s2.len == 0) {
-    setError();
-#ifdef SSTRING_DEBUG
-    if (debugPtr) {
-      errorMethod(F("endsWithCharFrom"));
-      debugPtr->print(F(" was passed an empty SafeString ")); s2.outputName();
-      debugInternalMsg(fullDebug);
-    }
-#endif // SSTRING_DEBUG
-    return false;
-  }
-
-  if (buffer == s2.buffer) {
-    return true; // same SafeString
-  }
   return endsWithCharFrom(s2.buffer);
 }
 
-bool SafeString::endsWithCharFrom(const char *suffix) {
+unsigned char SafeString::endsWithCharFrom(const char *suffix) {
   cleanUp();
   if (!suffix) {
     setError();
@@ -2050,19 +2142,17 @@ bool SafeString::endsWithCharFrom(const char *suffix) {
     return false;
   }
   size_t str2Len = strlen(suffix);
-  if (str2Len == 0) {
-    setError();
-#ifdef SSTRING_DEBUG
-    if (debugPtr) {
-      errorMethod(F("endsWithCharFrom"));
-      debugPtr->print(F(" was passed an empty char array"));
-      debugInternalMsg(fullDebug);
-    }
-#endif // SSTRING_DEBUG
-    return false;
-  }
   if (len == 0) {
-    return false;
+    if (str2Len == 0) {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    // else len != 0
+    if (str2Len == 0) {
+      return false;
+    }
   }
   char c = buffer[len - 1];
   if (strchr(suffix, c) != NULL) {
@@ -2076,7 +2166,7 @@ bool SafeString::endsWithCharFrom(const char *suffix) {
 /*********************************************/
 /**  Character Access                        */
 /*********************************************/
-char SafeString::charAt(size_t index) {
+char SafeString::charAt(unsigned int index) {
   cleanUp();
   if (index >= len ) {
     setError();
@@ -2093,7 +2183,7 @@ char SafeString::charAt(size_t index) {
   return buffer[index];
 }
 
-SafeString& SafeString::setCharAt(size_t index, char c) {
+void SafeString::setCharAt(unsigned int index, char c) {
   cleanUp();
   if (c == '\0') {
     setError();
@@ -2109,7 +2199,7 @@ SafeString& SafeString::setCharAt(size_t index, char c) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return *this;
+    return;
   }
   if (index >= len) {
     setError();
@@ -2125,13 +2215,13 @@ SafeString& SafeString::setCharAt(size_t index, char c) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return *this;
+    return;
   }
   buffer[index] = c;
-  return *this;
+  return;
 }
 
-char SafeString::operator[]( size_t index ) {
+char SafeString::operator[]( unsigned int index ) {
   cleanUp();
   if (index >= len ) {
     setError();
@@ -2162,28 +2252,40 @@ const char* SafeString::c_str() {
 /*************************************************/
 /**
     Search
-       Arrays are indexed by a size_t varialble which for 8bit Arduino boards e.g. UNO,MEGA  is unsigned int but can be larger for more powerful chips.
-       SafeString methods that return an index use size_t where as Arduino methods use int
+       Arrays are indexed by a unsigned int variable
        See the SafeStringIndexOf.ino example sketch
-
-      All indexOf methods return length() if not found ( or length() + 1 on error)
-      so test with
-        size_t a_idx = str.indexOf('a');
-        if (a_idx >= str.length()) { // not found
-
-      DO NOT use the test
-      if (a_idx < 0) {
-        it is NEVER true,  size_t variable is ALWAYS >= 0
+      All indexOf methods return -1 if not found or on error
 **********************************************/
-// The fromIndex is offset into this SafeString where check is to searching (inclusive)
-// 0 to length() is valid for fromIndex, if fromIndex == length()  length() (i.e. not found) is returned
-// if fromIndex > length(), than the error return length()+1 is returned and prints an error if debug enabled
-size_t SafeString::indexOf(char c) {
+// The fromIndex is offset into this SafeString where to start searching (inclusive)
+// 0 to length() and -1 is valid for fromIndex
+// if fromIndex > length(), than the error flag is set and -1 returned and prints an error if debug enabled
+// if fromIndex == (unsigned int)(-1) -1 is returned without error.
+int SafeString::indexOf(char c) {
   return indexOf(c, 0); // calls cleanUp()
 }
 
-size_t SafeString::indexOf( char c, size_t fromIndex ) {
+int SafeString::indexOf( char c, unsigned int fromIndex ) {
   cleanUp();
+
+  if ((fromIndex == (unsigned int)(-1)) || (fromIndex == len)) {
+    return -1;
+  }
+  if (fromIndex > len) {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      errorMethod(F("indexOf"));
+      debugPtr->print(F(" fromIndex ")); debugPtr->print(fromIndex); debugPtr->print(F(" >= ")); outputName(); debugPtr->print(F(".length() : ")); debugPtr->print(len);
+      if (fullDebug) {
+        debugPtr->println(); debugPtr->print(F("       "));
+        debugPtr->print(F(" Input arg was '")); debugPtr->print(c); debugPtr->print('\'');
+      }
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    return -1;
+  }
+
   if (c == '\0') {
     setError();
 #ifdef SSTRING_DEBUG
@@ -2194,36 +2296,16 @@ size_t SafeString::indexOf( char c, size_t fromIndex ) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1; // probabily an error
-  }
-
-  if (fromIndex == len) {
-    return len;
-  }
-  if (fromIndex > len) {
-    setError();
-#ifdef SSTRING_DEBUG
-    if (debugPtr) {
-      errorMethod(F("indexOf"));
-      debugPtr->print(F(" fromIndex ")); debugPtr->print(fromIndex); debugPtr->print(F(" > ")); outputName(); debugPtr->print(F(".length() : ")); debugPtr->print(len);
-      if (fullDebug) {
-        debugPtr->println(); debugPtr->print(F("       "));
-        debugPtr->print(F(" Input arg was '")); debugPtr->print(c); debugPtr->print('\'');
-      }
-      debugInternalMsg(fullDebug);
-    }
-#endif // SSTRING_DEBUG
-    return len + 1;
   }
 
   const char* temp = strchr(buffer + fromIndex, c);
   if (temp == NULL) {
-    return len; // not found
+    return -1; // not found
   }
   return temp - buffer;
 }
 
-size_t SafeString::indexOf(SafeString &s2) {
+int SafeString::indexOf(SafeString &s2) {
   s2.cleanUp();
   cleanUp();
   if (s2.len == 0) {
@@ -2236,16 +2318,16 @@ size_t SafeString::indexOf(SafeString &s2) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
+    return -1;
   }
 
-  if (buffer == s2.buffer) {
-    return 0; // same SafeString
-  }
+  //  if ((buffer == s2.buffer) && (len != 0)) {
+  //    return 0; // same SafeString
+  //  }
   return indexOf(s2, 0);
 }
 
-size_t SafeString::indexOf(SafeString &s2, size_t fromIndex) {
+int SafeString::indexOf(SafeString &s2, unsigned int fromIndex) {
   s2.cleanUp();
   cleanUp();
   if (s2.len == 0) {
@@ -2258,13 +2340,12 @@ size_t SafeString::indexOf(SafeString &s2, size_t fromIndex) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
+    //return -1;
   }
 
-  if (fromIndex == len) {
-    return len;
+  if ((fromIndex == (unsigned int)(-1)) || (fromIndex == len)) {
+    return -1;
   }
-
   if (fromIndex > len) {
     setError();
 #ifdef SSTRING_DEBUG
@@ -2278,25 +2359,25 @@ size_t SafeString::indexOf(SafeString &s2, size_t fromIndex) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
+    return -1;
   }
 
   if (len == 0)  {
-    return len;
+    return -1;
   }
 
   const char *found = strstr(buffer + fromIndex, s2.buffer);
   if (found == NULL) {
-    return len;
+    return -1;
   }
   return found - buffer;
 }
 
-size_t SafeString::indexOf( const char* str ) {
+int SafeString::indexOf( const char* str ) {
   return indexOf(str, 0); // calls cleanUp()
 }
 
-size_t SafeString::indexOf(const char* cstr , size_t fromIndex) {
+int SafeString::indexOf(const char* cstr , unsigned int fromIndex) {
   cleanUp();
   if (!cstr) {
     setError();
@@ -2308,7 +2389,7 @@ size_t SafeString::indexOf(const char* cstr , size_t fromIndex) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
+    return -1;
   }
   size_t cstrLen = strlen(cstr);
   if (cstrLen == 0) {
@@ -2321,11 +2402,11 @@ size_t SafeString::indexOf(const char* cstr , size_t fromIndex) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
+    // return -1;
   }
 
-  if (fromIndex == len) {
-    return len;
+  if ((fromIndex == (unsigned int)(-1)) || (fromIndex == len)) {
+    return -1;
   }
   if (fromIndex > len) {
     setError();
@@ -2340,25 +2421,25 @@ size_t SafeString::indexOf(const char* cstr , size_t fromIndex) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
+    return -1;
   }
 
   if (len == 0)  {
-    return len;
+    return -1;
   }
 
   const char *found = strstr(buffer + fromIndex, cstr);
   if (found == NULL) {
-    return len;
+    return -1;
   }
-  return found - buffer;
+  return (int)(found - buffer);
 }
 
-size_t SafeString::lastIndexOf( char theChar ) {
-  return lastIndexOf(theChar, len); // calls cleanUp()
+int SafeString::lastIndexOf( char theChar ) {
+  return lastIndexOf(theChar, len - 1); // calls cleanUp() // if len == 0, len-1 == (unsigned int)-1
 }
 
-size_t SafeString::lastIndexOf(char ch, size_t fromIndex) {
+int SafeString::lastIndexOf(char ch, unsigned int fromIndex) {
   cleanUp();
   if (ch == '\0') {
     setError();
@@ -2370,13 +2451,14 @@ size_t SafeString::lastIndexOf(char ch, size_t fromIndex) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1; // probabily an error
+    //return -1; // probabily an error
   }
   if (len == 0) {
-    return len;
+    return -1;
   }
-  if (fromIndex == len) {
-    fromIndex = len - 1;
+
+  if ((fromIndex == (unsigned int)(-1)) || (fromIndex == len)) {
+    return -1;
   }
   if (fromIndex > len) {
     setError();
@@ -2391,28 +2473,28 @@ size_t SafeString::lastIndexOf(char ch, size_t fromIndex) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
+    return -1;
   }
   char tempchar = buffer[fromIndex + 1];
   buffer[fromIndex + 1] = '\0';
   char* temp = strrchr( buffer, ch );
   buffer[fromIndex + 1] = tempchar;
   if (temp == NULL) {
-    return len;
+    return -1;
   }
   return temp - buffer;
 }
 
-size_t SafeString::lastIndexOf(SafeString &s2) {
+int SafeString::lastIndexOf(SafeString &s2) {
   s2.cleanUp();
   cleanUp();
-  if (len < s2.len) {
-    return len;
-  } // else len - s2.len is valid
+  //  if (len < s2.len) {
+  //    return -1;
+  //  } // else len - s2.len is valid
   return lastIndexOf(s2, len - s2.len);
 }
 
-size_t SafeString::lastIndexOf( const char *cstr ) {
+int SafeString::lastIndexOf( const char *cstr ) {
   if (!cstr) {
     setError();
 #ifdef SSTRING_DEBUG
@@ -2422,16 +2504,16 @@ size_t SafeString::lastIndexOf( const char *cstr ) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
+    return -1;
   }
   size_t cstrlen = strlen(cstr);
-  if (len < cstrlen) {
-    return len;
-  } // else len - strlen(cstr) is valid
+  //  if (len < cstrlen) {
+  //    return -1;
+  //  } // else len - strlen(cstr) is valid
   return lastIndexOf(cstr, len - cstrlen);
 }
 
-size_t SafeString::lastIndexOf(SafeString &s2, size_t fromIndex) {
+int SafeString::lastIndexOf(SafeString &s2, unsigned int fromIndex) {
   s2.cleanUp();
   cleanUp();
   if (s2.len == 0) {
@@ -2444,13 +2526,17 @@ size_t SafeString::lastIndexOf(SafeString &s2, size_t fromIndex) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
+    return -1;
   }
   if (len == 0) {
-    return len;
+    return -1;
   }
-  if (fromIndex == len) {
-    fromIndex = len - 1;
+  //    if (s2.len == 0 || len == 0 || s2.len > len) return -1;
+  //  if (s2.len > len) { // check below
+  //      return -1;
+  //  }
+  if (fromIndex == (unsigned int)(-1)) {
+    fromIndex = len;
   }
   if (fromIndex > len) {
     setError();
@@ -2465,16 +2551,27 @@ size_t SafeString::lastIndexOf(SafeString &s2, size_t fromIndex) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
+    //    return -1;
   }
+  if (fromIndex >= len) fromIndex = len - 1; // len == 0 handled above
   if (s2.len > len) {
-    return len;
+    return -1;
   }
-
-  return lastIndexOf(s2.buffer, fromIndex);
+  const char* cstr = s2.buffer;
+  int found = -1;
+  for (char *p = buffer; p <= buffer + fromIndex; p++) {
+    p = strstr(p, cstr);
+    if (!p) { // not found
+      break;
+    } // else
+    if ((unsigned int)(p - buffer) <= fromIndex) {
+      found = p - buffer;
+    }
+  }
+  return found;
 }
 
-size_t SafeString::lastIndexOf(const char* cstr, size_t fromIndex) {
+int SafeString::lastIndexOf(const char* cstr, unsigned int fromIndex) {
   cleanUp();
   if (!cstr) {
     setError();
@@ -2486,7 +2583,7 @@ size_t SafeString::lastIndexOf(const char* cstr, size_t fromIndex) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
+    return -1;
   }
 
   size_t cstrlen = strlen(cstr);
@@ -2500,15 +2597,17 @@ size_t SafeString::lastIndexOf(const char* cstr, size_t fromIndex) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
+    return -1;
   }
-
   if (len == 0) {
-    return len;
+    return -1;
   }
-
-  if (fromIndex == len) {
-    fromIndex = len - 1; // checked for len==0 above
+  //    if (s2.len == 0 || len == 0 || s2.len > len) return -1;
+  //  if (cstrlen> len) { // check below
+  //      return -1;
+  //  }
+  if (fromIndex == (unsigned int)(-1)) {
+    fromIndex = len;
   }
 
   if (fromIndex > len) {
@@ -2524,19 +2623,21 @@ size_t SafeString::lastIndexOf(const char* cstr, size_t fromIndex) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
-  }
-  if (cstrlen > len) {
-    return len;
+    return -1;
   }
 
-  int found = len;
+  if (fromIndex >= len) fromIndex = len - 1; // len == 0 handled above
+  if (cstrlen > len) {
+    return -1;
+  }
+
+  int found = -1;
   for (char *p = buffer; p <= buffer + fromIndex; p++) {
     p = strstr(p, cstr);
     if (!p) { // not found
       break;
     } // else
-    if ((size_t)(p - buffer) <= fromIndex) {
+    if ((unsigned int)(p - buffer) <= fromIndex) {
       found = p - buffer;
     }
   }
@@ -2546,21 +2647,21 @@ size_t SafeString::lastIndexOf(const char* cstr, size_t fromIndex) {
 /**
   find first index of one of the chars in the arg
 */
-size_t SafeString::indexOfCharFrom(SafeString &str) {
+int SafeString::indexOfCharFrom(SafeString &str) {
   str.cleanUp();
   return indexOfCharFrom(str.buffer, 0); // calls cleanUp()
 }
 
-size_t SafeString::indexOfCharFrom(SafeString &str, size_t fromIndex) {
+int SafeString::indexOfCharFrom(SafeString &str, unsigned int fromIndex) {
   str.cleanUp();
   return indexOfCharFrom(str.buffer, fromIndex); // calls cleanUp()
 }
 
-size_t SafeString::indexOfCharFrom(const char* chars) {
+int SafeString::indexOfCharFrom(const char* chars) {
   return indexOfCharFrom(chars, 0); // calls cleanUp()
 }
 
-size_t SafeString::indexOfCharFrom(const char* chars, size_t fromIndex) {
+int SafeString::indexOfCharFrom(const char* chars, unsigned int fromIndex) {
   cleanUp();
   if (!chars) {
     setError();
@@ -2572,7 +2673,7 @@ size_t SafeString::indexOfCharFrom(const char* chars, size_t fromIndex) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
+    return -1;
   }
   size_t charsLen = strlen(chars);
   if (charsLen == 0) {
@@ -2585,10 +2686,10 @@ size_t SafeString::indexOfCharFrom(const char* chars, size_t fromIndex) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
+    return -1;
   }
-  if (fromIndex == len) {
-    return len;
+  if ((fromIndex == (unsigned int)(-1)) || (fromIndex == len)) {
+    return -1;
   }
   if (fromIndex > len) {
     setError();
@@ -2603,10 +2704,10 @@ size_t SafeString::indexOfCharFrom(const char* chars, size_t fromIndex) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
+    return -1;
   }
   if (len == 0)  {
-    return len;
+    return -1;
   }
   int minIdx = len; // not found
   const char* cPtr = chars;
@@ -2618,8 +2719,11 @@ size_t SafeString::indexOfCharFrom(const char* chars, size_t fromIndex) {
       if (idx < minIdx) {
         minIdx = idx; // update new min
       } // else nothing
-    }
+    } // else idx < 0 not found
     cPtr++;
+  }
+  if (minIdx == (int)len) {
+    return -1;
   }
   return minIdx;
 }
@@ -2629,50 +2733,17 @@ size_t SafeString::indexOfCharFrom(const char* chars, size_t fromIndex) {
 /*************************************************/
 /**  substring methods                           */
 /*************************************************/
-// 0 to length() is valid for beginIdx;
-// if beginIdx == length(), an empty result will be returned
 // substring is from beginIdx to end of string
+// The result substring is ALWAYS cleared by this method
+// if beginIdx = length(), an empty result will be returned with out error
+// if beginIdx > length(), an empty result will be returned with error flag set on both this SafeString and the result SafeString
+// beginIdx == (unsigned int)(-1) returns an empty result without an error
 // can take substring of yourself  e.g. str.substring(str,3);
-SafeString & SafeString::substring(SafeString &result, size_t beginIdx) {
+// if result does not have the capacity to hold the substring, hasError() is set on both this SafeString and the result SafeString
+SafeString & SafeString::substring(SafeString &result, unsigned int beginIdx) {
   result.cleanUp();
   cleanUp();
-  if ((len == 0) && (beginIdx == 0)) {
-    result.clear();
-    return result;
-  }
-  // len == 0;
-  if (len == 0) {
-    if (beginIdx == len) {
-      return result; // no change
-    }
-
-    if (beginIdx > len) {
-      setError();
-#ifdef SSTRING_DEBUG
-      if (debugPtr) {
-        errorMethod(F("substring"));
-        debugPtr->print(F(" beginIdx ")); debugPtr->print(beginIdx); debugPtr->print(F(" > ")); outputName(); debugPtr->print(F(".length() : ")); debugPtr->print(len);
-        debugInternalMsg(fullDebug);
-      }
-#endif // SSTRING_DEBUG
-      return result; // no change
-    }
-  }
-  // else  (len > 0) {
-  return substring(result, beginIdx, len);
-}
-
-
-// 0 to length() is valid for beginIdx;
-// if beginIdx == length(), an empty result will be returned
-// substring is from beginIdx to endIdx-1, endIdx is exclusive (was includsive in V1)
-// endIdx must be >= beginIdx and <= length()
-// substring is from beginIdx to endIdx (endiIdx is EXCLUSIVE) Note this changed in V2 used to be inclusive
-// can take substring of yourself  e.g. str.substring(str,3,6);
-SafeString & SafeString::substring(SafeString &result, size_t beginIdx, size_t endIdx) {
-  result.cleanUp();
-  cleanUp();
-  if ((len == 0) && (beginIdx == 0) && (endIdx == 0)) {
+  if ( (beginIdx == (unsigned int)(-1)) || ((len == 0) && (beginIdx == 0)) ) {
     result.clear();
     return result;
   }
@@ -2686,45 +2757,79 @@ SafeString & SafeString::substring(SafeString &result, size_t beginIdx, size_t e
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
+    result.clear();
     return result; // no change
+  }
+  // else  (len > 0) {
+  return substring(result, beginIdx, len);
+}
+
+
+// The result substring is ALWAYS cleared by this method
+// if beginIdx >= length(), an empty result will be returned
+// beginIdx and endIdx will be swapped so that beginIdx <= endIdx and the error flag is set on both this SafeString and the result SafeString
+// if endIdx > length(), endIdx is set to length(); and the error flag is set on both this SafeString and the result SafeString
+// endIdx == (unsigned int)(-1) is treated as endIdx == length() returns a result without an error
+// substring is from beginIdx to endIdx-1, endIdx is exclusive
+// can take substring of yourself  e.g. str.substring(str,3,6);
+// if result does not have the capacity to hold the substring, and empty result is returned and hasError() is set on both this SafeString and the result SafeString
+SafeString & SafeString::substring(SafeString &result, unsigned int beginIdx, unsigned int endIdx) {
+  result.cleanUp();
+  cleanUp();
+  if ((len == 0) && (beginIdx == 0) && (endIdx == 0)) {
+    result.clear();
+    return result;
   }
 
-  if (endIdx < beginIdx) {  // beginIdx == len == endIdx is OK
+  if (beginIdx == (unsigned int)(-1)) {
+    beginIdx = len;
+  }
+  if (endIdx == (unsigned int)(-1)) {
+    endIdx = len;
+  }
+
+  if (beginIdx > endIdx) {
+    unsigned int temp = endIdx;
+    endIdx = beginIdx;
+    beginIdx = temp;
     setError();
+    result.setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
-      errorMethod(F("substring"));
-      debugPtr->print(F(" endIdx ")); debugPtr->print(endIdx); debugPtr->print(F(" <")); debugPtr->print(F(" beginIdx ")); debugPtr->print(beginIdx);
-      debugInternalMsg(fullDebug);
+      warningMethod(F("substring"));
+      debugPtr->print(F(" SafeString")); outputName(); debugPtr->print(F(" beginIdx > endIdx "));
+      debugInternalResultMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return result; // no change
   }
+  // continue
 
   if (endIdx > len) {
     setError();
+    result.setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
-      errorMethod(F("substring"));
-      debugPtr->print(F(" endIdx ")); debugPtr->print(endIdx); debugPtr->print(F(" > ")); outputName(); debugPtr->print(F(".length() : ")); debugPtr->print(len);
-      debugInternalMsg(fullDebug);
+      warningMethod(F("substring"));
+      debugPtr->print(F(" SafeString")); outputName(); debugPtr->print(F(" endIdx > length() "));
+      debugInternalResultMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return result; // no change
+    endIdx = len;
+    if (beginIdx > len) {
+      beginIdx = len;
+    }
   }
+
   // here beginIdx <= endIdx AND endidx <= len
   if ((beginIdx == len) || (beginIdx == endIdx)) {
-    return result.clear();
+    result.clear();
+    return result; // cleared
   }
-  // here beginIdx < len AND endIdx <= len
-  //  if (endIdx == len) {
-  //    endIdx = len - 1;
-  //  }
-
   // copy to result
   size_t copyLen = endIdx - beginIdx; // endIdx is exclusive 5,5 copies 0 chars 5,6 copies 1 char char[5].
   if (copyLen > result.capacity()) {
     setError();
+    result.setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("substring"));
@@ -2733,7 +2838,8 @@ SafeString & SafeString::substring(SafeString &result, size_t beginIdx, size_t e
       result.debugInternalResultMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return result; // no change
+    result.clear();
+    return result; // cleared
   }
   // memmove incase result and SafeString are the same
   memmove(result.buffer, buffer + beginIdx, copyLen);
@@ -2750,10 +2856,10 @@ SafeString & SafeString::substring(SafeString &result, size_t beginIdx, size_t e
 
 /*****  replace(), methods ***********/
 // replace single char with another
-SafeString & SafeString::replace(char f, char r) {
+void SafeString::replace(char f, char r) {
   cleanUp();
   if (len == 0) {
-    return *this;
+    return;
   }
   if (f == '\0') {
     setError();
@@ -2764,7 +2870,7 @@ SafeString & SafeString::replace(char f, char r) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return *this;
+    return;
   }
   if (r == '\0') {
     setError();
@@ -2775,18 +2881,38 @@ SafeString & SafeString::replace(char f, char r) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return *this;
+    return;
   }
   for (char *p = buffer; *p; p++) {
     if (*p == f) {
       *p = r;
     }
   }
-  return *this;
+  return;
 }
 
 // replace sequence of chars with another sequence (case sensitive)
-SafeString & SafeString::replace(SafeString& f, SafeString& r) {
+void SafeString::replace(const char findChar, SafeString& r) {
+  r.cleanUp();
+  cleanUp();
+  if (findChar == '\0') {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      errorMethod(F("replace"));
+      debugPtr->print(F(" find char is '\\0'"));
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    return;
+  }
+
+  char findChars[] = {findChar, 0};
+  replace(findChars, r.buffer);
+}
+
+// replace sequence of chars with another sequence (case sensitive)
+void SafeString::replace(SafeString& f, SafeString& r) {
   f.cleanUp();
   r.cleanUp();
   cleanUp();
@@ -2799,14 +2925,30 @@ SafeString & SafeString::replace(SafeString& f, SafeString& r) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return *this;
+    return;
   }
-  return replace(f.buffer, r.buffer);
+  replace(f.buffer, r.buffer);
 }
 
-SafeString & SafeString::replace(const char* find, const char *replace) {
+void SafeString::replace(const char findChar, const char *replacePtr) {
+  if (findChar == '\0') {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      errorMethod(F("replace"));
+      debugPtr->print(F(" find char is '\\0'"));
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    return;
+  }
+  char findChars[] = {findChar, 0};
+  replace(findChars, replacePtr);
+}
+
+void SafeString::replace(const char* findStr, const char *replacePtr) {
   cleanUp();
-  if (!find) {
+  if (!findStr) {
     setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
@@ -2815,9 +2957,9 @@ SafeString & SafeString::replace(const char* find, const char *replace) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return *this;
+    return;
   }
-  if (!replace) {
+  if (!replacePtr) {
     setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
@@ -2826,26 +2968,15 @@ SafeString & SafeString::replace(const char* find, const char *replace) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return *this;
+    return;
   }
 
-  size_t findLen = strlen(find);
-  size_t replaceLen = strlen(replace);
+  size_t findLen = strlen(findStr);
+  size_t replaceLen = strlen(replacePtr);
   if (len == 0) {
-    return *this;
+    return;
   }
-  if (find == buffer) {
-    setError();
-#ifdef SSTRING_DEBUG
-    if (debugPtr) {
-      errorMethod(F("replace"));
-      debugPtr->print(F(" find arg is same SafeString"));
-      debugInternalMsg(fullDebug);
-    }
-#endif // SSTRING_DEBUG
-    return *this;
-  }
-  if (replace == buffer) {
+  if (replacePtr == buffer) {
     setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
@@ -2854,7 +2985,7 @@ SafeString & SafeString::replace(const char* find, const char *replace) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return *this;
+    return;
   }
   if (findLen == 0) {
     setError();
@@ -2865,23 +2996,36 @@ SafeString & SafeString::replace(const char* find, const char *replace) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return *this;
+    return;
   }
+  /**
+    if (findStr == buffer) {
+      setError();
+    #ifdef SSTRING_DEBUG
+      if (debugPtr) {
+        errorMethod(F("replace"));
+        debugPtr->print(F(" find arg is same SafeString"));
+        debugInternalMsg(fullDebug);
+      }
+    #endif // SSTRING_DEBUG
+      return;
+    }
+  **/
   int diff = replaceLen - findLen;
   char *_readFrom = buffer;
   char *foundAt;
   if (diff == 0) {
-    while ((foundAt = strstr(_readFrom, find)) != NULL) {
-      memmove(foundAt, replace, replaceLen);
+    while ((foundAt = strstr(_readFrom, findStr)) != NULL) {
+      memmove(foundAt, replacePtr, replaceLen);
       _readFrom = foundAt + replaceLen; // prevents replacing the replace
     }
   } else if (diff < 0) {
     char *writeTo = buffer;
-    while ((foundAt = strstr(_readFrom, find)) != NULL) {
+    while ((foundAt = strstr(_readFrom, findStr)) != NULL) {
       size_t n = foundAt - _readFrom;
       memmove(writeTo, _readFrom, n);
       writeTo += n;
-      memmove(writeTo, replace, replaceLen);
+      memmove(writeTo, replacePtr, replaceLen);
       writeTo += replaceLen;
       _readFrom = foundAt + findLen; // prevents replacing the replace
       len += diff;
@@ -2889,28 +3033,28 @@ SafeString & SafeString::replace(const char* find, const char *replace) {
     memmove(writeTo, _readFrom, strlen(_readFrom) + 1);
   } else {
     size_t newlen = len; // compute size needed for result
-    while ((foundAt = strstr(_readFrom, find)) != NULL) {
+    while ((foundAt = strstr(_readFrom, findStr)) != NULL) {
       _readFrom = foundAt + findLen;
       newlen += diff;
     }
     if (!reserve(newlen)) {
       setError();
 #ifdef SSTRING_DEBUG
-      capError(F("replace"), newlen, find);
+      capError(F("replace"), newlen, findStr);
       if (fullDebug) {
         debugPtr->print(F("       "));
-        debugPtr->print(F(" Replace arg was '")); debugPtr->print(replace); debugPtr->println('\'');
+        debugPtr->print(F(" Replace arg was '")); debugPtr->print(replacePtr); debugPtr->println('\'');
       }
 #endif // SSTRING_DEBUG
-      return *this;
+      return;
     }
 
     size_t index = len - 1; // len checked for != above
-    while ((index = lastIndexOf(find, index)) < len) {
+    while ((index = lastIndexOf(findStr, index)) < len) {
       _readFrom = buffer + index + findLen;
       memmove(_readFrom + diff, _readFrom, len - (_readFrom - buffer));
       int newLen = len + diff;
-      memmove(buffer + index, replace, replaceLen);
+      memmove(buffer + index, replacePtr, replaceLen);
       len = newLen;
       buffer[newLen] = 0;
       if (index == 0) {
@@ -2921,32 +3065,73 @@ SafeString & SafeString::replace(const char* find, const char *replace) {
     len = newlen;
     buffer[newlen] = 0;
   }
-  return *this;
+  return;
 }
 /***** end of  replace(), methods ***********/
 
 
 /***** removeFrom(), keepFrom() remove(), remooveLast(), keepLast() methods ***********/
 // remove from index to end of SafeString
-// 0 to length() is valid for index
-SafeString & SafeString::removeFrom(size_t startIndex) {
-  return remove(startIndex, len - startIndex); // calls cleanUp()
+// 0 to length() and (unsigned int)(-1) are valid for index,
+// -1 => length() for processing and just returns without error
+void SafeString::removeFrom(unsigned int startIndex) {
+  remove(startIndex);
 }
 
 // remove from 0 to startIdx (excluding startIdx)
-// 0 to length() is valid for startIndex
-SafeString & SafeString::removeBefore(size_t startIndex) {
-  return remove(0, startIndex); // calls cleanUp()
+// 0 to length() and (unsigned int)(-1) are valid for index,
+void SafeString::removeBefore(unsigned int index) {
+  if (index == (unsigned int)(-1)) {
+    clear();
+    return;
+    /**
+        setError();
+      #ifdef SSTRING_DEBUG
+        if (debugPtr) {
+          errorMethod(F("removeBefore"));
+          debugPtr->print(F(" index ")); debugPtr->print(index); debugPtr->print(F(" == -1 "));
+          debugInternalMsg(fullDebug);
+        }
+      #endif // SSTRING_DEBUG
+        return;
+    **/
+  }
+  remove(0, index); // calls cleanUp()
+}
+
+// remove from index to end of SafeString
+// 0 to length() and (unsigned int)(-1) are valid for index,
+// -1 => length() for processing and just returns without error
+void SafeString::remove(unsigned int index) {
+  if (index == (unsigned int)(-1)) {
+    //index = length();
+    return;
+  }
+  if (index > length()) {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      errorMethod(F("remove"));
+      debugPtr->print(F(" index ")); debugPtr->print(index); debugPtr->print(F(" > ")); outputName(); debugPtr->print(F(".length() : ")); debugPtr->print(len);
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    return;
+  }
+  // else
+  remove(index, length() - index);
 }
 
 // remove count chars starting from index
-// 0 to length() is valid for index
-// 0 to (length()- index) is valid for count
-SafeString & SafeString::remove(size_t index, size_t count) {
+// 0 to length() and (unsigned int)(-1) are valid for index
+// -1 just returns without error
+// 0 to (length()- index) is valid for count, larger values set the error flag and remove from idx to end of string
+void SafeString::remove(unsigned int index, unsigned int count) {
   cleanUp();
-  if ((index == len) && (count == 0)) {
-    return *this;
+  if (index == (unsigned int)(-1)) {
+    index = len;
   }
+
   if (index > len) {
     setError();
 #ifdef SSTRING_DEBUG
@@ -2956,54 +3141,36 @@ SafeString & SafeString::remove(size_t index, size_t count) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return *this;
+    index = len;
   }
-  if (count == 0) {
-    /**
-        setError();
-      #ifdef SSTRING_DEBUG
-      if (debugPtr) {
-      errorMethod(F("remove"));
-      debugPtr->print(F(" count is 0"));
-      debugInternalMsg(fullDebug);
-      }
-      #endif // SSTRING_DEBUG
-    **/
-    return *this;
-  }
-  if ((count + index) > len) {
+
+  if (count > (len - index)) {
     setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("remove"));
-      debugPtr->print(F(" index + count ")); debugPtr->print(count + index); debugPtr->print(F(" > ")); outputName(); debugPtr->print(F(".length() : ")); debugPtr->print(len);
+      debugPtr->print(F(" count ")); debugPtr->print(count); debugPtr->print(F(" > ")); outputName(); debugPtr->print(F(".length() : ")); debugPtr->print(len); debugPtr->print(F(" - index ")); debugPtr->print(index) ;
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return *this;
-    //count = len - index;
+    count = len - index;
+  }
+  if (count == 0) {
+    return;
   }
   char *writeTo = buffer + index;
   memmove(writeTo, buffer + index + count, len - index - count + 1);
   len -= count;
   buffer[len] = 0;
-  return *this;
 }
 
 // remove the last 'count' chars
-// 0 to length() is valid for count, passing in count == length() clears the SafeString
-SafeString & SafeString::removeLast(size_t count) {
+// 0 to length() is valid for count,
+// count >= length() clears the SafeString
+// count > length() set the error flag
+void SafeString::removeLast(unsigned int count) {
   cleanUp();
-  if (count == 0) {
-    //nothing to do
-    return *this;
-  }
   // else
-  if (count == len) {
-    // remove all
-    clear();
-    return *this;
-  }
   if (count > len) {
     setError();
 #ifdef SSTRING_DEBUG
@@ -3013,25 +3180,30 @@ SafeString & SafeString::removeLast(size_t count) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return *this;
+  }
+  if (count >= len) {
+    // remove all
+    clear();
+    return;
   }
   // else
-  return remove(len - count, count);
+  remove(len - count, count);
 }
 
 // keep last 'count' number of chars remove the rest
 // 0 to length() is valid for count, passing in count == 0 clears the SafeString
-SafeString & SafeString::keepLast(size_t count) {
+// count > length() sets error flag and returns SafeString unchanged
+void SafeString::keepLast(unsigned int count) {
   cleanUp();
   if (count == 0) {
     //just clear string
     clear();
-    return *this;
+    return;
   }
   // else
   if (count == len) {
     // keep whole string
-    return *this;
+    return;
   }
   if (count > len) {
     setError();
@@ -3042,10 +3214,10 @@ SafeString & SafeString::keepLast(size_t count) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return *this;
+    return;
   }
   // else
-  return remove(0, len - count);
+  remove(0, len - count);
 }
 
 /***** end of removeFrom(), keepFrom() remove(), remooveLast(), keepLast() methods ***********/
@@ -3055,20 +3227,20 @@ SafeString & SafeString::keepLast(size_t count) {
 /******************************************************/
 /** Change case methods, toLowerCase(), toUpperCase() */
 /******************************************************/
-SafeString & SafeString::toLowerCase(void) {
+void SafeString::toLowerCase(void) {
   cleanUp();
   for (char *p = buffer; *p; p++) {
     *p = tolower(*p);
   }
-  return *this;
+  return;
 }
 
-SafeString & SafeString::toUpperCase(void) {
+void SafeString::toUpperCase(void) {
   cleanUp();
   for (char *p = buffer; *p; p++) {
     *p = toupper(*p);
   }
-  return *this;
+  return;
 }
 /** end of Change case methods, toLowerCase(), toUpperCase() *******/
 
@@ -3083,10 +3255,10 @@ SafeString & SafeString::toUpperCase(void) {
 //    '\v'  (0x0b)  vertical tab (VT)
 //    '\f'  (0x0c)  feed (FF)
 //    '\r'  (0x0d)  carriage return (CR)
-SafeString & SafeString::trim(void) {
+void SafeString::trim(void) {
   cleanUp();
   if ( len == 0) {
-    return *this;
+    return;
   }
   char *begin = buffer;
   while (isspace(*begin)) {
@@ -3101,7 +3273,7 @@ SafeString & SafeString::trim(void) {
     memmove(buffer, begin, len);
   }
   buffer[len] = 0;
-  return *this;
+  return;
 }
 /** end of trim()  *****************************/
 
@@ -3110,10 +3282,10 @@ SafeString & SafeString::trim(void) {
 /******************************************************/
 // processBackspaces -- recursively remove backspaces, '\b' and the preceeding char
 // use for processing inputs from terminal (Telent) connections
-SafeString & SafeString::processBackspaces(void) {
+void SafeString::processBackspaces(void) {
   cleanUp();
   if ( len == 0) {
-    return *this;
+    return;
   }
   size_t idx = 0;
   while ((!isEmpty()) && (idx < length())) {
@@ -3128,7 +3300,7 @@ SafeString & SafeString::processBackspaces(void) {
       idx++;
     }
   }
-  return *this;
+  return;
 }
 /** end of processBackspaces() **************************/
 
@@ -3142,7 +3314,7 @@ SafeString & SafeString::processBackspaces(void) {
 // trailing chars can only be white space
 
 // convert decimal number to int, arg i unchanged if no valid number found
-bool SafeString::toInt(int &i) {
+unsigned char SafeString::toInt(int &i) {
   cleanUp();
   if (len == 0) {
     return false; // not found
@@ -3172,7 +3344,7 @@ bool SafeString::toInt(int &i) {
 }
 
 // convert decimal number to long, arg 1 unchanged if no valid number found
-bool SafeString::toLong(long &l) {
+unsigned char SafeString::toLong(long &l) {
   cleanUp();
   if (len == 0) {
     return false; // not found
@@ -3202,7 +3374,7 @@ bool SafeString::toLong(long &l) {
 }
 
 // convert binary number to long, arg 1 unchanged if no valid number found
-bool SafeString::binToLong(long &l) {
+unsigned char SafeString::binToLong(long &l) {
   cleanUp();
   if (len == 0) {
     return false; // not found
@@ -3232,7 +3404,7 @@ bool SafeString::binToLong(long &l) {
 }
 
 // convert octal number to long, arg 1 unchanged if no valid number found
-bool SafeString::octToLong(long &l) {
+unsigned char SafeString::octToLong(long &l) {
   cleanUp();
   if (len == 0) {
     return false; // not found
@@ -3262,7 +3434,7 @@ bool SafeString::octToLong(long &l) {
 }
 
 // convert hex number to long, arg 1 unchanged if no valid number found
-bool SafeString::hexToLong(long &l) {
+unsigned char SafeString::hexToLong(long &l) {
   cleanUp();
   if (len == 0) {
     return false; // not found
@@ -3292,7 +3464,7 @@ bool SafeString::hexToLong(long &l) {
 }
 
 // convert float number , arg f unchanged if no valid number found
-bool SafeString::toFloat(float  &f) {
+unsigned char SafeString::toFloat(float  &f) {
   cleanUp();
   double d;
   if (toDouble(d)) {
@@ -3303,7 +3475,7 @@ bool SafeString::toFloat(float  &f) {
 }
 
 // convert double number , arg d unchanged if no valid number found
-bool SafeString::toDouble(double  &d) {
+unsigned char SafeString::toDouble(double  &d) {
   cleanUp();
   if (len == 0) {
     return false; // not found
@@ -3330,44 +3502,47 @@ bool SafeString::toDouble(double  &d) {
 
 /*******************************************************/
 /**  Tokenizing methods,  stoken(), nextToken()        */
-/**   Differences between stoken() and nextToken
-       stoken() leaves the SafeString unchanged, nextToken() removes the token (and leading delimiters) from the SafeString giving space to add more input
-       In stoken() the end of the SafeString is always a delimiter, i.e. the last token is returned even if it is not followed by one of the delimiters
-       In nextToken() the end of the SafeString is NOT a delimiter, i.e. if the last token is not terminated it is left in the SafeString
-       this allows partial tokens to be read from a Stream and kept until the full token and delimiter is read
+/** Differences between stoken() and nextToken
+   stoken() leaves the SafeString unchanged, nextToken() removes the token (and leading delimiters) from the SafeString giving space to add more input
+   In stoken() the end of the SafeString is always treated as a delimiter, i.e. the last token is returned even if it is not followed by one of the delimiters
+   In nextToken() the end of the SafeString is NOT a delimiter, i.e. if the last token is not terminated it is left in the SafeString
+   this allows partial tokens to be read from a Stream and kept until the full token and delimiter is read
 */
 /*******************************************************/
 /*
-      stoken  -- The SafeString itself is not changed
-      stoken breaks into the SafeString into tokens using chars in delimiters string and the end of the SafeString as delimiters.
-      Any leading delimiters are first stepped over and then the delimited token is return in the token argument (less the delimiter).
-      The token argument is always cleared at the start of the stoken().
+     stoken  -- The SafeString itself is not changed
+     stoken breaks into the SafeString into tokens using chars in delimiters string and the end of the SafeString as delimiters.
+     Any leading delimiters are first stepped over and then the delimited token is return in the token argument (less the delimiter).
+     The token argument is always cleared at the start of the stoken().
+     if there are any argument errors or the token does not have the capacity to hold the substring, hasError() is set on both this SafeString and the token SafeString
 
-      params
-      token - the SafeString to return the token in, it is cleared if no delimited token found or if there are errors
-              The found delimited token (less the delimiter) is returned in the token SafeString argument if there is capacity.
-              The token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.
-              If the token's capacity is < the next token, then token is returned empty and an error messages printed if debug is enabled.
-              In this case the return (nextIndex) is still updated.
-      fromIndex -- where to start the search from  0 to length() is valid for fromIndex
-      delimiters - the characters that any one of which can delimit a token. The end of the SafeString is always a delimiter.
-      returnEmptyFields -- default false, if true only skip one leading delimiter after each call. If the fromIndex is 0 and there is a delimiter at the beginning of the SafeString, an empty token will be returned
-      useAsDelimiters - default true, if false then token consists only of chars in the delimiters and any other char terminates the token
+     params
+     token - the SafeString to return the token in, it is cleared if no delimited token found or if there are errors
+             The found delimited token (less the delimiter) is returned in the token SafeString argument if there is capacity.
+             The token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.
+             If the token's capacity is < the next token, then token is returned empty and an error messages printed if debug is enabled.
+             In this case the return (nextIndex) is still updated.
+     fromIndex -- where to start the search from  0 to length() and -1 is valid for fromIndex,  -1 => length() for processing
+     delimiters - the characters that any one of which can delimit a token. The end of the SafeString is always a delimiter.
+     returnEmptyFields -- default false, if true only skip one leading delimiter after each call. If the fromIndex is 0 and there is a delimiter at the beginning of the SafeString, an empty token will be returned
+     useAsDelimiters - default true, if false then token consists only of chars in the delimiters and any other char terminates the token
 
-      return -- nextIndex, the next index in this SafeString after the end of the token just found.
-               Use this as the fromIndex for the next call
-               NOTE: if there are no delimiters then length() is returned and the whole SafeString returned in token if the SafeString token argument is large enough
-               If the token's capacity is < the next token, the token returned is empty and an error messages printed if debug is enabled.
-               In this case the returned nextIndex is still updated to end of the token just found so that that the program will not be stuck in an infinite loop testing for nextInded >= length()
-               while being consistent with the SafeString's all or nothing insertion rule
+     return -- nextIndex, the next index in this SafeString after the end of the token just found, -1 if this is the last token
+              Use this as the fromIndex for the next call
+              NOTE: if there are no delimiters then -1 is returned and the whole SafeString returned in token if the SafeString token argument is large enough
+              If the token's capacity is < the next token, the token returned is empty and an error messages printed if debug is enabled.
+              In this case the returned nextIndex is still updated to end of the token just found so that that the program will not be stuck in an infinite loop testing for nextIndex >=0
+              while being consistent with the SafeString's all or nothing insertion rule
 
-      Input argument errors return length()+1
-      If the returned, nextIndex is <= length() and the returned token is empty, then the SafeString token argument did not have the capacity to hold the next token.
+     Input argument errors return -1 and an empty token and hasError() is set on both this SafeString and the token SafeString.
 **/
 
-size_t SafeString::stoken(SafeString & token, size_t fromIndex, const char delimiter, bool returnEmptyFields, bool useAsDelimiters) {
+
+int SafeString::stoken(SafeString & token, unsigned int fromIndex, const char delimiter, bool returnEmptyFields, bool useAsDelimiters) {
+  token.clear(); // no need to clean up token
   if (!delimiter) {
     setError();
+    token.setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("stoken"));
@@ -3375,19 +3550,22 @@ size_t SafeString::stoken(SafeString & token, size_t fromIndex, const char delim
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
+    return -1;
   }
   return stokenInternal(token, fromIndex, NULL, delimiter, returnEmptyFields,  useAsDelimiters);
 }
 
-size_t SafeString::stoken(SafeString &token, size_t fromIndex, SafeString &delimiters, bool returnEmptyFields, bool useAsDelimiters) {
+int SafeString::stoken(SafeString &token, unsigned int fromIndex, SafeString &delimiters, bool returnEmptyFields, bool useAsDelimiters) {
+  token.clear(); // no need to clean up token
   delimiters.cleanUp();
   return stoken(token, fromIndex, delimiters.buffer, returnEmptyFields, useAsDelimiters); // calls cleanUp()
 }
 
-size_t SafeString::stoken(SafeString &token, size_t fromIndex, const char* delimiters, bool returnEmptyFields, bool useAsDelimiters) {
+int SafeString::stoken(SafeString &token, unsigned int fromIndex, const char* delimiters, bool returnEmptyFields, bool useAsDelimiters) {
+  token.clear(); // no need to clean up token
   if (!delimiters) {
     setError();
+    token.setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("stoken"));
@@ -3395,10 +3573,11 @@ size_t SafeString::stoken(SafeString &token, size_t fromIndex, const char* delim
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
+    return -1;
   }
   if (*delimiters == '\0') {
     setError();
+    token.setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("stoken"));
@@ -3406,12 +3585,12 @@ size_t SafeString::stoken(SafeString &token, size_t fromIndex, const char* delim
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
+    return -1;
   }
   return stokenInternal(token, fromIndex, delimiters, '\0', returnEmptyFields,  useAsDelimiters);
 }
 
-size_t SafeString::stokenInternal(SafeString &token, size_t fromIndex, const char* delimitersIn, char delimiterIn, bool returnEmptyFields, bool useAsDelimiters) {
+int SafeString::stokenInternal(SafeString &token, unsigned int fromIndex, const char* delimitersIn, char delimiterIn, bool returnEmptyFields, bool useAsDelimiters) {
   cleanUp();
   token.clear(); // no need to clean up token
   char charDelim[2];
@@ -3421,13 +3600,14 @@ size_t SafeString::stokenInternal(SafeString &token, size_t fromIndex, const cha
   if (delimiters == NULL) {
     delimiters = charDelim;
   }
-  if (fromIndex == len) {
-    return len; // reached end of input return empty token and len
+  if ((fromIndex == (unsigned int)(-1)) || (fromIndex == len)) {
+    return -1; // reached end of input return empty token and -1
     // this is a common case when stepping over delimiters
   }
   // else invalid fromIndex
   if (fromIndex > len) {
     setError();
+    token.setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("stoken"));
@@ -3435,10 +3615,11 @@ size_t SafeString::stokenInternal(SafeString &token, size_t fromIndex, const cha
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
+    return -1;
   }
   size_t count = 0;
   // skip leading delimiters  (prior to V2.0.2 leading delimiters not skipped)
+  // count will == len-fromIndex if no delimiters found
   if (useAsDelimiters) {
     count = strspn(buffer + fromIndex, delimiters); // count chars ONLY in delimiters
   } else {
@@ -3455,7 +3636,7 @@ size_t SafeString::stokenInternal(SafeString &token, size_t fromIndex, const cha
   }
   fromIndex += count;
   if (fromIndex == len) {
-    return len; // reached end of input return empty token and len
+    return -1; // reached end of input scaning for non-delimiters, return empty token and -1
   }
   // find length of token
   if (useAsDelimiters) {
@@ -3463,11 +3644,9 @@ size_t SafeString::stokenInternal(SafeString &token, size_t fromIndex, const cha
   } else {
     count = strspn(buffer + fromIndex, delimiters); // count chars ONLY in delimiters, i.e. the delimiters are the token
   }
-  if (count == 0) {
-    return fromIndex; // not found and empty token returned
-  }
   if (count > token._capacity) {
     setError();
+    token.setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("stoken"));
@@ -3476,11 +3655,21 @@ size_t SafeString::stokenInternal(SafeString &token, size_t fromIndex, const cha
       token.debugInternalResultMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return fromIndex + count;  // used to be len + 1; prior to V2.0.3
+    size_t rtn = fromIndex + count;  // used to be len + 1; prior to V2.0.3
+    if (rtn >= len) {
+      return -1;
+    } else {
+      return rtn;
+    }
   }
   // else get substring
   substring(token, fromIndex, fromIndex + count);
-  return fromIndex + count; // may == len
+  size_t rtn = fromIndex + count;  // used to be len + 1; prior to V2.0.3
+  if (rtn >= len) {
+    return -1;
+  } else {
+    return rtn;
+  }
 }
 /** end of stoken methods *******************/
 
@@ -3490,6 +3679,7 @@ size_t SafeString::stokenInternal(SafeString &token, size_t fromIndex, const cha
       The token argument is always cleared at the start of the nextToken().
       IMPORTANT !! Only delimited tokens are returned. Partial un-delimited tokens are left in the SafeString and not returned
       This allows the SafeString to hold partial tokens when reading from an input stream one char at a time.
+      if token does not have the capacity to hold the substring, hasError() is set on both this SafeString and the token SafeString
 
       params
       token - the SafeString to return the token in, it will be empty if no delimited token found or if there are errors
@@ -3503,9 +3693,11 @@ size_t SafeString::stokenInternal(SafeString &token, size_t fromIndex, const cha
                 In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
                 while being consistent with the SafeString's all or nothing insertion rule
 **/
-bool SafeString::nextToken(SafeString& token, const char delimiter) {
+unsigned char SafeString::nextToken(SafeString& token, const char delimiter) {
+  token.clear();
   if (!delimiter) {
     setError();
+    token.setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("nextToken"));
@@ -3513,19 +3705,21 @@ bool SafeString::nextToken(SafeString& token, const char delimiter) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
+    return false;
   }
   return nextTokenInternal(token, NULL, delimiter);
 }
 
-bool SafeString::nextToken(SafeString& token, SafeString &delimiters) {
+unsigned char SafeString::nextToken(SafeString& token, SafeString &delimiters) {
   delimiters.cleanUp();
   return nextToken(token, delimiters.buffer); // calls cleanUp()
 }
 
-bool SafeString::nextToken(SafeString& token, const char* delimiters) {
+unsigned char SafeString::nextToken(SafeString& token, const char* delimiters) {
+  token.clear();
   if (!delimiters) {
     setError();
+    token.setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("nextToken"));
@@ -3537,6 +3731,7 @@ bool SafeString::nextToken(SafeString& token, const char* delimiters) {
   }
   if (*delimiters == '\0') {
     setError();
+    token.setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("nextToken"));
@@ -3578,6 +3773,7 @@ bool SafeString::nextTokenInternal(SafeString& token, const char* delimitersIn, 
   }
   if (token_count > token._capacity) {
     setError();
+    token.setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("nextToken"));
@@ -3602,17 +3798,17 @@ bool SafeString::nextTokenInternal(SafeString& token, const char* delimitersIn, 
 /**  ReadFrom from SafeString, writeTo SafeString               */
 /****************************************************************/
 /*
-   readFrom(SafeString & sfInput, size_t startIdx = 0)  reads from the SafeString starting at startIdx into the SafeString calling this method
+   readFrom(SafeString & sfInput, unsigned int startIdx = 0)  reads from the SafeString starting at startIdx into the SafeString calling this method
    params
      sfInput - the SafeString to read from
      startIdx - where to start reading from, defaults to 0,
                 if startIdx >= sfInput.length(), nothing read and sfInput.length() returned
 
    returns new startIdx
-   read stops when the end if the sfInput is reached or the calling SafeString is full
+   read stops when the end of the sfInput is reached or the calling SafeString is full
    Note: if the SafeString is already full, then nothing will be read and startIdx will be returned
 **/
-size_t SafeString::readFrom(SafeString & input, size_t startIdx) {
+unsigned int SafeString::readFrom(SafeString & input, unsigned int startIdx) {
   input.cleanUp();
   cleanUp();
   if (startIdx > input.len) {
@@ -3642,11 +3838,16 @@ size_t SafeString::readFrom(SafeString & input, size_t startIdx) {
   memmove(buffer + len, input.buffer + startIdx, readLen);
   len += readLen;
   buffer[len] = '\0';
-  return (startIdx + readLen);
+  size_t newStartIdx = startIdx + readLen;
+  if (newStartIdx >= input.len) {
+    return input.len;
+  } else {
+    return newStartIdx;
+  }
 }
 
 /*
-   writeTo(SafeString & output, size_t startIdx = 0)  writes from SafeString, starting at startIdx to output
+   writeTo(SafeString & output, unsigned int startIdx = 0)  writes from SafeString, starting at startIdx to output
    params
      output - the SafeString to write to
      startIdx - where to start writing from calling SafeString, defaults to 0,
@@ -3656,7 +3857,7 @@ size_t SafeString::readFrom(SafeString & input, size_t startIdx) {
    write stops when the end if the calling SafeString is reached or the output is full
    Note: if the sfOutput is already full, then nothing will be written and startIdx will be returned
 **/
-size_t SafeString::writeTo(SafeString & output, size_t startIdx) {
+unsigned int SafeString::writeTo(SafeString & output, unsigned int startIdx) {
   output.cleanUp();
   cleanUp();
   if (startIdx > len) {
@@ -3686,7 +3887,12 @@ size_t SafeString::writeTo(SafeString & output, size_t startIdx) {
   memmove(output.buffer + output.len, buffer + startIdx, writeLen);
   output.len += writeLen;
   output.buffer[output.len] = '\0';
-  return (startIdx + writeLen);
+  size_t newStartIdx = startIdx + writeLen;
+  if (newStartIdx >= len) {
+    return len;
+  } else {
+    return newStartIdx;
+  }
 }
 
 /** end of  ReadFrom from SafeString, writeTo SafeString ************/
@@ -3700,7 +3906,7 @@ size_t SafeString::writeTo(SafeString & output, size_t startIdx) {
       returns true if something added to string else false
       Note: if the SafeString is already full, then nothing will be read and false will be returned
 */
-bool SafeString::read(Stream& input) {
+unsigned char SafeString::read(Stream& input) {
   cleanUp();
   bool rtn = false;
   noCharsRead = 0;
@@ -3712,6 +3918,10 @@ bool SafeString::read(Stream& input) {
       rtn = true;
     } else {
       setError(); // found '\0' in input
+      if (debugPtr) {
+        debugPtr->println(); debugPtr->print("!! Error:"); outputName();
+        debugPtr->println(F(" -- read '\\0' from Stream."));
+      }
     }
   }
   return rtn; // true if something added to string
@@ -3730,7 +3940,7 @@ bool SafeString::read(Stream& input) {
       Any delimiter read is returned.  Only at most one delimiter is added per call
      Multiple sucessive delimiters require multiple calls to read them
 **/
-bool SafeString::readUntil(Stream& input, const char delimiter) {
+unsigned char SafeString::readUntil(Stream& input, const char delimiter) {
   if (!delimiter) {
     setError();
 #ifdef SSTRING_DEBUG
@@ -3745,12 +3955,12 @@ bool SafeString::readUntil(Stream& input, const char delimiter) {
   return readUntilInternal(input, NULL, delimiter);
 }
 
-bool SafeString::readUntil(Stream& input, SafeString &delimiters) {
+unsigned char SafeString::readUntil(Stream& input, SafeString &delimiters) {
   delimiters.cleanUp();
   return readUntil(input, delimiters.buffer); // calls cleanUp()
 }
 
-bool SafeString::readUntil(Stream& input, const char* delimiters) {
+unsigned char SafeString::readUntil(Stream& input, const char* delimiters) {
   if (!delimiters) {
     setError();
 #ifdef SSTRING_DEBUG
@@ -3792,6 +4002,10 @@ bool SafeString::readUntilInternal(Stream& input, const char* delimitersIn, cons
     noCharsRead++;
     if (c == '\0') {
       setError(); // found '\0' in input
+      if (debugPtr) {
+        debugPtr->println(); debugPtr->print("!! Error:"); outputName();
+        debugPtr->println(F(" -- read '\\0' from Stream."));
+      }
       continue; // skip nulls
     }
     concat((char)c); // add char may be delimiter
@@ -3816,6 +4030,7 @@ bool SafeString::readUntilInternal(Stream& input, const char* delimitersIn, cons
       The delimiter is NOT included in the SaftString & token return.  It will the first char of the this SafeString when readUntilToken returns true
       It is recommended that the capacity of the SafeString & token argument be >= this SaftString's capacity
       Each call to this method removes any leading delimiters so if you need to check the delimiter do it BEFORE the next call to readUntilToken()
+      if token does not have the capacity to hold the substring, hasError() is set on both this SafeString and the token SafeString
 
       params
         input - the Stream object to read from
@@ -3830,7 +4045,7 @@ bool SafeString::readUntilInternal(Stream& input, const char* delimitersIn, cons
       The delimiter is NOT included in the SaftString & token return. It will the first char of the this SafeString when readUntilToken returns true
  **/
 
-bool SafeString::readUntilToken(Stream & input, SafeString& token, const char delimiter, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_mS) {
+unsigned char SafeString::readUntilToken(Stream & input, SafeString& token, const char delimiter, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_mS) {
   if (!delimiter) {
     setError();
 #ifdef SSTRING_DEBUG
@@ -3845,12 +4060,12 @@ bool SafeString::readUntilToken(Stream & input, SafeString& token, const char de
   return readUntilTokenInternal(input, token, NULL, delimiter, skipToDelimiter, echoInput, timeout_mS);
 }
 
-bool SafeString::readUntilToken(Stream & input, SafeString& token, SafeString& delimiters, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_mS) {
+unsigned char SafeString::readUntilToken(Stream & input, SafeString& token, SafeString& delimiters, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_mS) {
   delimiters.cleanUp();
   return readUntilToken(input, token, delimiters.buffer, skipToDelimiter, echoInput, timeout_mS); // calls cleanUp()
 }
 
-bool SafeString::readUntilToken(Stream & input, SafeString& token, const char* delimiters, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_mS) {
+unsigned char SafeString::readUntilToken(Stream & input, SafeString& token, const char* delimiters, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_mS) {
   if (!delimiters) {
     setError();
 #ifdef SSTRING_DEBUG
@@ -3880,6 +4095,7 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
   token.clear(); // always
   if ((echoInput != 0) && (echoInput != 1) && (timeout_mS == 0)) {
     setError();
+    token.setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("readUntilToken"));
@@ -3888,11 +4104,12 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
     }
 #endif // SSTRING_DEBUG
     timeout_mS = echoInput; // swap to timeout
-    echoInput = true; // use default
+    echoInput = false; // use default
   }
 
   if (capacity() < 2) {
     setError();
+    token.setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("readUntilToken"));
@@ -3928,6 +4145,11 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
     noCharsRead++;
     if (c == '\0') {
       setError(); // found '\0' in input
+      token.setError();
+      if (debugPtr) {
+        debugPtr->println(); debugPtr->print("!! Error:"); outputName();
+        debugPtr->println(F(" -- read '\\0' from Stream."));
+      }
       continue; // skip nulls  // don't update timer on null chars
     }
     if (echoInput) {
@@ -3983,10 +4205,10 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
         if (echoInput) {
           input.print(delimiters[0]);
         }
-        if (debugPtr) {
-          debugPtr->println(); debugPtr->print("!! "); outputName();
-          debugPtr->println(F(" -- Input timed out."));
-        }
+        //        if (debugPtr) { // input timeout is normal if timeout set
+        //          debugPtr->println(); debugPtr->print("!! "); outputName();
+        //          debugPtr->println(F(" -- Input timed out."));
+        //        }
         if (skipToDelimiter) {
           skipToDelimiter = false;
           return true;
@@ -4089,25 +4311,25 @@ void SafeString::assignError(size_t neededCap, const char* cstr, const __FlashSt
     debugPtr->print(F("Error:"));
     outputName();
     debugPtr->print(F(" = "));
-      if (cstr || pstr || (c != '\0')) {
-        if (cstr) {
-          if (!numberFlag) {
-            debugPtr->print('\"');
-          }
-          debugPtr->print(cstr);
-          if (!numberFlag) {
-            debugPtr->print('\"');
-          }
-        } else if (pstr) { 
-          debugPtr->print(F("F(\""));
-          debugPtr->print(pstr);
-          debugPtr->print("\")");
-        } else if (c != '\0') {
-          debugPtr->print('\'');
-          debugPtr->print(c);
-          debugPtr->print('\'');
+    if (cstr || pstr || (c != '\0')) {
+      if (cstr) {
+        if (!numberFlag) {
+          debugPtr->print('\"');
         }
+        debugPtr->print(cstr);
+        if (!numberFlag) {
+          debugPtr->print('\"');
+        }
+      } else if (pstr) {
+        debugPtr->print(F("F(\""));
+        debugPtr->print(pstr);
+        debugPtr->print("\")");
+      } else if (c != '\0') {
+        debugPtr->print('\'');
+        debugPtr->print(c);
+        debugPtr->print('\'');
       }
+    }
     debugPtr->println();
     debugPtr->print(F(" needs capacity of "));
     debugPtr->print(neededCap);
@@ -4137,7 +4359,7 @@ void SafeString::capError(const __FlashStringHelper * methodName, size_t neededC
           debugPtr->print('\'');
           debugPtr->print(cstr);
           debugPtr->print('\'');
-        } else if (pstr) { 
+        } else if (pstr) {
           debugPtr->print(F("F(\""));
           debugPtr->print(pstr);
           debugPtr->print("\")");
@@ -4175,7 +4397,7 @@ void SafeString::warningMethod(const __FlashStringHelper * methodName) const {
 #endif
 }
 
-void SafeString::outputFromIndexIfFullDebug(size_t fromIndex) const {
+void SafeString::outputFromIndexIfFullDebug(unsigned int fromIndex) const {
   (void)(fromIndex);
 #ifdef SSTRING_DEBUG
   if (fullDebug) {

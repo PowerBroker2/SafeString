@@ -47,32 +47,51 @@ void setup() {
   sensorStr.setCharAt(14, '=');
 
   sensorStr.debug(F("sensorStr.setCharAt(14, '='); => "));
-  Serial.println(F("sensorStr[14] = '=';   is not supported."));
-  Serial.println(F("  because the code can not guard against sensorStr[14] = '\\0' which would invaliate the SafeString."));
-  Serial.println(F("  use setCharAt( ) instead."));
+  Serial.println(F("NOTE: sensorStr[14] = ':';   is not supported."));
+  Serial.println(F("      because the code can not guard against sensorStr[14] = '\\0' which would invaliate the SafeString."));
+  Serial.println(F("      use setCharAt( ) instead."));
 
   Serial.println();
   Serial.println(F("Error checking.."));
   Serial.println();
   Serial.println(F("sensorStr.setCharAt(14, '\\0');"));
   sensorStr.setCharAt(14, '\0');
+  Serial.print(F("sensorStr.hasError():"));  Serial.println(sensorStr.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
-  Serial.println(F(" Use removeFrom(14) instead"));
-  sensorStr.removeFrom(14);
-  sensorStr.debug(F("sensorStr.removeFrom(14); => "));
+  Serial.println(F(" Use setLength(14) instead"));
+  sensorStr.setLength(14);
+  sensorStr.debug(F("sensorStr.setLength(14); => "));
+  Serial.print(F("sensorStr.hasError():"));  Serial.println(sensorStr.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
+  Serial.println();
+
+  sensorStr.debug(F("Trying to set a new length > length() is an error"));
+  Serial.println(F("sensorStr.setLength(33);"));
+  sensorStr.setLength(33);
+  Serial.print(F("sensorStr.hasError():"));  Serial.println(sensorStr.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
   Serial.println(F("sensorStr.setCharAt(33, 'a');"));
   sensorStr.setCharAt(33, 'a');
+  Serial.print(F("sensorStr.hasError():"));  Serial.println(sensorStr.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
   Serial.println(F("charAt() and [ ] return '\\0' if index is >= length()"));
   Serial.println(F("char c = sensorStr.charAt(19);"));
   char c = sensorStr.charAt(19);
+  Serial.print(F("sensorStr.hasError():"));  Serial.println(sensorStr.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
+  Serial.print(F("Print c in HEX format 0x")); Serial.println(c, HEX);
   Serial.println();
 
   Serial.println(F("char c = sensorStr[22];"));
   c = sensorStr[22];
+  Serial.print(F("sensorStr.hasError():"));  Serial.println(sensorStr.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
+  Serial.print(F("Print c in HEX format 0x")); Serial.println(c, HEX);
 
 }
 

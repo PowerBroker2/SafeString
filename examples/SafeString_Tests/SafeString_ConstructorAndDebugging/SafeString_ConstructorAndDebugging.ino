@@ -67,7 +67,7 @@ void setup() {
 
 
   Serial.println(F(" You can add a debug title, either \"...\" or F(\"...\") or a SafeString, to the debug output, e.g. "));
-  Serial.println(F(" stringOne.debug(F(\"After assigning Hello SafeString!!\"));\"));"));
+  Serial.println(F(" stringOne.debug(F(\"After assigning Hello SafeString!!\"));"));
   stringOne.debug(F("After assigning Hello SafeString!!"));
   Serial.println();
 
@@ -92,6 +92,8 @@ void setup() {
   Serial.println();
   Serial.println(F("SafeString has extensive error checking which avoids crashing your program"));
   Serial.println(F("  and, if setOutput() has been called, it will output detailed error messages "));
+  Serial.println(F("  in any case any errors set the error flags.  sfStr.hasError() will return true and SafeString::errorDetected() will return true in any SafeString has an error "));
+  Serial.println(F("  Both  sfStr.hasError() and SafeString::errorDetected() are cleared each time they are called "));
   Serial.println();
 
 
@@ -100,6 +102,7 @@ void setup() {
   Serial.println(F(" If setOutput( ) has been called, then with the default verbose error messaages you will get."));
   createSafeString(str1, 2, "abc");
   Serial.println(F("NOTE: The SafeString is still valid but just empty since the requested initial value would not fit."));
+  Serial.println(F(" str1.hasError() will return true, as will SafeString::errorDetected()"));
   Serial.println();
 
 
@@ -118,10 +121,11 @@ void setup() {
 
   Serial.println(F(" Error messages and debug() output are off by default until you call SafeString::setOutput( ); "));
   Serial.println(F("    stringOne.debug(); will not produce any output until you call SafeString::setOutput( )"));
+  Serial.println(F(" However hasError() and SafeString::errorDetected() are always active"));
   Serial.println(F(" You can turn off all error messages and debug() output using SafeString::turnOutputOff();"));
-  Serial.println(F(" but the error checks are still performed and keep the SafeStrings valid"));
+  Serial.println(F(" but the error checks are still performed and keep the SafeStrings valid and hasError() and SafeString::errorDetected() will still return true on errors. "));
   Serial.println(F(" You can remove all the error message from the code by commenting out #define SSTRING_DEBUG at the top of the SafeString.h file"));
-  Serial.println(F("   The error checks are still performed and keep the SafeStrings valid"));
+  Serial.println(F("   The error checks are still performed and keep the SafeStrings valid and hasError() and SafeString::errorDetected() will still return true on errors."));
   Serial.println(F("   If #define SSTRING_DEBUG is commented out,  debug( ) still works, but without the variable name"));
 
   Serial.println();
@@ -133,6 +137,7 @@ void setup() {
   SafeString testStr1(4, nullBuffer, "testValue");
   Serial.println(F("The resulting testStr1 is valid, but with zero capacity."));
   testStr1.debug(F("testStr1.debug(); => "));
+  Serial.print(F(" testStr1.hasError() => ")); Serial.println(testStr1.hasError() ? "true" : "false");
   Serial.println();
 
   Serial.println(F("Check passing NULL initial value."));
@@ -140,6 +145,10 @@ void setup() {
   Serial.println(F("SafeString testStr2(4, buffer, NULL);"));
   SafeString testStr2(4, buffer, NULL);
   testStr2.debug(F("testStr2.debug(); => "));
+  Serial.print(F(" testStr2.hasError() => ")); Serial.println(testStr2.hasError() ? "true" : "false");
+  Serial.println();
+  Serial.println(F(" Any error in any SafeString sets the class global error flag."));
+  Serial.print(F(" SafeString::errorDetected() => ")); Serial.println(SafeString::errorDetected() ? "true" : "false");
 
 }
 
