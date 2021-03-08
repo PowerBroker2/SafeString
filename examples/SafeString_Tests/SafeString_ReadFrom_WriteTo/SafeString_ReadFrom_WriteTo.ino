@@ -13,32 +13,44 @@
 // https://www.forward.com.au/pfod/ArduinoProgramming/TimingDelaysInArduino.html
 #include "millisDelay.h"
 
-char text[]  = " some leading text start, stop, reset, start dummy text stop reset."; // note trailing delimiter needed to parse last token
-size_t textIdx = 0;  // the next index to read text from
+char text[]  = " some leading text start, stop, reset, start dummy text stop reset."; // note trailing delimiter (., CR NL) needed to parse last token
+unsigned int textIdx = 0;  // the next index to read text from
 
 cSF(delimiters, 5, " .,\r\n"); // space dot comma CR NL are command delimiters
 
-const size_t outputBufferSize = 4; // a very small output buffer which is printed very slowly
+const size_t outputBufferSize = 10; // a very small output buffer which is printed very slowly
 char outputBuffer[outputBufferSize]; // output buffer
 millisDelay printDelay;
 const unsigned long PRINT_DELAY_MS = 1000;  // the output buffer is only emptied once every sec
 
+void startCmd(SafeString& sfStr) {
+  sfStr = F("Found start cmd");
+  sfStr.newline();
+}
+void stopCmd(SafeString& sfStr) {
+  sfStr = F("Found stop cmd");
+  sfStr.newline();
+}
+void resetCmd(SafeString& sfStr) {
+  sfStr = F("Found reset cmd");
+  sfStr.newline();
+}
+
+typedef struct {
+  const char* cmd;
+  void (*cmdFn)(SafeString&);
+} COMMANDS_STRUCT;
+
+COMMANDS_STRUCT commands[] = {
+  {"start", startCmd},
+  {"stop", stopCmd},
+  {"reset", resetCmd}
+};
+
+const size_t NO_OF_CMDS = sizeof commands / sizeof commands[0];
 
 /** ****** Set up an array of commands to check against ********  */
 const size_t MAX_CMD_LENGTH = 5; // max length of a command
-enum cmdEnum { START_CMD, STOP_CMD, RESET_CMD};
-const size_t NO_OF_CMDS = RESET_CMD + 1;
-char cmdsArray[NO_OF_CMDS][MAX_CMD_LENGTH + 1]; // +1 for terminating '\0'
-
-// initialize commands in this method so SafeString will catch commands to are too long to fit in the cmdsArray
-void initializeCmds() {
-  cSFA(cmd0, cmdsArray[START_CMD]);
-  cmd0 = "start";
-  cSFA(cmd1, cmdsArray[STOP_CMD]);
-  cmd1 = "stop";
-  cSFA(cmd2, cmdsArray[RESET_CMD]);
-  cmd2 = "reset";
-}
 
 // -----------  setup() -----------
 void setup() {
@@ -51,29 +63,45 @@ void setup() {
   // see the SafeString_ConstructorAndDebugging example for debugging settings
   //SafeString::setOutput(Serial); // uncomment this line to see the debugging msgs
 
-  initializeCmds(); // will print message if any cmd too long if SafeString::setOutput(Serial); has been called
+  // check MAX_CMD_LENGTH
+  size_t maxCmdLen = 0;
+  for (size_t i = 0; i < NO_OF_CMDS; i++) {
+    size_t cmdLen = strlen(commands[i].cmd);
+    if (cmdLen > maxCmdLen) {
+      maxCmdLen = cmdLen;
+    }
+  }
+  if (maxCmdLen > MAX_CMD_LENGTH) {
+    while (1) {
+      Serial.print("MAX_CMD_LENGTH needs to be at least "); Serial.println(maxCmdLen);
+      delay(3000); // stop here
+    }
+  }
   printDelay.start(PRINT_DELAY_MS); // start print delay slowly outputs outputBuffer
 
   Serial.println(F("Input text containing the commands to be extracted, continually re-entered :-"));
   Serial.println(text);
+  Serial.println(F(" The output buffer is only holds 3 chars (+ '\\0') and only printed once each 1sec."));
+  Serial.println(F(" The readFrom and parsing is throttled by the slow output."));
   Serial.println(F("Parsed Output is"));
+  cSFA(sfOutBuffer, outputBuffer); // wrap char[]
+  sfOutBuffer.clear(); // == outputBuffer[0] = '\0';
 }
 
 // When outputToken returns either token empty OR outputBuffer is full
-void outputToken(SafeString &token, char* outputBuffer, size_t outBufSize) {
-  cSFPS(sfOut, outputBuffer, outBufSize); // keeps any existing data in outBuf,  cSFPS 3rd arg is size of the underlying array
-  size_t tokenIdx = token.writeTo(sfOut); // writeTo outputBuffer stops when token empty OR outputBuffer is full
+void outputToken(SafeString & token, char* outBuf, size_t outBufSize) {
+  cSFPS(sfOut, outBuf, outBufSize); // keeps any existing data in outBuf,  cSFPS 3rd arg is size of the underlying array
+  unsigned int tokenIdx = token.writeTo(sfOut); // writeTo outputBuffer stops when token empty OR outputBuffer is full
   token.removeBefore(tokenIdx); tokenIdx = 0;  // remove the data just written
 }
 
 // Check token against valid commands
 // If valid command found call outputToken to add to outputBuffer (char* out)
 // chars that don't fit in the outputBuffer are keep in token and output later when there is space
-void processCmd(SafeString &token, char* out, size_t outSize) {
+void processCmd(SafeString & token, char* out, size_t outSize) {
   for (size_t i = 0; i < NO_OF_CMDS; i++) {
-    if (token == cmdsArray[i]) { // found one
-      token += '\n'; // add separator to token
-      token.debug("Found cmd ");
+    if (token == commands[i].cmd) { // found one
+      commands[i].cmdFn(token); // call the cmd fn
       outputToken(token, out, outSize); // send to output
       return; // found cmd
     }
@@ -85,10 +113,10 @@ void processCmd(SafeString &token, char* out, size_t outSize) {
 
 // returns new value for txtIdx, the next index in text to readFrom
 // writes any commands found to outBuf, outBufSize is the valid size of the outBuf array
-size_t processInput(char* text, size_t txtIdx, char* outBuf, size_t outBufSize ) {
+unsigned int processInput(char* text, size_t txtIdx, char* outBuf, size_t outBufSize ) {
   // these two method static's keep their values between method calls
   static char inputArray[MAX_CMD_LENGTH + 2]; // +1 for delimiter, +1 for terminating '\0' keep this array from call to call
-  static char tokenArray[MAX_CMD_LENGTH + 2]; // +1 for delimiter, +1 for terminating '\0' keep this array from call to call
+  static char tokenArray[30]; // add space for result
   cSFA(input, inputArray); // create a 'static' SafeString string by wrapping the static array inputArray
   cSFA(token, tokenArray); // create a 'static' SafeString string by wrapping the static array tokenArray
 
@@ -113,6 +141,7 @@ size_t processInput(char* text, size_t txtIdx, char* outBuf, size_t outBufSize )
   // parse input for delimited tokens
   while (input.nextToken(token, delimiters)) { // skips leading delimiters, true while there is a nextToken to process
     input.debug(); token.debug();
+    //   Serial.print("token '");Serial.print(token);Serial.print("'");Serial.println();
     processCmd(token, outBuf, outBufSize);
     if (!token.isEmpty()) {
       break; // break here waiting for output to clear
@@ -126,7 +155,6 @@ size_t processInput(char* text, size_t txtIdx, char* outBuf, size_t outBufSize )
   return txtIdx; // next read location
 }
 
-
 void loop() {
   // ... other loop stuff
 
@@ -139,6 +167,12 @@ void loop() {
     printDelay.restart();
     cSFP(sfOutput, outputBuffer); // wrap in a SafeString for processing
     Serial.print(sfOutput);  // print it
-    sfOutput.clear(); // finished processing parsed commandws, clear outputBuffer
+    sfOutput.clear(); // finished processing parsed commands, clear outputBuffer
+  }
+  if (SafeString::errorDetected()) {
+    while (1) { // stop here
+      Serial.println("SafeString Error Detected");
+      delay(3000);
+    }
   }
 }

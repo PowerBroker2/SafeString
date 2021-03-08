@@ -33,7 +33,7 @@ void setup() {
 
   Serial.println();
   Serial.println(F("This sketch has an existing char charArray[charArraySize]= \"initial value\";  and a pointer (char*) to it, arrayPtr."));
-  Serial.println(F("  charArraySize == 25 so the charArray can hold at most 14 chars + the terminating '\\0'"));
+  Serial.println(F("  charArraySize == 25 so the charArray can hold at most 24 chars + the terminating '\\0'"));
   Serial.println(F(" You can use the createSafeStringFromCharPtrWithSize(  ); macro to create a SafeString to access and update this char[] safely via its pointer"));
   Serial.println(F("   You can also use the typing shortcut name cSFPS( )"));
   Serial.println(F(" This macro wraps the char[] pointed to in a SafeString object, stringOne, and sets its name for debugging"));
@@ -71,7 +71,7 @@ void setup() {
   Serial.println(F("   the next call to any SafeString method cleans up the arrayPtr and resyncs the SafeString, making it safe again"));
   Serial.println(F("   Each call to a SafeString method reterminates the char array at the size passed in when the SafeString was created."));
   Serial.println(F("  SafeString prevents any access past the length that was initially passed in."));
-  Serial.print(F("e.g. stringOne.endsWith(\"123\") => "));
+  Serial.print(F("stringOne.endsWith(\"123\")  "));
   Serial.println(stringOne.endsWith("123") ? "true" : "false");
   stringOne.debug("stringOne.debug() => ");
   Serial.println();
@@ -83,6 +83,8 @@ void setup() {
   char *nullArrayPtr = NULL;
   Serial.println(F("cSFPS(testStr1,nullArrayPtr,charArraySize); // using the typing shortcut name"));
   cSFPS(testStr1, nullArrayPtr, charArraySize); // using the typing shortcut name
+  Serial.print(F("testStr1.hasError():"));  Serial.println(testStr1.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
   Serial.println(F("The resulting testStr1 is valid, but with zero capacity."));
   testStr1.debug(F("testStr1.debug(); => "));
@@ -91,6 +93,8 @@ void setup() {
   Serial.println(F("Check passing size 0 to createSafeStringFromCharPtrWithSize, prints error msg but does not blow up program."));
   Serial.println(F("cSFPS(testStr2,arrayPtr,0); // using the typing shortcut name"));
   cSFPS(testStr2, arrayPtr, 0); // using the typing shortcut name
+  Serial.print(F("testStr2.hasError():"));  Serial.println(testStr2.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
   Serial.println(F("The resulting testStr1 is valid, but with zero capacity."));
   testStr1.debug(F("testStr1.debug(); => "));
@@ -119,6 +123,8 @@ void setup() {
   Serial.println(F("cSFPS(sfBuffer_1,buffers.buffer_1, 8);"));
   Serial.println(F(" Note: the 8 to allows for the terminating '\\0' the char buffer_1[8] can only hold a 7 char c-string"));
   cSFPS(sfBuffer_1, buffers.buffer_1, 8);
+  Serial.print(F("sfBuffer_1.hasError():"));  Serial.println(sfBuffer_1.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   sfBuffer_1.debug();
   Serial.println();
   Serial.println(F("When working with char*, SafeString always terminates the array at its capacity(), in this case overwriting the 7 with a terminating '\\0'"));

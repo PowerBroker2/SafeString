@@ -1,11 +1,12 @@
 // ESP32_LoopTimer.ino
+// LED set for SparkFun ESP32 Thing board
 /*
- * (c)2019 Forward Computing and Control Pty. Ltd.
- * NSW Australia, www.forward.com.au
- * This code is not warranted to be fit for any purpose. You may only use it at your own risk.
- * This generated code may be freely used for both private and commercial use
- * provided this copyright is maintained.
- */
+   (c)2019 Forward Computing and Control Pty. Ltd.
+   NSW Australia, www.forward.com.au
+   This code is not warranted to be fit for any purpose. You may only use it at your own risk.
+   This generated code may be freely used for both private and commercial use
+   provided this copyright is maintained.
+*/
 
 #include <loopTimer.h>
 #include <millisDelay.h>
@@ -15,7 +16,7 @@
 // to get BufferedOutput. See https://www.forward.com.au/pfod/ArduinoProgramming/Serial_IO/index.html for a full tutorial
 // on Arduino Serial I/O that Works
 
-int led = 13;
+int led = 5; // pin 5 for LED on SparkFun EPS32 Thing
 createBufferedOutput(bufferedOut, 80, DROP_UNTIL_EMPTY);
 
 loopTimerClass blinkTaskTimer("blink");
@@ -31,7 +32,7 @@ void blinkTask(void* parameter) {
   for (;;) {   // loop forever
     blinkTaskTimer.check();
     vTaskDelay(1); // need this to prevent wdt panic
-    
+
     if (ledDelay.justFinished()) {
       ledDelay.repeat(); // start delay again without drift
       // toggle the led
@@ -77,7 +78,7 @@ void setup() {
 void loop() {
   loopTimer.check();
   bufferedOut.nextByteOut(); // check if any output to print
-  
+
   if (printTimers.justFinished()) {
     printTimers.restart(); // this may drift
     loopTimer.print(bufferedOut);

@@ -1,14 +1,14 @@
 /*
-  OBD_Processor.ino
-  
+  OBD_Processor.ino  for SafeString V4.0.0+
+
   Example of using SafeString to process Car OnBoardData
 
   by Matthew Ford
   Copyright(c)2020 Forward Computing and Control Pty. Ltd.
   This example code is in the public domain.
 
- download and install the SafeString library from Arduino library manager
- or from www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html
+  download and install the SafeString library V4.0.0+ from Arduino library manager
+  or from www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html
 */
 
 
@@ -47,8 +47,9 @@ void clearResultFrames(dataFrames & results) {
 void processPayload(char *OBDdata, dataFrames & results) {
   clearResultFrames(results);
   cSFP(data, OBDdata); // wrap in a SafeString, use strlen(OBDdata) to set the capacity since ELMduino terminates the returned data char[]
-  size_t idx = data.indexOf(':'); // skip over header and find first delimiter
-  while (idx < data.length()) {
+  //Serial.println(OBDdata);
+  int idx = data.indexOf(':'); // skip over header and find first delimiter
+  while (idx >= 0) {
     int frameIdx = data[idx - 1] - '0'; // the char before :
     if ((frameIdx < 0) || (frameIdx > 8)) { // error in frame number skip this frame, print a message here
       SafeString::Output.print("frameIdx:"); SafeString::Output.print(frameIdx); SafeString::Output.print(" outside range data: "); data.debug();
@@ -57,18 +58,18 @@ void processPayload(char *OBDdata, dataFrames & results) {
     }
     cSFA(frame, results.frames[frameIdx]); // wrap a result frame in a SafeString to store this frame's data
     idx++; // step over :
-    size_t nextIdx = data.indexOf(':', idx); // find next :
-    if (nextIdx == data.length()) {
-      data.substring(frame, idx);  // next : not found so take all the remaining chars as this field
+    int nextIdx = data.indexOf(':', idx); // find next : -1 if not found
+    if (nextIdx > 0) {
+      data.substring(frame, idx, nextIdx - 1); // next : found so take chars upto 1 char before next :
     } else {
-      data.substring(frame, idx, nextIdx - 1); // substring upto one byte before next :
+      data.substring(frame, idx, nextIdx); // next : not found so take all the remaining chars as this field
     }
     SafeString::Output.print("frameIdx:"); SafeString::Output.print(frameIdx); SafeString::Output.print(" "); frame.debug();
     idx = nextIdx; // step onto next frame
   }
 }
 
-int convertToInt(char* dataFrame, size_t offset, size_t numberBytes) {
+int convertToInt(char* dataFrame, unsigned int offset, unsigned int numberBytes) {
   // define a local SafeString on the stack for this method
   cSFP(frame, dataFrame);
   cSF(hexSubString, frame.capacity()); // allow for taking entire frame as a substring
@@ -78,6 +79,7 @@ int convertToInt(char* dataFrame, size_t offset, size_t numberBytes) {
   if (!hexSubString.hexToLong(num)) {
     hexSubString.debug(F(" invalid hex number "));
   }
+  SafeString::Output.print(F(" hexToLong:"));SafeString::Output.println(num);
   return num;
 }
 

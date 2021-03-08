@@ -22,15 +22,15 @@
 
   createSafeStringFromCharArray(name, char[]);  or cSFA(name, char[]);
    wraps an existing char[] in a SafeString of the given name
-  e.g. 
+  e.g.
   char charBuffer[15];
   createSafeStringFromCharArray(str,charBuffer); or cSFA(str,charBuffer);
   expands in the pre-processor to
    SafeString str(sizeof(charBuffer),charBuffer, charBuffer, "str", true);
 
-  createSafeStringFromCharPtrWithSize(name, char*, size_t);  or cSFPS(name, char*, size_t);
+  createSafeStringFromCharPtrWithSize(name, char*, unsigned int);  or cSFPS(name, char*, unsigned int);
    wraps an existing char[] pointed to by char* in a SafeString of the given name and sets the capacity to the given size
-  e.g. 
+  e.g.
   char charBuffer[15]; // can hold 14 char + terminating '\0'
   char *bufPtr = charBuffer;
   createSafeStringFromCharPtrWithSize(str,bufPtr, 14); or cSFPS(str,bufPtr, 14);
@@ -42,7 +42,7 @@
    wraps an existing char[] pointed to by char* in a SafeString of the given name
   createSafeStringFromCharPtr(name, char* s) is the same as   createSafeStringFromCharPtrWithSzie(name, char* s, strlen(s));
   That is the current strlen() is used to set the SafeString capacity.
-  e.g. 
+  e.g.
   char charBuffer[15] = "test";
   char *bufPtr = charBuffer;
   createSafeStringFromCharPtr(str,bufPtr); or cSFP(str,bufPtr);
@@ -50,7 +50,7 @@
    SafeString str(0,charBuffer, charBuffer, "str", true);
   and the capacity of the SafeString is set to strlen(charBuffer) and cannot be increased.
 
- 
+
    If str is a SafeString then
    str = .. works for signed/unsigned ints, char*, char, F(".."), SafeString float, double etc
    str.concat(..) and string.prefix(..) also works for those
@@ -88,7 +88,10 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-
+// bool versus unsigned char
+// on UNO, ESP8266 and ESP32  sizeof(bool) == 1  i.e. same size as unsigned char
+// but bool is safer as  bool + 1 does not compile
+// however Arduino uses unsigned char as return value so...
 #ifndef SafeString_class_h
 #define SafeString_class_h
 #ifdef __cplusplus
@@ -112,12 +115,12 @@
 #include <Printable.h>
 // This include handles the rename of Stream for MBED compiles
 #if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD)
-  #include <Stream.h>
+#include <Stream.h>
 #elif defined( __MBED__ ) || defined( MBED_H )
-  #include <WStream.h>
-  #define Stream WStream
+#include <WStream.h>
+#define Stream WStream
 #else
-  #include <Stream.h>
+#include <Stream.h>
 #endif
 
 class __FlashStringHelper;
@@ -163,7 +166,7 @@ namespace arduino {
 
   createSafeStringFromCharArray(name, char[]);  or cSFA(name, char[]);
    wraps an existing char[] in a SafeString of the given name
-  e.g. 
+  e.g.
   char charBuffer[15];
   createSafeStringFromCharArray(str,charBuffer); or cSFA(str,charBuffer);
   expands in the pre-processor to
@@ -171,24 +174,24 @@ namespace arduino {
 
   createSafeStringFromCharPtr(name, char*);  or cSFP(name, char*);
    wraps an existing char[] pointed to by char* in a SafeString of the given name
-  e.g. 
+  e.g.
   char charBuffer[15];
   char *bufPtr = charBuffer;
   createSafeStringFromCharPtr(str,bufPtr); or cSFP(str,bufPtr);
   expands in the pre-processor to
-   SafeString str((size_t)-1,charBuffer, charBuffer, "str", true);
+   SafeString str((unsigned int)-1,charBuffer, charBuffer, "str", true);
   and the capacity of the SafeString is set to strlen(charBuffer) and cannot be increased.
 
-  createSafeStringFromCharPtrWithSize(name, char*, size_t);  or cSFPS(name, char*, size_t);
+  createSafeStringFromCharPtrWithSize(name, char*, unsigned int);  or cSFPS(name, char*, unsigned int);
    wraps an existing char[] pointed to by char* in a SafeString of the given name and sets the capacity to the given size
-  e.g. 
+  e.g.
   char charBuffer[15];
   char *bufPtr = charBuffer;
   createSafeStringFromCharPtrWithSize(str,bufPtr, 15); or cSFPS(str,bufPtr, 15);
   expands in the pre-processor to
    SafeString str(15,charBuffer, charBuffer, "str", true);
   The capacity of the SafeString is set to 14.
-  
+
 ****************************************************************************************/
 /***************************************************
    If str is a SafeString then
@@ -212,12 +215,12 @@ namespace arduino {
 #ifdef SSTRING_DEBUG
 #define createSafeString(name, size,...) char name ## _SAFEBUFFER[(size)+1]; SafeString name(sizeof(name ## _SAFEBUFFER),name ## _SAFEBUFFER,  ""  __VA_ARGS__ , #name);
 #define createSafeStringFromCharArray(name, charArray)  SafeString name(sizeof(charArray),charArray, charArray, #name, true, false);
-#define createSafeStringFromCharPtr(name, charPtr) SafeString name((size_t)-1,charPtr, charPtr, #name, true);
+#define createSafeStringFromCharPtr(name, charPtr) SafeString name((unsigned int)-1,charPtr, charPtr, #name, true);
 #define createSafeStringFromCharPtrWithSize(name, charPtr, arraySize) SafeString name((arraySize),charPtr, charPtr, #name, true);
 #else
 #define createSafeString(name, size,...) char name ## _SAFEBUFFER[(size)+1]; SafeString name(sizeof(name ## _SAFEBUFFER),name ## _SAFEBUFFER, ""  __VA_ARGS__);
 #define createSafeStringFromCharArray(name,charArray)  SafeString name(sizeof(charArray),charArray, charArray, NULL, true, false);
-#define createSafeStringFromCharPtr(name, charPtr) SafeString name((size_t)-1,charPtr, charPtr, NULL, true);
+#define createSafeStringFromCharPtr(name, charPtr) SafeString name((unsigned int)-1,charPtr, charPtr, NULL, true);
 #define createSafeStringFromCharPtrWithSize(name, charPtr, arraySize) SafeString name((arraySize),charPtr, charPtr, NULL, true);
 #endif
 
@@ -228,10 +231,10 @@ namespace arduino {
 #define cSFPS createSafeStringFromCharPtrWithSize
 
 class SafeString : public Printable, public Print {
-  
+
   public:
-  	  
-    explicit SafeString(size_t maxLen, char *buf, const char* cstr, const char* _name = NULL, bool _fromBuffer = false, bool _fromPtr = true);
+
+    explicit SafeString(unsigned int maxLen, char *buf, const char* cstr, const char* _name = NULL, bool _fromBuffer = false, bool _fromPtr = true);
     // _fromBuffer true does extra checking before each method execution for SafeStrings created from existing char[] buffers
     // _fromPtr is not checked unless _fromBuffer is true
     // _fromPtr true allows for any array size, if false prevents passing char* by checking sizeof(charArray) != sizeof(char*)
@@ -254,12 +257,12 @@ class SafeString : public Printable, public Print {
 
     // returns true if error detected, errors are detected even is setOutput has not been called
     // each call to hasError() clears the errorFlag
-    bool hasError();
-    
+    unsigned char hasError();
+
     // returns true if error detected in any SafeString object, errors are detected even is setOutput has not been called
     // each call to errorDetected() clears the classErrorFlag
-    static bool errorDetected();
-    
+    static unsigned char errorDetected();
+
     // these methods print out info on this SafeString object, iff setOutput has been called
     // setVerbose( ) does NOT effect these methods which have their own verbose argument
     // Each of these debug( ) methods defaults to outputing the string contents.  Set the optional verbose argument to false to suppress outputing string contents
@@ -275,10 +278,13 @@ class SafeString : public Printable, public Print {
 
     size_t printTo(Print& p) const;
 
-    size_t length(void);
-    size_t capacity(void);
-    bool isFull(void);
-    bool isEmpty(void);
+    // reserve returns 0 if _capacity < size
+    unsigned char reserve(unsigned int size);
+
+    unsigned int length(void);
+    unsigned int capacity(void);
+    unsigned char isFull(void);
+    unsigned char isEmpty(void);
     int availableForWrite(void);
 
     SafeString & clear(void);
@@ -356,6 +362,8 @@ class SafeString : public Printable, public Print {
       eg. sfStr.concat(1).concat("second");
       if there's not enough memory for the concatenated value, the SafeString
       will be left unchanged
+       if the argument is null or invalid, the
+      concatenation is considered unsucessful.
     **/
     SafeString & concat(SafeString &str);
     SafeString & concat(const char *cstr);
@@ -368,6 +376,8 @@ class SafeString : public Printable, public Print {
     SafeString & concat(float num);
     SafeString & concat(double num);
     SafeString & concat(const __FlashStringHelper * str);
+    // ------------------------------------------------------
+    // no corresponding methods these three (3) in  prefix, +=, -+
     SafeString & concat(const char *cstr, size_t length); // concat at most length chars from cstr
     SafeString & concat(const __FlashStringHelper * str, size_t length); // concat at most length chars
     SafeString & newline(); // append newline \r\n same as concat("\r\n"); same a println()
@@ -460,168 +470,190 @@ class SafeString : public Printable, public Print {
      **/
     int compareTo(SafeString &s) ;
     int compareTo(const char *cstr) ;
-    bool equals(SafeString &s) ;
-    bool equals(const char *cstr) ;
-    bool equals(const char c) ;
-    bool operator == (SafeString &rhs) {
+    unsigned char equals(SafeString &s) ;
+    unsigned char equals(const char *cstr) ;
+    unsigned char equals(const char c) ;
+    unsigned char operator == (SafeString &rhs) {
       return equals(rhs);
     }
-    bool operator == (const char *cstr) {
+    unsigned char operator == (const char *cstr) {
       return equals(cstr);
     }
-    bool operator == (const char c) {
+    unsigned char operator == (const char c) {
       return equals(c);
     }
-    bool operator != (SafeString &rhs) {
+    unsigned char operator != (SafeString &rhs) {
       return !equals(rhs);
     }
-    bool operator != (const char *cstr) {
+    unsigned char operator != (const char *cstr) {
       return !equals(cstr);
     }
-    bool operator != (const char c) {
+    unsigned char operator != (const char c) {
       return !equals(c);
     }
-    bool operator <  (SafeString &rhs) {
+    unsigned char operator <  (SafeString &rhs) {
       return compareTo(rhs) < 0;
     }
-    bool operator >  (SafeString &rhs) {
+    unsigned char operator >  (SafeString &rhs) {
       return compareTo(rhs) > 0;
     }
-    bool operator <= (SafeString &rhs) {
+    unsigned char operator <= (SafeString &rhs) {
       return compareTo(rhs) <= 0;
     }
-    bool operator >= (SafeString &rhs) {
+    unsigned char operator >= (SafeString &rhs) {
       return compareTo(rhs) >= 0;
     }
-    bool operator <  (const char* rhs) {
+    unsigned char operator <  (const char* rhs) {
       return compareTo(rhs) < 0;
     }
-    bool operator >  (const char* rhs) {
+    unsigned char operator >  (const char* rhs) {
       return compareTo(rhs) > 0;
     }
-    bool operator <= (const char* rhs) {
+    unsigned char operator <= (const char* rhs) {
       return compareTo(rhs) <= 0;
     }
-    bool operator >= (const char* rhs) {
+    unsigned char operator >= (const char* rhs) {
       return compareTo(rhs) >= 0;
     }
-    bool equalsIgnoreCase(SafeString &s) ;
-    bool equalsIgnoreCase(const char *str2) ;
-    bool equalsConstantTime(SafeString &s) ;
+    unsigned char equalsIgnoreCase(SafeString &s) ;
+    unsigned char equalsIgnoreCase(const char *str2) ;
+    unsigned char equalsConstantTime(SafeString &s) ;
 
-    /* startsWith, endsWith methods  *******************
+    /* startsWith methods  *******************
       The fromIndex is offset into this SafeString where check is to start
-      0 to length() is valid for fromIndex, if fromIndex == length() false is returned
+      0 to length() and (unsigned int)(-1) are valid for fromIndex, if fromIndex == length() or -1 false is returned
+      if the argument is null or fromIndex > length(), an error is flagged and false returned
     **/
-    bool startsWith( const char *str2) ;
-    bool startsWith( const char *str2, size_t fromIndex ) ;
-    bool startsWithIgnoreCase( const char *str2 ) ;
-    bool startsWithIgnoreCase( const char *str2, size_t fromIndex ) ;
-    bool startsWith( SafeString &s2) ;
-    bool startsWith(SafeString &s2, size_t fromIndex) ;
-    bool startsWithIgnoreCase( SafeString &s2 ) ;
-    bool startsWithIgnoreCase( SafeString &s2, size_t fromIndex ) ;
-    bool endsWith(SafeString &suffix) ;
-    bool endsWith(const char *suffix) ;
-    bool endsWithCharFrom(SafeString &suffix) ;
-    bool endsWithCharFrom(const char *suffix) ;
+    unsigned char startsWith( const char *str2) ;
+    unsigned char startsWith( const char *str2, unsigned int fromIndex ) ;
+    unsigned char startsWithIgnoreCase( const char *str2 ) ;
+    unsigned char startsWithIgnoreCase( const char *str2, unsigned int fromIndex ) ;
+    unsigned char startsWith( SafeString &s2) ;
+    unsigned char startsWith(SafeString &s2, unsigned int fromIndex) ;
+    unsigned char startsWithIgnoreCase( SafeString &s2 ) ;
+    unsigned char startsWithIgnoreCase( SafeString &s2, unsigned int fromIndex ) ;
+    
+    /* endsWith methods  *******************/
+    unsigned char endsWith(SafeString &suffix) ;
+    unsigned char endsWith(const char *suffix) ;
+    unsigned char endsWithCharFrom(SafeString &suffix) ;
+    unsigned char endsWithCharFrom(const char *suffix) ;
 
     /* character acccess methods  *******************
       NOTE: There is no access to modify the underlying char buffer directly
       For these methods 0 to length()-1 is valid for index
-      index greater than length() -1 will return 0 and will print errors if debug enabled
+      index greater than length() -1 will return 0 and set the error flag and will print errors if debug enabled
     **/
-    char charAt(size_t index) ; // if index >= length() returns 0 and prints a error msg
-    char operator [] (size_t index) ; // if index >= length() returns 0 and prints a error msg
+    char charAt(unsigned int index) ; // if index >= length() returns 0 and prints a error msg
+    char operator [] (unsigned int index) ; // if index >= length() returns 0 and prints a error msg
 
     // setting a char in the SafeString
     // str[..] = c;  is not supported because it allows direct access to modify the underlying char buffer
-    SafeString & setCharAt(size_t index, char c);
-    // calls to setCharAt(length(), ..) or setCharAt(.. , '\0') are ignored but print an error msg
+    void setCharAt(unsigned int index, char c); //if index >= length() the error flag is set
+    // calls to setCharAt(length(), ..) and  setCharAt(.. , '\0') are ignored and error flag is set
 
     // returning the underlying buffer
-    // returned as a const and should not be changes or recast to a non-const
+    // returned as a const and should not be changesdor recast to a non-const
     const char* c_str();
 
 
     /* search methods  *******************
-       Arrays are indexed by a size_t varialble which for 8bit Arduino boards e.g. UNO,MEGA  is unsigned int but can be larger for more powerful chips.
-       SafeString methods that return an index use size_t where as Arduino methods use int
+       Arrays are indexed by a unsigned int variable
        See the SafeStringIndexOf.ino example sketch
-
-      All indexOf methods return length() if not found ( or length() + 1 on error)
-      so test with
-        size_t a_idx = str.indexOf('a');
-        if (a_idx >= str.length()) { // not found
-
-      DO NOT use the test
-      if (a_idx < 0) {
-        it is NEVER true,  size_t variable is ALWAYS >= 0
+      All indexOf methods return -1 if not found
     **********************************************/
-    // The fromIndex is offset into this SafeString where check is to searching (inclusive)
-    // 0 to length() is valid for fromIndex, if fromIndex == length()  length() (i.e. not found) is returned
-    // if fromIndex > length(), than the error return length()+1 is returned and prints an error if debug enabled
-    size_t indexOf( char ch ) ;
-    size_t indexOf( char ch, size_t fromIndex ) ;
-    size_t indexOf( SafeString & str ) ;
-    size_t indexOf( const char* str ) ;
-    size_t indexOf(const char* str , size_t fromIndex) ;
-    size_t indexOf( SafeString & str, size_t fromIndex ) ;
-    size_t lastIndexOf( char ch ) ;
-    size_t lastIndexOf( char ch, size_t fromIndex ) ;
-    size_t lastIndexOf( SafeString & str ) ;
-    size_t lastIndexOf( const char *cstr ) ;
-    size_t lastIndexOf( SafeString & str, size_t fromIndex ) ;
-    size_t lastIndexOf(const char* cstr, size_t fromIndex);
+    // The fromIndex is offset into this SafeString where to start searching (inclusive)
+    // 0 to length() and -1 is valid for fromIndex
+    // if fromIndex > length(), than the error flag is set and -1 returned and prints an error if debug enabled
+    // if fromIndex == (unsigned int)(-1) -1 is returned without error.
+    int indexOf( char ch ) ;
+    int indexOf( char ch, unsigned int fromIndex ) ;
+    int indexOf( SafeString & str ) ;
+    int indexOf( const char* str ) ;
+    int indexOf(const char* str , unsigned int fromIndex) ;
+    int indexOf( SafeString & str, unsigned int fromIndex ) ;
+    int lastIndexOf( char ch ) ;
+    int lastIndexOf( char ch, unsigned int fromIndex ) ;
+    int lastIndexOf( SafeString & str ) ;
+    int lastIndexOf( const char *cstr ) ;
+    int lastIndexOf( SafeString & str, unsigned int fromIndex ) ;
+    int lastIndexOf(const char* cstr, unsigned int fromIndex);
     // first index of the chars listed in chars string
-    // loop through chars and look for index of each and return the min index or length() if none found
-    size_t indexOfCharFrom(SafeString & str);
-    size_t indexOfCharFrom(const char* chars);
+    // loop through chars and look for index of each and return the min index or -1 if none found
+    int indexOfCharFrom(SafeString & str);
+    int indexOfCharFrom(const char* chars);
     // start searching from fromIndex
-    size_t indexOfCharFrom(SafeString & str, size_t fromIndex);
-    size_t indexOfCharFrom(const char* chars, size_t fromIndex);
+    int indexOfCharFrom(SafeString & str, unsigned int fromIndex);
+    int indexOfCharFrom(const char* chars, unsigned int fromIndex);
 
 
     /* *** substring methods ************/
-    // 0 to length() is valid for beginIdx;
-    // if beginIdx == length(), an empty result will be returned
-    // substring is from beginIdx to end of string.
-    SafeString & substring(SafeString & result, size_t beginIdx);
-    // endIdx must be >= beginIdx and <= length()
-    // substring is from beginIdx to endIdx exclusive. NOTE: V2 endIdx exclusive, V1 was inclusive
-    SafeString & substring(SafeString & result, size_t beginIdx, size_t endIdx);
+    // substring is from beginIdx to end of string
+    // The result substring is ALWAYS first cleared by this method so it will be empty on errors
+    // if beginIdx = length(), an empty result will be returned without error
+    // if beginIdx > length(), an empty result will be returned with error flag set on both this SafeString and the result SafeString
+    // beginIdx == (unsigned int)(-1) returns an empty result without an error
+    // You can take substring of yourself  e.g. str.substring(str,3);
+    // if result does not have the capacity to hold the substring, hasError() is set on both this SafeString and the result SafeString
+    SafeString & substring(SafeString & result, unsigned int beginIdx);
+
+    // The result substring is ALWAYS first cleared by this method so it will be empty on errors
+    // if beginIdx = length(), an empty result will be returned without error
+    // if beginIdx > length(), an empty result will be returned with error flag set on both this SafeString and the result SafeString
+    // if beginIdx > endIdx, beginIdx and endIdx will be swapped so that beginIdx <= endIdx and the error flag is set on both this SafeString and the result SafeString
+    // if endIdx > length(), endIdx is set to length(); and the error flag is set on both this SafeString and the result SafeString
+    // endIdx == (unsigned int)(-1) is treated as endIdx == length() returns a result without an error
+    // substring is from beginIdx to endIdx-1, endIdx is exclusive
+    // You can take substring of yourself  e.g. str.substring(str,3,6);
+    // if result does not have the capacity to hold the substring, and empty result is returned and hasError() is set on both this SafeString and the result SafeString
+    SafeString & substring(SafeString & result, unsigned int beginIdx, unsigned int endIdx);
 
     /* *** SafeString modification methods ************/
 
     /* *** replace ************/
-    // replace single char with another
-    SafeString & replace(char find, char replace);
-    // replace sequence of chars with another sequence (case sensitive)
-    SafeString & replace(SafeString & find, SafeString & replace);
-    SafeString & replace(const char* find, const char *replace);
+    void replace(char findChar, char replaceChar);
+    void replace(const char findChar, const char *replaceStr);
+    void replace(const char findChar, SafeString& sfReplace);
+    void replace(const char* findStr, const char *replaceStr);
+    void replace(SafeString & sfFind, SafeString & sfReplace);
 
     /* *** remove ************/
-    // remove from startIndex to end of SafeString
-    // 0 to length() is valid for startIndex
-    SafeString & removeFrom(size_t startIndex);
+    // remove from index to end of SafeString
+    // 0 to length() and (unsigned int)(-1) are valid for index,
+    // -1 => length() for processing and just returns without error
+    void removeFrom(unsigned int startIndex);
+
     // remove from 0 to startIdx (excluding startIdx)
-    // 0 to length() is valid for startIndex
-    SafeString & removeBefore(size_t startIndex);
+    // 0 to length() and (unsigned int)(-1) are valid for index,
+    // -1 => length() for processing
+    void removeBefore(unsigned int startIndex);
+
+    // remove from index to end of SafeString
+    // 0 to length() and (unsigned int)(-1) are valid for index,
+    // -1 => length() for processing and just returns without error
+    void remove(unsigned int index);
+
     // remove count chars starting from index
-    // 0 to (length()- index) is valid for count
-    SafeString & remove(size_t index, size_t count);
+    // 0 to length() and unsigned int(-1) are valid for index
+    // -1 just returns without error
+    // 0 to (length()- index) is valid for count, larger values set the error flag and remove from idx to end of string
+    void remove(unsigned int index, unsigned int count);
 
     // remove the last 'count' chars
-    // 0 to length() is valid for count, passing in count == length() clears the SafeString
-    SafeString & removeLast(size_t count);
+    // 0 to length() is valid for count,
+    // count >= length() clears the SafeString
+    // count > length() set the error flag
+    void removeLast(unsigned int count);
+
     // keep last 'count' number of chars remove the rest
     // 0 to length() is valid for count, passing in count == 0 clears the SafeString
-    SafeString & keepLast(size_t count);
+    // count > length() sets error flag and returns SafeString unchanged
+    void keepLast(unsigned int count);
 
 
     /* *** change case ************/
-    SafeString & toLowerCase(void);
-    SafeString & toUpperCase(void);
+    void toLowerCase(void);
+    void toUpperCase(void);
 
     /* *** remove white space from front and back of SafeString ************/
     // the method isspace( ) is used to.  For the 'C' local the following are trimmed
@@ -631,11 +663,11 @@ class SafeString : public Printable, public Print {
     //    '\v'  (0x0b)  vertical tab (VT)
     //    '\f'  (0x0c)  feed (FF)
     //    '\r'  (0x0d)  carriage return (CR)
-    SafeString & trim(void); // trims front and back
+    void trim(void); // trims front and back
 
     // processBackspaces recursively remove backspaces, '\b' and the preceeding char
     // use for processing inputs from terminal (Telent) connections
-    SafeString & processBackspaces(void);
+    void processBackspaces(void);
 
     /* *** numgber parsing/conversion ************/
     // convert numbers
@@ -643,51 +675,52 @@ class SafeString : public Printable, public Print {
     // else leave the argument unchanged
     // SafeString conversions are stricter than the Arduino String version
     // trailing chars can only be white space
-    bool toInt(int & i) ;
-    bool toLong(long & l) ;
-    bool binToLong(long & l) ;
-    bool octToLong(long & l) ;
-    bool hexToLong(long & l) ;
-    bool toFloat(float  & f) ;
-    bool toDouble(double & d) ;
+    unsigned char toInt(int & i) ;
+    unsigned char toLong(long & l) ;
+    unsigned char binToLong(long & l) ;
+    unsigned char octToLong(long & l) ;
+    unsigned char hexToLong(long & l) ;
+    unsigned char toFloat(float  & f) ;
+    unsigned char toDouble(double & d) ;
 
     /* Tokenizeing methods,  stoken(), nextToken() ************************/
     /* Differences between stoken() and nextToken
        stoken() leaves the SafeString unchanged, nextToken() removes the token (and leading delimiters) from the SafeString giving space to add more input
-       In stoken() the end of the SafeString is always a delimiter, i.e. the last token is returned even if it is not followed by one of the delimiters
+       In stoken() the end of the SafeString is always treated as a delimiter, i.e. the last token is returned even if it is not followed by one of the delimiters
        In nextToken() the end of the SafeString is NOT a delimiter, i.e. if the last token is not terminated it is left in the SafeString
        this allows partial tokens to be read from a Stream and kept until the full token and delimiter is read
     */
     /*
-      stoken  -- The SafeString itself is not changed 
-      stoken breaks into the SafeString into tokens using chars in delimiters string and the end of the SafeString as delimiters.
-      Any leading delimiters are first stepped over and then the delimited token is return in the token argument (less the delimiter).
-      The token argument is always cleared at the start of the stoken().
+         stoken  -- The SafeString itself is not changed
+         stoken breaks into the SafeString into tokens using chars in delimiters string and the end of the SafeString as delimiters.
+         Any leading delimiters are first stepped over and then the delimited token is return in the token argument (less the delimiter).
+         The token argument is always cleared at the start of the stoken().
+         if there are any argument errors or the token does not have the capacity to hold the substring, hasError() is set on both this SafeString and the token SafeString
 
-      params
-      token - the SafeString to return the token in, it is cleared if no delimited token found or if there are errors
-              The found delimited token (less the delimiter) is returned in the token SafeString argument if there is capacity.
-              The token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.
-              If the token's capacity is < the next token, then token is returned empty and an error messages printed if debug is enabled.
-              In this case the return (nextIndex) is still updated.
-      fromIndex -- where to start the search from  0 to length() is valid for fromIndex
-      delimiters - the characters that any one of which can delimit a token. The end of the SafeString is always a delimiter.     
-      returnEmptyFields -- default false, if true only skip one leading delimiter after each call. If the fromIndex is 0 and there is a delimiter at the beginning of the SafeString, an empty token will be returned  
-      useAsDelimiters - default true, if false then token consists only of chars in the delimiters and any other char terminates the token
-                         
-      return -- nextIndex, the next index in this SafeString after the end of the token just found.
-               Use this as the fromIndex for the next call
-               NOTE: if there are no delimiters then length() is returned and the whole SafeString returned in token if the SafeString token argument is large enough
-               If the token's capacity is < the next token, the token returned is empty and an error messages printed if debug is enabled.
-               In this case the returned nextIndex is still updated to end of the token just found so that that the program will not be stuck in an infinite loop testing for nextInded >= length()
-               while being consistent with the SafeString's all or nothing insertion rule
+         params
+         token - the SafeString to return the token in, it is cleared if no delimited token found or if there are errors
+                 The found delimited token (less the delimiter) is returned in the token SafeString argument if there is capacity.
+                 The token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.
+                 If the token's capacity is < the next token, then token is returned empty and an error messages printed if debug is enabled.
+                 In this case the return (nextIndex) is still updated.
+         fromIndex -- where to start the search from  0 to length() and -1 is valid for fromIndex,  -1 => length() for processing
+         delimiters - the characters that any one of which can delimit a token. The end of the SafeString is always a delimiter.
+         returnEmptyFields -- default false, if true only skip one leading delimiter after each call. If the fromIndex is 0 and there is a delimiter at the beginning of the SafeString, an empty token will be returned
+         useAsDelimiters - default true, if false then token consists only of chars in the delimiters and any other char terminates the token
 
-      Input argument errors return length()+1
-      If the returned, nextIndex is <= length() and the returned token is empty, then the SafeString token argument did not have the capacity to hold the next token. 
-     **/
-    size_t stoken(SafeString & token, size_t fromIndex, const char delimiter, bool returnEmptyFields = false, bool useAsDelimiters = true);
-    size_t stoken(SafeString & token, size_t fromIndex, const char* delimiters, bool returnEmptyFields = false, bool useAsDelimiters = true);
-    size_t stoken(SafeString & token, size_t fromIndex, SafeString & delimiters, bool returnEmptyFields = false, bool useAsDelimiters = true);
+         return -- nextIndex, the next index in this SafeString after the end of the token just found, -1 if this is the last token
+                  Use this as the fromIndex for the next call
+                  NOTE: if there are no delimiters then -1 is returned and the whole SafeString returned in token if the SafeString token argument is large enough
+                  If the token's capacity is < the next token, the token returned is empty and an error messages printed if debug is enabled.
+                  In this case the returned nextIndex is still updated to end of the token just found so that that the program will not be stuck in an infinite loop testing for nextIndex >=0
+                  while being consistent with the SafeString's all or nothing insertion rule
+
+         Input argument errors return -1 and an empty token and hasError() is set on both this SafeString and the token SafeString.
+    **/
+
+    int stoken(SafeString & token, unsigned int fromIndex, const char delimiter, bool returnEmptyFields = false, bool useAsDelimiters = true);
+    int stoken(SafeString & token, unsigned int fromIndex, const char* delimiters, bool returnEmptyFields = false, bool useAsDelimiters = true);
+    int stoken(SafeString & token, unsigned int fromIndex, SafeString & delimiters, bool returnEmptyFields = false, bool useAsDelimiters = true);
 
     /* nextToken -- The token is removed from the SafeString ********************
       nextToken -- Any leading delimiters are first removed, then the delimited token found is removed from the SafeString.
@@ -703,43 +736,44 @@ class SafeString : public Printable, public Print {
               In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
       delimiters - the delimiting characters, any one of which can delimit a token
 
-      return -- true if nextTokne() finds a token in this SafeString that is terminated by one of the delimiters after removing any leading delimiters, else false
-                If the return is true, but the returned token is empty, then the SafeString token argument did not have the capacity to hold the next token. 
+      return -- true if nextToken() finds a token in this SafeString that is terminated by one of the delimiters after removing any leading delimiters, else false
+                If token argument did not have the capacity to hold the next token, hasError() is set on both this SafeString and the token SafeString.
                 In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
                 while being consistent with the SafeString's all or nothing insertion rule
+         Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
     **/
-    bool nextToken(SafeString & token, char delimiter);
-    bool nextToken(SafeString & token, SafeString & delimiters);
-    bool nextToken(SafeString & token, const char* delimiters);
+    unsigned char nextToken(SafeString & token, char delimiter);
+    unsigned char nextToken(SafeString & token, SafeString & delimiters);
+    unsigned char nextToken(SafeString & token, const char* delimiters);
 
-    
+
     /* *** ReadFrom from SafeString, writeTo SafeString ************************/
     /*
-       readFrom(SafeString & sfInput, size_t startIdx = 0)  reads from the SafeString starting at startIdx into the SafeString calling this method
+       readFrom(SafeString & sfInput, unsigned int startIdx = 0)  reads from the SafeString starting at startIdx into the SafeString calling this method
        params
          sfInput - the SafeString to read from
          startIdx - where to start reading from, defaults to 0,
                     if startIdx >= sfInput.length(), nothing read and sfInput.length() returned
-     
+
        returns new startIdx
-       read stops when the end if the sfInput is reached or the calling SafeString is full
+       read stops when the end of the sfInput is reached or the calling SafeString is full
        Note: if the SafeString is already full, then nothing will be read and startIdx will be returned
     **/
-    size_t readFrom(SafeString & input, size_t startIdx = 0);
+    unsigned int readFrom(SafeString & input, unsigned int startIdx = 0);
 
     /*
-       writeTo(SafeString & output, size_t startIdx = 0)  writes from SafeString, starting at startIdx to output
+       writeTo(SafeString & output, unsigned int startIdx = 0)  writes from SafeString, starting at startIdx to output
        params
          output - the SafeString to write to
          startIdx - where to start writing from calling SafeString, defaults to 0,
                     if startIdx >= length(), nothing written and length() returned
-     
+
        returns new startIdx for next write
        write stops when the end if the calling SafeString is reached or the output is full
        Note: if the sfOutput is already full, then nothing will be written and startIdx will be returned
     **/
-    size_t writeTo(SafeString & output, size_t startIdx = 0);
-    
+    unsigned int writeTo(SafeString & output, unsigned int startIdx = 0);
+
     /* *** NON-blocking reads from Stream ************************/
     /*
       read(Stream& input)  reads from the Stream (if chars available) into the SafeString
@@ -748,7 +782,7 @@ class SafeString : public Printable, public Print {
       returns true if something added to string else false
       Note: if the SafeString is already full, then nothing will be read and false will be returned
      **/
-    bool read(Stream & input);
+    unsigned char read(Stream & input);
 
     /*
       NON-blocking readUntil if chars available
@@ -759,13 +793,13 @@ class SafeString : public Printable, public Print {
         input - the Stream object to read from
         delimiters - string of valid delimieters
       return true if SaftString is full or a delimiter is read, else false
-      Any delimiter read is returned.  Only at most one delimiter is added per call
+      Any delimiter read is returned in input arg.  Only at most one delimiter is added per call
        Multiple sucessive delimiters require multiple calls to read them
     **/
-    bool readUntil(Stream & input, const char delimiter);
-    bool readUntil(Stream & input, const char* delimiters);
-    bool readUntil(Stream & input, SafeString & delimiters);
-    
+    unsigned char readUntil(Stream & input, const char delimiter);
+    unsigned char readUntil(Stream & input, const char* delimiters);
+    unsigned char readUntil(Stream & input, SafeString & delimiters);
+
     /*
       NON-blocking readUntilToken
       returns true if a delimited token is found, else false
@@ -782,17 +816,17 @@ class SafeString : public Printable, public Print {
         token - the SafeString to return the token found if any, always cleared at the start of this method
         delimiters - string of valid delimieters
         skipToDelimiter - a bool variable to hold the skipToDelimiter state between calls
-        echoInput - defaults to true to echo the chars read
+        echoInput - defaults to false, pass non-zero (true) to echo the chars read
         timeout_mS - defaults to never timeout, pass a non-zero mS to autoterminate the last token if no new chars received for that time.
 
       returns true if a delimited series of chars found that fit in this SafeString else false
       If this SafeString OR the SaftString & token argument is too small to hold the result, the returned token is returned empty
       The delimiter is NOT included in the SaftString & token return. It will the first char of the this SafeString when readUntilToken returns true
     **/
-    bool readUntilToken(Stream & input, SafeString & token, const char delimiter, bool & skipToDelimiter, uint8_t echoInput = true, unsigned long timeout_mS = 0);
-    bool readUntilToken(Stream & input, SafeString & token, const char* delimiters, bool & skipToDelimiter, uint8_t echoInput = true, unsigned long timeout_mS = 0);
-    bool readUntilToken(Stream & input, SafeString & token, SafeString & delimiters, bool & skipToDelimiter, uint8_t echoInput = true, unsigned long timeout_mS = 0);
-    
+    unsigned char readUntilToken(Stream & input, SafeString & token, const char delimiter, bool & skipToDelimiter, uint8_t echoInput = false, unsigned long timeout_mS = 0);
+    unsigned char readUntilToken(Stream & input, SafeString & token, const char* delimiters, bool & skipToDelimiter, uint8_t echoInput = false, unsigned long timeout_mS = 0);
+    unsigned char readUntilToken(Stream & input, SafeString & token, SafeString & delimiters, bool & skipToDelimiter, uint8_t echoInput = false, unsigned long timeout_mS = 0);
+
     size_t getLastReadCount(); // number of chars read on previous call to read, readUntil or readUntilToken (includes '\0' read if any)  each call read, readUntil, readUntilToken first clears this count
     /* *** END OF PUBLIC METHODS ************/
 
@@ -813,7 +847,7 @@ class SafeString : public Printable, public Print {
           (void)(length);
           return 0;
         };
-    public:
+      public:
         void flush() { }
     };
 
@@ -828,12 +862,12 @@ class SafeString : public Printable, public Print {
         size_t write(const uint8_t *buffer, size_t length) {
           return currentOutput->write(buffer, length);
         };
-    public:
+      public:
         void flush() {
 #if defined(ESP_PLATFORM) || defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4)
-    	// ESP32 has no flush in Print!! but ESP8266 has
+          // ESP32 has no flush in Print!! but ESP8266 has
 #else
-        	currentOutput->flush();
+          currentOutput->flush();
 #endif
         }
     };
@@ -860,7 +894,7 @@ class SafeString : public Printable, public Print {
     bool readUntilTokenInternal(Stream & input, SafeString & token, const char* delimitersIn, char delimiterIn, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_mS);
     bool readUntilInternal(Stream & input, const char* delimitersIn, char delimiterIn);
     bool nextTokenInternal(SafeString & token, const char* delimitersIn, char delimiterIn);
-    size_t stokenInternal(SafeString &token, size_t fromIndex, const char* delimitersIn, char delimiterIn, bool returnEmptyFields, bool useAsDelimiters);
+    int stokenInternal(SafeString &token, unsigned int fromIndex, const char* delimitersIn, char delimiterIn, bool returnEmptyFields, bool useAsDelimiters);
     bool fromBuffer; // true if createSafeStringFromBuffer created this object
     bool errorFlag; // set to true if error detected, cleared on each call to hasError()
     static bool classErrorFlag; // set to true if any error detected in any SafeString, cleared on each call to SafeString::errorDetected()
@@ -870,8 +904,6 @@ class SafeString : public Printable, public Print {
     unsigned long timeoutStart_mS;
     bool timeoutRunning;
     size_t noCharsRead; // number of char read on last call to readUntilToken
-    // reserve returns 0 if _capacity < size
-    bool reserve(size_t size);
     static char nullBufferSafeStringBuffer[1];
     static char emptyDebugRtnBuffer[1];
     void debugInternal(bool _fullDebug) const ;
@@ -886,7 +918,7 @@ class SafeString : public Printable, public Print {
     void errorMethod(const __FlashStringHelper * methodName) const ;
     void assignErrorMethod() const ;
     void warningMethod(const __FlashStringHelper * methodName) const ;
-    void outputFromIndexIfFullDebug(size_t fromIndex) const ;
+    void outputFromIndexIfFullDebug(unsigned int fromIndex) const ;
 };
 
 // to skip this for SparkFun RedboardTurbo

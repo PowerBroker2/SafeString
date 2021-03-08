@@ -83,33 +83,49 @@ void setup() {
 
   Serial.println(F("stringTwo.prefix('\\0');"));
   stringTwo.prefix('\0');
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
   Serial.println(F("stringTwo -= '\\0';"));
   stringTwo -= '\0';
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
   char *nullPtr = NULL;
   Serial.println(F("char *nullPtr = NULL;"));
   Serial.println(F("stringTwo.prefix(nullPtr);"));
   stringTwo.prefix(nullPtr);
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
   Serial.println(F("stringTwo -= nullPtr;"));
   stringTwo -= nullPtr;
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
   Serial.println(F("stringOne.prefix(testChars,24);"));
   stringOne.prefix(testChars, 24);
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
   Serial.println(F("stringOne.prefix(F(\"This is a long string\"),30);"));
   stringOne.prefix(F("This is a long string"), 30);
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
   Serial.println(F("stringOne.prefix(F(\"This is a long F(string)\");"));
   stringOne.prefix(F("This is a very long F(string) "));
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
   Serial.println(F("stringOne.prefix(\"This is a another very long string\");"));
   stringOne.prefix("This is a another very long string ");
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
 }

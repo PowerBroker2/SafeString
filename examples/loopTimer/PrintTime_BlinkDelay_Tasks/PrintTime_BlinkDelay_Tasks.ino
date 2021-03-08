@@ -7,9 +7,9 @@
    This generated code may be freely used for both private and commercial use
    provided this copyright is maintained.
 */
+// install SafeString library from Library manager or from https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html
 #include <loopTimer.h>
-// install the loopTimer library from https://www.forward.com.au/pfod/ArduinoProgramming/RealTimeArduino/TimingDelaysInArduino.html
-// loopTimer.h also needs the millisDelay library installed from https://www.forward.com.au/pfod/ArduinoProgramming/TimingDelaysInArduino.html
+// the loopTimer, BufferedOutput, SafeStringReader and millisDelay are all included in SafeString library V3+
 
 int led = 13;
 

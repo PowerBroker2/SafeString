@@ -2,6 +2,8 @@
 //
 // Example of NON-Blocking read commmands from the Arduino Monitor input and acts on them
 // the available commands are start stop
+// See the SafeStringReader_CmdsTimed.ino for an example using a struct to hold the commands and their functions
+//
 // Commands are delimited by space dot comma NL or CR
 // If you set the Arduino Monitor to No line ending then the last command will be ignored until it is terminated by a space or ,
 //  Use the settings Newline or Carrage Return or Both NL & CR
@@ -30,6 +32,10 @@ void setup() {
     Serial.print(i); Serial.print(' '); delay(500);
   }
   Serial.println();
+  Serial.println(F(" Commands are stop start"));
+  Serial.println(F(" Set the Arduino IDE monitor to Newline, or Carriage return or Both NL & CR"));
+  Serial.println(F(" See the SafeStringReader_CmdsTimed.ino for an example using a struct to hold the commands and their functions."));
+
   SafeString::setOutput(Serial); // enable error messages and SafeString.debug() output to be sent to Serial
   if (running) {
     Serial.println(F(" Counter Started"));

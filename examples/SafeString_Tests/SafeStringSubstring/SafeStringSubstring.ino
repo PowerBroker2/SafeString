@@ -22,7 +22,7 @@ void setup() {
   Serial.println();
 
   Serial.println(F("SafeString substring() usage"));
-  Serial.println(F(" Note: SafeString V2 substring() endIdx is EXCLUDED from the range.  When updating from V1 check your substring( ) usage."));
+  Serial.println(F(" Note: SafeString V2 substring() endIdx is EXCLUDED from the range."));
   Serial.println(F("SafeString::setOutput(Serial); // verbose == true"));
   // see the SafeString_ConstructorAndDebugging example for debugging settings
   SafeString::setOutput(Serial); // enable full debugging error msgs
@@ -63,12 +63,27 @@ void setup() {
   substr.debug();
   Serial.println();
 
+  Serial.println(F("stringOne.substring(substr,-1);  beginIdx == -1 is OK, same as beginIdx == length()"));
+  stringOne.substring(substr, -1);
+  substr.debug();
+  Serial.println();
+
   Serial.println(F("stringOne.substring(substr,22,23);  endIdx == length() is OK "));
   stringOne.substring(substr, 22, 23);
   substr.debug();
   Serial.println();
 
+  Serial.println(F("stringOne.substring(substr,22,-1);  endIdx == -1 is OK same as endIdx == length()"));
+  stringOne.substring(substr, 22, -1);
+  substr.debug();
+  Serial.println();
+
   Serial.println(F("stringOne.substring(substr,23,23);  beginIdx == endIdx == length() is OK "));
+  stringOne.substring(substr, 23, 23);
+  substr.debug();
+  Serial.println();
+
+  Serial.println(F("stringOne.substring(substr,-1,-1);  beginIdx == endIdx == -1 is OK same as == length()"));
   stringOne.substring(substr, 23, 23);
   substr.debug();
   Serial.println();
@@ -79,15 +94,31 @@ void setup() {
   Serial.println();
 
 
-  Serial.println(F("stringOne.substring(substr,19,5);"));
-  stringOne.substring(substr, 19, 5);
-  Serial.println();
-  Serial.println(F("The contents of result substring are unchanged on errors"));
-  substr.debug(F(" resulting "));
+  Serial.println(F("stringOne.substring(substr,18,14);"));
+  stringOne.substring(substr, 18, 14);
+  substr.debug(F("Result:"));
+  Serial.println(F(" substring will swap indices if necessary, but will flag it as an error on both the SafeString and substr"));
+  Serial.print(F("substr.hasError():"));  Serial.println(substr.hasError() ? "true" : "false");
+  Serial.print(F("stringOne.hasError():"));  Serial.println(stringOne.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
+  Serial.println(F("stringOne.substring(substr,19,30);"));
+  stringOne.substring(substr, 19, 30);
+  substr.debug(F("Result:"));
+  Serial.println(F(" substring will limit indices to length() if necessary, but will flag it as an error on both the SafeString and substr"));
+  Serial.print(F("substr.hasError():"));  Serial.println(substr.hasError() ? "true" : "false");
+  Serial.print(F("stringOne.hasError():"));  Serial.println(stringOne.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
+  Serial.println();
+
+  Serial.println(F("The contents of result substring are cleared on errors"));
   Serial.println(F("stringOne.substring(substr,8);"));
   stringOne.substring(substr, 8);
+  substr.debug(F("Result:"));
+  Serial.print(F("substr.hasError():"));  Serial.println(substr.hasError() ? "true" : "false");
+  Serial.print(F("stringOne.hasError():"));  Serial.println(stringOne.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
   Serial.println(F("stringOne.substring(substr,0); works on an empty stringOne"));

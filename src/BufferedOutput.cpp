@@ -93,8 +93,8 @@ void BufferedOutput::connect(HardwareSerial& _serial) { // the output to write t
   serialPtr->flush(); // try and clear hardware buffer
   delay(10); // wait for a few ms for Tx buffer to clear if flush() does not do it
   int avail = 0;
-#if defined(ESP_PLATFORM) || defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4)
-    // ESP32 ESP8266 Stream does not have availableForWrite()
+#if defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4)
+    // ESP8266 HardwareSerial does not have availableForWrite()
     while (1) {
       streamPtr->println("This board does not implement availableForWrite()");
       streamPtr->println("You need to specify the I/O baudRate");
@@ -103,7 +103,7 @@ void BufferedOutput::connect(HardwareSerial& _serial) { // the output to write t
       streamPtr->flush();
       delay(5000);
     }
-#else  // not ESP_PLATFORM || ARDUINO_ARCH_ESP8266
+#else  // not ARDUINO_ARCH_ESP8266
   avail = serialPtr->availableForWrite();
 #endif
   if (txBufferSize < avail) {
@@ -295,8 +295,8 @@ int BufferedOutput::internalStreamAvailableForWrite() {
   }
   int avail = 0;
   if (serialPtr) {
-  	//  have availableForWrite
-#if defined(ESP_PLATFORM) || defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4)
+  	//  do not have availableForWrite
+#if defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4)
   	// nothing
 #else
     avail = serialPtr->availableForWrite();

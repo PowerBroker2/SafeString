@@ -7,15 +7,13 @@
    This generated code may be freely used for both private and commercial use
    provided this copyright is maintained.
 */
-#include <loopTimer.h>
-// install the loopTimer library from https://www.forward.com.au/pfod/ArduinoProgramming/RealTimeArduino/TimingDelaysInArduino.html
-// loopTimer.h also needs the millisDelay library installed from https://www.forward.com.au/pfod/ArduinoProgramming/TimingDelaysInArduino.html
-#include <SafeString.h>
-#include <BufferedOutput.h>
 // install SafeString library from Library manager or from https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html
-// to get BufferedOutput. See https://www.forward.com.au/pfod/ArduinoProgramming/Serial_IO/index.html for a full tutorial
-// on Arduino Serial I/O that Works
+#include <SafeString.h>
+// the loopTimer, BufferedOutput, SafeStringReader and millisDelay are all included in SafeString library V3+
+#include <loopTimer.h>
+#include <BufferedOutput.h>
 #include <millisDelay.h>
+#include <SafeStringReader.h>
 
 #include <Adafruit_MAX31856.h>
 // Use software SPI: CS, DI, DO, CLK
@@ -23,18 +21,10 @@ Adafruit_MAX31856 maxthermo = Adafruit_MAX31856(10, 11, 12, 13);
 // use hardware SPI, just pass in the CS pin
 //Adafruit_MAX31856 maxthermo = Adafruit_MAX31856(10);
 
+createSafeStringReader(sfReader, 15, " ,\r\n"); // create a SafeString reader with max Cmd Len 15 and delimiters space, comma, Carrage return and Newline
+
 //Example of using BufferedOutput to release bytes when there is space in the Serial Tx buffer, extra buffer size 80
 createBufferedOutput(bufferedOut, 80, DROP_UNTIL_EMPTY);
-
-char startCmd[] = "startTemps";
-char stopCmd[] = "stopTemps";
-char delimiters[] = " ,\r\n"; // space dot comma CR NL are cmd delimiters
-
-const size_t maxCmdLength = 15; // > length of largest command to be recognized, can handle longer input but will not tokenize it.
-createSafeString(input, maxCmdLength + 1); //  to read input cmd, large enough to hold longest cmd + leading and trailing delimiters
-createSafeString(token, maxCmdLength + 1); // for parsing, capacity should be >= input
-bool skipToDelimiter = false; // bool variable to hold the skipToDelimiter state across calls to readUntilToken()
-// set skipToDelimiter = true to skip initial data upto first delimiter.
 
 int led = 7; // new pin for led
 // Pin 13 is used for the MAX31856 board
@@ -47,12 +37,19 @@ float tempReading = 0.0;
 
 // the setup function runs once when you press reset or power the board
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   for (int i = 10; i > 0; i--) {
-    Serial.println(i);
+    Serial.print(i); Serial.print(' ');
     delay(500);
   }
+  Serial.println();
+  //SafeString::setOutput(Serial); //uncomment this to enable error msgs
+
   bufferedOut.connect(Serial);  // connect bufferedOut to Serial
+  sfReader.connect(bufferedOut);
+  sfReader.echoOn(); // echo goes out via bufferedOut
+  sfReader.setTimeout(100); // set 100mS == 0.1sec non-blocking timeout
+
   // initialize digital pin led as an output.
   pinMode(led, OUTPUT);
 
@@ -61,7 +58,9 @@ void setup() {
 
   ledDelay.start(1000); // start the ledDelay, toggle every 1000mS
   printDelay.start(5000); // start the printDelay, print every 5000mS
-  Serial.print(F("To control Temp readings use commands ")); Serial.print(startCmd); Serial.print(" or ");  Serial.println(stopCmd);
+  Serial.println(F("To control Temp readings use commands startTemp or stopTemp (other commands will be ignored)"));
+  Serial.println(F("   Any line ending OR none can be used."));
+  Serial.println(F("   You can enter multiple commands on the one line."));
 }
 
 // the task method
@@ -83,32 +82,34 @@ void printTemp() {
   if (printDelay.justFinished()) {
     printDelay.repeat(); // start delay again without drift
     if (stopTempReadings) {
-      bufferedOut.println(F("Temp reading stopped"));
+      bufferedOut.println(F(" Temp reading stopped"));
     } else {
-      bufferedOut.print(F("Temp:")); bufferedOut.println(tempReading);
+      bufferedOut.print(F(" Temp:")); bufferedOut.println(tempReading);
     }
   } // else nothing to do this call just return, quickly
 }
 
 void handleStartCmd() {
-  stopTempReadings = false; bufferedOut.terminateLastLine();
+  stopTempReadings = false; bufferedOut.terminateLastLine(); bufferedOut.println(" Start Temp Readings");
 }
 void handleStopCmd() {
-  stopTempReadings = true; bufferedOut.terminateLastLine();
+  stopTempReadings = true; bufferedOut.terminateLastLine(); bufferedOut.println(" Stop Temp Readings");
 }
 
 // task to get the user's cmds, input commands terminated by space or , or \r or \n or no new characters for 2secs
 // set Global variable with input cmd
 void processUserInput() {
-  if (input.readUntilToken(bufferedOut, token, delimiters, skipToDelimiter, true, 2000)) { // echo input and 2000mS timeout, non-blocking!!
-    if (token == startCmd) {
+  if (sfReader.read()) { // echo input and 100mS timeout, non-blocking!!
+    sfReader.toLowerCase(); // ignore case
+    if (sfReader == "starttemp") { // all lower case
       handleStartCmd();
-    } else if (token == stopCmd) {
+    } else if (sfReader == "stoptemp") { // all lower case
       handleStopCmd();
     } else {
-      bufferedOut.println(F(" -- Invalid cmd."));
+      bufferedOut.println(" !! Invalid command: ");
+      // ignore
     }
-  } // else token is empty
+  } // else no delimited token
 }
 
 // returns 0 if have reading and no errors, else non-zero
@@ -127,5 +128,8 @@ void loop() {
   printTemp(); // print the temp
   if (!stopTempReadings) {
     int rtn = readTemp(); // check for errors here
+    if (rtn == 0) {
+      // have new reading
+    }
   }
 }

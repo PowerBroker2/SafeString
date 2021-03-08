@@ -7,9 +7,9 @@
    This generated code may be freely used for both private and commercial use
    provided this copyright is maintained.
 */
+// install SafeString library from Library manager or from https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html
 #include <loopTimer.h>
-// install the loopTimer library from https://www.forward.com.au/pfod/ArduinoProgramming/RealTimeArduino/TimingDelaysInArduino.html
-// loopTimer.h also needs the millisDelay library installed from https://www.forward.com.au/pfod/ArduinoProgramming/TimingDelaysInArduino.html
+// the loopTimer, BufferedOutput, SafeStringReader and millisDelay are all included in SafeString library V3+
 
 int led = 13;
 // Pin 13 has an led connected on most Arduino boards.
@@ -36,8 +36,8 @@ void blinkLed13() {
   if (ledDelay.justFinished()) {   // check if delay has timed out
     ledDelay.repeat(); // start delay again without drift
     ledOn = !ledOn;     // toggle the led
-    Serial.print("The built-in board led, pin 13, is being turned "); Serial.println(ledOn?"ON":"OFF");
-    digitalWrite(led, ledOn?HIGH:LOW); // turn led on/off
+    Serial.print("The built-in board led, pin 13, is being turned "); Serial.println(ledOn ? "ON" : "OFF");
+    digitalWrite(led, ledOn ? HIGH : LOW); // turn led on/off
   } // else nothing to do this call just return, quickly
 }
 

@@ -78,10 +78,10 @@ void setup() {
 }
 
 bool checkSum(SafeString &msg) {
-  size_t idxStar = msg.indexOf('*');
+  int idxStar = msg.indexOf('*');
   // could do these checks also
   // BUT SafeString will just return empty sfCheckSumHex and so fail to hexToLong conversion below
-  //  if (idxStar == msg.length()) {
+  //  if (idxStar < 0) {
   //    return false; // missing * //this also checks for empty string
   //  }
   //  // check for 2 chars
@@ -89,12 +89,13 @@ bool checkSum(SafeString &msg) {
   //    return false; // too few or to many chars after *
   //  }
   cSF(sfCheckSumHex, 2);
+  // if * not found then idxStar == -1 and idxStart+1 == 0 and sfCheckSumHex will be too small to hold substring and be returned empty
   msg.substring(sfCheckSumHex, idxStar + 1); // next 2 chars SafeString will complain and return empty substring if more than 2 chars
   long sum = 0;
   if (!sfCheckSumHex.hexToLong(sum)) {
     return false; // not a valid hex number
   }
-  for (size_t i = 1; i < idxStar; i++) { // skip the $ and the *checksum
+  for (int i = 1; i < idxStar; i++) { // skip the $ and the *checksum
     sum ^= msg[i];
   }
   return (sum == 0);
@@ -148,14 +149,14 @@ void parseDate(SafeString &dateField) {
     230394       Date 23rd of March 1994
     003.1,W      Magnetic Variation
 */
-// just leaves existing values unchanged if new ones are not valid
+// just leaves existing values unchanged if new ones are not valid invalid
 // returns false if msg Not Active
 bool parseGPRMC(SafeString &msg) {
 
   cSF(sfField, 11); // temp SafeString to received fields, max field len is <11;
   char delims[] = ",*"; // fields delimited by , or *
   bool returnEmptyFields = true; // return empty field for ,,
-  size_t idx = 0;
+  int idx = 0;
   idx = msg.stoken(sfField, idx, delims, returnEmptyFields);
   if (sfField != "$GPRMC") {  // first field should be $GPRMC else called with wrong msg
     return false;

@@ -126,18 +126,24 @@ void setup() {
 
   char *nullPtr = NULL;
   Serial.println(F("char *nullPtr = NULL;"));
-  Serial.println(F("stringOne.compareTo(nullPtr);"));
+  Serial.println(F("stringTwo.compareTo(nullPtr);"));
   int result = stringTwo.compareTo(nullPtr);
-  Serial.print(F("stringOne.compareTo(nullPtr) returns ")); Serial.print(result); Serial.println(F("  Any SafeString is always > NULL "));
+  Serial.print(F("stringTwo.compareTo(nullPtr) returns ")); Serial.print(result); Serial.println(F("  Any SafeString is always > NULL "));
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
   Serial.println(F("stringTwo < nullPtr;"));
   result = stringTwo < nullPtr;
   Serial.print(F("stringTwo < nullPtr; returns ")); Serial.print(result); Serial.println(F("  Any SafeString is always > NULL "));
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
   Serial.println(F("stringTwo == nullPtr;"));
   result = stringTwo == nullPtr;
   Serial.print(F("stringTwo == nullPtr; returns ")); Serial.print(result); Serial.println(F("  A SafeString is never NULL "));
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
 }

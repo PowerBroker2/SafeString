@@ -27,13 +27,13 @@ void setup() {
   cSFP(sfLine, line);
   Serial.print(F("Input line is '")); Serial.print(sfLine); Serial.println('\'');
   createSafeString(field, 10); // for the field strings. Should have capacity > largest field length
-  size_t nextIdx = 0;
+  int nextIdx = 0;
   char delimiters[] = ","; // just comma for delimiter, could also use ",;" if comma or semi-colon seperated fields
   Serial.println();
   int fieldCounter = 0;
   Serial.println(F("Using  nextIdx = sfLine.stoken(field, nextIdx, delimiters, true); // true => return all fields even empty ones"));
   Serial.println(F("to find the fields that contain numbers :-"));
-  while (nextIdx < sfLine.length()) {
+  while (nextIdx >= 0) {
     nextIdx = sfLine.stoken(field, nextIdx, delimiters, true); // true => return all fields even empty ones
     fieldCounter++;
     Serial.print(F("  Field ")); Serial.print(fieldCounter); Serial.print(F("  "));
@@ -45,6 +45,31 @@ void setup() {
     }
   }
   Serial.println();
+  Serial.println(F(" call again with -1 for nextIdx"));
+  nextIdx = sfLine.stoken(field, nextIdx, delimiters, true); // true => return all fields even empty ones
+  Serial.print(F("returned nextIdx:")); Serial.println(nextIdx);
+  Serial.print(F("field.isEmpty():"));  Serial.println(field.isEmpty() ? "true" : "false");
+  Serial.print(F("sfLine.hasError():")); Serial.println(sfLine.hasError() ? "true" : "false");
+  Serial.println();
+  Serial.println(F(" call again with sfLine.length() for nextIdx"));
+  nextIdx = sfLine.length();
+  nextIdx = sfLine.stoken(field, nextIdx, delimiters, true); // true => return all fields even empty ones
+  Serial.print(F("returned nextIdx:")); Serial.println(nextIdx);
+  Serial.print(F("field.isEmpty():"));  Serial.println(field.isEmpty() ? "true" : "false");
+  Serial.print(F("sfLine.hasError():")); Serial.println(sfLine.hasError() ? "true" : "false");
+  Serial.println();
+
+  char line1[] = "23.5";
+  cSFP(sfLine1, line1);
+  Serial.print(F("Input line is '")); Serial.print(sfLine1); Serial.println('\'');
+  nextIdx = 0;
+  fieldCounter = 0;
+  while (nextIdx >= 0) {
+    nextIdx = sfLine1.stoken(field, nextIdx, delimiters, true); // true => return all fields even empty ones
+    fieldCounter++;
+    Serial.print(F("  Field ")); Serial.print(fieldCounter); Serial.print(F("  ")); Serial.println(field);
+  }
+  Serial.println();
   createSafeString(sDelimiters, 4, ",");
   Serial.println(F(" Using a SafeString for the delimiters and not returning empty fields (i.e. ,,)"));
   sDelimiters.debug();
@@ -53,7 +78,7 @@ void setup() {
   Serial.println(F(" The fields with integers are:-"));
   fieldCounter = 0;
   nextIdx = 0; // restart from beginning
-  while (nextIdx < sfLine.length()) {
+  while (nextIdx >= 0) {
     nextIdx = sfLine.stoken(field, nextIdx, sDelimiters); // default => skip empty fields
     fieldCounter++;
     Serial.print(F("  Field ")); Serial.print(fieldCounter); Serial.print(F("  "));
@@ -88,6 +113,8 @@ void setup() {
   Serial.println();
 
   Serial.println(F("Error checking.."));
+  // clear errors by calling hasError() and SafeString::errorDetected() to clear the global error flag
+  sfLine.hasError(); SafeString::errorDetected();
   Serial.println();
 
   Serial.println(F("Check if field SafeString not large enough for token"));
@@ -97,14 +124,22 @@ void setup() {
   nextIdx = sfLine.stoken(smallField, nextIdx, delimiters);
   Serial.print(F(" nextIdx is updated to ")); Serial.print(nextIdx); Serial.print(F(" but the smallField returned is empty.")); Serial.println();
   Serial.println(F(" nextIdx is updated to prevent token processing loops like "));
-  Serial.println(F("while (nextIdx < sfLine.length()) {"));
+  Serial.println(F("while (nextIdx >= 0) {"));
   Serial.println(F(" looping forever "));
-  Serial.println();
+  Serial.println(F(" hasError() is set on both the SafeString and the token"));
+  Serial.print(F("sfLine.hasError():")); Serial.println(sfLine.hasError() ? "true" : "false");
+  Serial.print(F("smallField.hasError():")); Serial.println(smallField.hasError() ? "true" : "false");
 
+
+  Serial.println();
   Serial.println(F("Check if empty delimitiers"));
   nextIdx = 0;
+  field.hasError();
   Serial.println(F("nextIdx = sfLine.stoken(field, nextIdx, \"\");"));
   nextIdx = sfLine.stoken(field, nextIdx, "");
+  Serial.print(F("returned nextIdx : ")); Serial.println(nextIdx);
+  Serial.print(F("sfLine.hasError():")); Serial.println(sfLine.hasError() ? "true" : "false");
+  Serial.print(F("field.hasError():")); Serial.println(field.hasError() ? "true" : "false");
   Serial.println();
 
   Serial.println(F("Check if delimitiers NULL"));
@@ -112,18 +147,26 @@ void setup() {
   char *nullDelims = NULL;
   Serial.println(F("nextIdx = sfLine.stoken(field, nextIdx, nullDelims);"));
   nextIdx = sfLine.stoken(field, nextIdx, nullDelims);
+  Serial.print(F("returned nextIdx : ")); Serial.println(nextIdx);
+  Serial.print(F("sfLine.hasError():")); Serial.println(sfLine.hasError() ? "true" : "false");
+  Serial.print(F("field.hasError():")); Serial.println(field.hasError() ? "true" : "false");
   Serial.println();
 
   Serial.println(F("Check if fromIndex past end of SafeString"));
   Serial.println(F("nextIdx = sfLine.stoken(field, 60, delimiters);"));
   nextIdx = sfLine.stoken(field, 60, delimiters);
+  Serial.print(F("returned nextIdx : ")); Serial.println(nextIdx);
+  Serial.print(F("sfLine.hasError():")); Serial.println(sfLine.hasError() ? "true" : "false");
+  Serial.print(F("field.hasError():")); Serial.println(field.hasError() ? "true" : "false");
   Serial.println();
 
   Serial.println(F(" fromIndex == length() is a valid argument, result field will be empty"));
-  Serial.println(F("nextIdx = sfLine.stoken(field, 54, delimiters);"));
-  nextIdx = sfLine.stoken(field, 54, delimiters);
+  Serial.println(F("nextIdx = sfLine.stoken(field, 55, delimiters);"));
+  nextIdx = sfLine.stoken(field, 55, delimiters);
   Serial.print(F("returned nextIdx : ")); Serial.println(nextIdx);
   field.debug(F("field.debug() => "));
+  Serial.print(F("sfLine.hasError():")); Serial.println(sfLine.hasError() ? "true" : "false");
+  Serial.print(F("field.hasError():")); Serial.println(field.hasError() ? "true" : "false");
 
 }
 

@@ -83,6 +83,8 @@ void setup() {
   Serial.println(F(" idx > stringTwo.length() is error, stringTwo unchanged"));
   Serial.println(F("stringTwo.removeFrom(stringTwo.length()+1);"));
   stringTwo.removeFrom(stringTwo.length() + 1);
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
   Serial.println(F(" idx == stringTwo.length() for removeBefore is OK, everything removed"));
@@ -95,11 +97,17 @@ void setup() {
   Serial.println(F(" idx > stringTwo.length() is error, stringTwo unchanged"));
   Serial.println(F("stringTwo.removeBefore(stringTwo.length()+1);"));
   stringTwo.removeBefore(stringTwo.length() + 1);
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
+  stringTwo = stringOne;
+  stringTwo.debug(F("stringTwo = stringOne; => "));
   Serial.println(F(" idx + count > stringTwo.length() is error, stringTwo unchanged"));
   Serial.println(F("stringTwo.remove( 10, 9);"));
   stringTwo.remove( 10, 9);
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
   stringTwo = stringOne;
@@ -108,6 +116,8 @@ void setup() {
   Serial.println(F(" removeLast(count), count > length() is error, stringTwo unchanged."));
   Serial.println(F("stringTwo.removeLast(19);"));
   stringTwo.removeLast(19);
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
   stringTwo = stringOne;
@@ -116,6 +126,27 @@ void setup() {
   Serial.println(F(" keepLast(count), count > length() is error, stringTwo unchanged."));
   Serial.println(F("stringTwo.keepLast(19);"));
   stringTwo.keepLast(19);
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
+  Serial.println();
+
+  stringTwo = stringOne;
+  stringTwo.debug(F("stringTwo = stringOne; => "));
+
+  Serial.println(F(" remove(-1) is valid and just returns with out an error"));
+  Serial.println(F("stringTwo.remove(-1);"));
+  stringTwo.remove(-1);
+  stringTwo.debug();
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
+  Serial.println();
+
+  Serial.println(F(" removeBefore(-1) is valid and clears whole SafeString "));
+  Serial.println(F("stringTwo.removeBefore(-1);"));
+  stringTwo.removeBefore(-1);
+  stringTwo.debug();
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
 }

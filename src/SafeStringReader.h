@@ -44,12 +44,31 @@ public:
     explicit SafeStringReader(SafeString& _sfInput, size_t bufSize, char *tokenBuf, const char* _name, const char delimiter, bool skipToDelimiterFlag=false, uint8_t echoInput = false, unsigned long timeout_mS = 0 );
     void connect(Stream& stream); // clears getReadCount() as well
     bool end(); // returns true if have another token, terminates last token if any, disconnect from stream, turn echo off, set timeout to 0 and clear skipToDelimiter,  clears getReadCount()
-   bool read();
+   bool read(); // NOTE: this call always clears the SafeStringReader so no need to call clear() on sfReader at end of processing.
   void echoOn();
   void echoOff();
   void skipToDelimiter(); // sets skipToDelimiter to true
   void setTimeout(unsigned long mS);
   size_t getReadCount(); // number of chars read since last connect called, cleared when end() called
+
+      /* Assignment operators **********************************
+      Set the SafeString to a char version of the assigned value.
+      For = (const char *) the contents are copied to the SafeString buffer
+      if the value is null or invalid,
+      or too large to be fit in the string's internal buffer
+      the string will be left empty
+     **/
+    SafeStringReader & operator = (char c);
+    SafeStringReader & operator = (unsigned char c);
+    SafeStringReader & operator = (int num);
+    SafeStringReader & operator = (unsigned int num);
+    SafeStringReader & operator = (long num);
+    SafeStringReader & operator = (unsigned long num);
+    SafeStringReader & operator = (float num);
+    SafeStringReader & operator = (double num);
+    SafeStringReader & operator = (SafeString &rhs);
+    SafeStringReader & operator = (const char *cstr);
+    SafeStringReader & operator = (const __FlashStringHelper *str); // handle F(" .. ") values
 
   // return the delimiter that terminated the last token
   // only valid when read() returns true

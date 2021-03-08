@@ -92,39 +92,42 @@ void setup() {
   Serial.println();
   Serial.println(F("The concat() method can be used instead of += and it is chainable"));
   Serial.println(F(" e.g. Serial.println( stringOne.clear().concat(\"Sensor \").concat(F(\"value: \")).concat(analogRead(A0)) );    outputs"));
-  Serial.println( stringOne.clear().concat("Sensor ").concat(F("value: ")).concat(analogRead(A0)) );
+  Serial.println( stringOne.clear().concat("Sensor ").concat(F("value: ")).concat(analogRead(A0)));
 
   Serial.println();
   Serial.println(F("Error checking.."));
   Serial.println(F("  hasError() returns true if any error detected. "));
   Serial.println(F("  each call to hasError() clears the internal errorFlag for that SafeString "));
-  Serial.println(F("  each SafeString has its own errorFlag "));
-  Serial.println(F("  hasError() ALWAYS detects errors, even if SafeString::setOutput( ) has NOT been called "));
+  Serial.println(F("  each SafeString has its own errorFlag SafeString::errorDetected()"));
+  Serial.println(F("  hasError() and SafeString::errorDetected() ALWAYS detects errors, even if SafeString::setOutput( ) has NOT been called "));
   Serial.println();
 
   Serial.println(F("stringTwo.concat('\\0');"));
   stringTwo.concat('\0');
-  if (stringTwo.hasError()) {
-    Serial.println(F("hasError() detected concat() error in stringTwo"));
-  }
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
+  Serial.println();
+  Serial.println(F(" Each call to hasError() and SafeString::errorDetected() clears it"));
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
   Serial.println(F("stringTwo += '\\0';"));
   stringTwo += '\0';
-  if (stringTwo.hasError()) {
-    Serial.println(F("hasError() detected += error in stringTwo"));
-  }
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
   char *nullPtr = NULL;
   Serial.println(F("char *nullPtr = NULL;"));
   Serial.println(F("stringTwo.concat(nullPtr);"));
   stringTwo.concat(nullPtr);
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
   Serial.println(F("stringTwo += nullPtr;"));
   stringTwo += nullPtr;
-  if (stringTwo.hasError()) { // check the last two operations
-    Serial.println(F("hasError() detected  some error in stringTwo"));
-  }
+  Serial.print(F("stringTwo.hasError():"));  Serial.println(stringTwo.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
   Serial.println(F("char testChars[] = \"test characters\";"));
@@ -132,49 +135,39 @@ void setup() {
 
   Serial.println(F("stringOne.concat(testChars,24);"));
   stringOne.concat(testChars, 24);
-  if (stringOne.hasError()) { // check the last two operations
-    Serial.println(F("hasError() detected  concat error in stringOne"));
-  } else {
-    Serial.println(F("hasError() detected  NO ERRORS in stringOne"));
-  }
+  Serial.print(F("stringOne.hasError():"));  Serial.println(stringOne.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
   Serial.println(F("stringOne.concat(F(\"This is a long string\"),30);"));
   stringOne.concat(F("This is a long string"), 30);
-  if (stringOne.hasError()) {
-    Serial.println(F("hasError() detected  concat error in stringOne"));
-  } else {
-    Serial.println(F("hasError() detected  NO ERRORS in stringOne"));
-  }
+  Serial.print(F("stringOne.hasError():"));  Serial.println(stringOne.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
   Serial.println(F("stringOne.clear();"));
   stringOne.clear();
   Serial.println(F("stringOne.concat(F(\"This is a long F(string)\");"));
   stringOne.concat(F("This is a very long F(string) "));
-  if (stringOne.hasError()) { // last call to hasError() cleared error flag and no new errors
-    Serial.println(F("hasError() detected  concat error in stringOne"));
-  } else {
-    Serial.println(F("hasError() detected  NO ERRORS in stringOne"));
-  }
+  Serial.print(F("stringOne.hasError():"));  Serial.println(stringOne.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
   Serial.println(F("stringOne.concat(\"This is a another very long string\");"));
   stringOne.concat("This is a another very long string ");
-  if (stringOne.hasError()) { // check the last operations since hasError() was called on stringOne
-    Serial.println(F("hasError() detected  some error in stringOne"));
-  }
+  Serial.print(F("stringOne.hasError():"));  Serial.println(stringOne.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
-  char str[] = "str[] is a test char[]";
+  char str[] = "A test char[]";
+  Serial.println(F(" Wrap str[] in a SafeString and print it out using Serial.println(sfStr);"));
   createSafeStringFromCharArray(sfStr, str);
   Serial.println(sfStr);
-  Serial.println(F(" cause a buffer overrun using strcat(str,\"more text\");"));
+  Serial.println(F(" Use strcat to cause a buffer overrun, i.e. strcat(str,\"more text\");"));
   strcat(str, "more text");
   Serial.println(F(" Serial.println(sfStr); again"));
   Serial.println(sfStr);
-  if (sfStr.hasError()) { // check the last operations since hasError() was called on stringOne
-    Serial.println(F("hasError() detected  an error in sfStr"));
-  }
+  Serial.print(F("sfStr.hasError():"));  Serial.println(sfStr.hasError() ? "true" : "false");
+  Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
 }
