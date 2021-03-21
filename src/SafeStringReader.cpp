@@ -30,8 +30,8 @@ SafeStringReader::SafeStringReader(SafeString &sfInput_, size_t bufSize, char* t
 	
 void SafeStringReader::init(SafeString& sfInput_,const char* delimiters_, bool skipToDelimiterFlag_, uint8_t echoInput_, unsigned long timeout_mS_) {
   sfInputPtr = &sfInput_;
-  end();
   delimiters = delimiters_;
+  end();  // end needs delimiters set!!
   skipToDelimiterFlag = skipToDelimiterFlag_;
   echoInput = echoInput_;
   timeout_mS = timeout_mS_;

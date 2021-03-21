@@ -4140,6 +4140,10 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
   // this prevent infinite loop if using SafeStringStream with echoOn and rx buffer overflow has dropped all the delimiters
   //size_t charRead = 0;
   noCharsRead = 0;
+  if ((timeout_mS > 0) && (!timeoutRunning) && skipToDelimiter) {
+      timeoutRunning = true;
+      timeoutStart_mS = millis(); // start timer
+  }
   while (input.available() && (len < capacity()) && (noCharsRead < capacity()) ) {
     int c = input.read();
     noCharsRead++;
@@ -4169,7 +4173,7 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
         skipToDelimiter = false; // found next delimiter not added above because skipToDelimiter
         clear();
         concat((char)c); // is a delimiter
-        return true; // empty token
+        return false; // empty token
       } else {
         // added c above
         break; // process this token
@@ -4189,6 +4193,13 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
   if (isFull()) { // note if full here then > max token as capacity needs to allow for one delimiter
     // SafeString is full of chars but no delimiter
     // discard the chars and skip input until get next delimiter
+    setError(); 
+    token.setError();
+    if (debugPtr) {
+      debugPtr->println(); debugPtr->print("!! Error:"); outputName();
+      debugPtr->print(F(" -- input length exceed capacity "));
+      debugInternalMsg(fullDebug);
+    }
     clear();  // not full now
     skipToDelimiter = true;
     return false; // will do timeout check next call.  No token found return false
@@ -4201,19 +4212,20 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
       timeoutRunning = false;
       // put in delimiter
       if ((len != 0) || skipToDelimiter) { // have something to delimit or had somthing, else just stop timer
-        concat(delimiters[0]);   // certainly NOT full from above
-        if (echoInput) {
-          input.print(delimiters[0]);
-        }
-        //        if (debugPtr) { // input timeout is normal if timeout set
-        //          debugPtr->println(); debugPtr->print("!! "); outputName();
-        //          debugPtr->println(F(" -- Input timed out."));
-        //        }
+      //          if (debugPtr) { // input timeout is normal if timeout set
+      //            debugPtr->println(); debugPtr->print("!! "); outputName();
+      //            debugPtr->println(F(" -- Input timed out."));
+      //          }
         if (skipToDelimiter) {
+          clear();  // not full now
           skipToDelimiter = false;
-          return true;
+          return false;
         } // else pick up token
+        // len > 0 so token only empty if too small
+        concat(delimiters[0]);   // certainly NOT full from above
         nextToken(token, delimiters); // collect this token just delimited, this will clear input
+        // remove delimiter just added
+        remove(0,1);
         return true;
       }
     }

@@ -123,11 +123,6 @@
 #include <Stream.h>
 #endif
 
-class __FlashStringHelper;
-#ifndef F
-#define F(string_literal) (reinterpret_cast<const __FlashStringHelper *>(PSTR(string_literal)))
-// ESP32 breaks this define into two defines and gives warnings about redfinition of the F( ) macro which can be ignored
-#endif
 
 // to skip this for SparkFun RedboardTurbo
 #ifndef ARDUINO_SAMD_ZERO
@@ -135,6 +130,12 @@ class __FlashStringHelper;
 namespace arduino {
 #endif
 #endif // #ifndef ARDUINO_SAMD_ZERO
+
+class __FlashStringHelper;
+#ifndef F
+#define F(string_literal) (reinterpret_cast<const __FlashStringHelper *>(PSTR(string_literal)))
+// ESP32 breaks this define into two defines and gives warnings about redfinition of the F( ) macro which can be ignored
+#endif
 
 
 // to remove all the error messages, comment out

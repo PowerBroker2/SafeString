@@ -72,7 +72,7 @@ public:
 
   // return the delimiter that terminated the last token
   // only valid when read() returns true
-  // will return ((char)-1) is there is none
+  // will return ((char)-1) is there is none, e.g. timed out or argument error
   char getDelimiter(); 
   const char* debugInputBuffer(bool verbose = true);
   const char* debugInputBuffer(const char* title, bool verbose = true);
