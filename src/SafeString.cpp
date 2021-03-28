@@ -3919,7 +3919,7 @@ unsigned char SafeString::read(Stream& input) {
     } else {
       setError(); // found '\0' in input
       if (debugPtr) {
-        debugPtr->println(); debugPtr->print("!! Error:"); outputName();
+        debugPtr->println(); debugPtr->print(F("!! Error:")); outputName();
         debugPtr->println(F(" -- read '\\0' from Stream."));
       }
     }
@@ -4002,10 +4002,12 @@ bool SafeString::readUntilInternal(Stream& input, const char* delimitersIn, cons
     noCharsRead++;
     if (c == '\0') {
       setError(); // found '\0' in input
+#ifdef SSTRING_DEBUG
       if (debugPtr) {
-        debugPtr->println(); debugPtr->print("!! Error:"); outputName();
+        debugPtr->println(); debugPtr->print(F("!! Error:"));; outputName();
         debugPtr->println(F(" -- read '\\0' from Stream."));
       }
+#endif // SSTRING_DEBUG
       continue; // skip nulls
     }
     concat((char)c); // add char may be delimiter
@@ -4144,14 +4146,18 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
       timeoutRunning = true;
       timeoutStart_mS = millis(); // start timer
   }
+  char haveReadDelimiter = '\0';
   while (input.available() && (len < capacity()) && (noCharsRead < capacity()) ) {
     int c = input.read();
     noCharsRead++;
+//    if (debugPtr) {
+//      debugPtr->print(F("read:")); debugPtr->println(c));
+//    }
     if (c == '\0') {
       setError(); // found '\0' in input
       token.setError();
       if (debugPtr) {
-        debugPtr->println(); debugPtr->print("!! Error:"); outputName();
+        debugPtr->println(); debugPtr->print(F("!! Error:")); outputName();
         debugPtr->println(F(" -- read '\\0' from Stream."));
       }
       continue; // skip nulls  // don't update timer on null chars
@@ -4176,6 +4182,7 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
         return false; // empty token
       } else {
         // added c above
+        haveReadDelimiter = c;
         break; // process this token
       }
     }
@@ -4187,7 +4194,11 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
     // IF found delimited token, delimiter was add just now and so timer reset
     // skipToDelimiter is false here since found delimiter
     return true; // not full and not timeout and have new token
+  } else if (haveReadDelimiter) {
+      concat(haveReadDelimiter); // is a delimiter 	  
+  	  return true; // empty token
   }
+
 
   // else
   if (isFull()) { // note if full here then > max token as capacity needs to allow for one delimiter
@@ -4196,7 +4207,7 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
     setError(); 
     token.setError();
     if (debugPtr) {
-      debugPtr->println(); debugPtr->print("!! Error:"); outputName();
+      debugPtr->println(); debugPtr->print(F("!! Error:")); outputName();
       debugPtr->print(F(" -- input length exceed capacity "));
       debugInternalMsg(fullDebug);
     }
@@ -4358,7 +4369,7 @@ void SafeString::capError(const __FlashStringHelper * methodName, size_t neededC
     debugPtr->print(F(" needs capacity of "));
     debugPtr->print(neededCap);
     if (length != 0) {
-      debugPtr->print(" for the first "); debugPtr->print(length); debugPtr->print(" chars of the input.");
+      debugPtr->print(F(" for the first ")); debugPtr->print(length); debugPtr->print(F(" chars of the input."));
     }
     if (!fullDebug) {
       debugInternalMsg(fullDebug);

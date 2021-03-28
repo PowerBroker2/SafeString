@@ -47,6 +47,7 @@ public:
    bool read(); // NOTE: this call always clears the SafeStringReader so no need to call clear() on sfReader at end of processing.
   void echoOn();
   void echoOff();
+  void flushInput(); // clear any buffered input and Stream RX buffer then skips to next delimiter or times out. Then goes back to normal input processing
   void skipToDelimiter(); // sets skipToDelimiter to true
   void setTimeout(unsigned long mS);
   size_t getReadCount(); // number of chars read since last connect called, cleared when end() called
@@ -87,6 +88,7 @@ public:
     const char* delimiters;
     bool skipToDelimiterFlag;
     bool echoInput;
+    bool flagFlushInput; // true if flushing
     unsigned long timeout_mS;
     bool haveToken; // true if have token but read() not called yet
     Stream *streamPtr;

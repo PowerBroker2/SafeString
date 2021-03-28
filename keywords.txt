@@ -71,6 +71,7 @@ flush	KEYWORD2
 SafeStringReader	KEYWORD1
 createSafeStringReader	KEYWORD1
 getReadCount	KEYWORD2
+flushInput	KEYWORD2
 connect	KEYWORD2
 read	KEYWORD2
 echoOn	KEYWORD2

@@ -40,6 +40,9 @@ void SafeStringReader::init(SafeString& sfInput_,const char* delimiters_, bool s
 void SafeStringReader::connect(Stream& stream) {
   streamPtr = &stream;
   charCounter = 0;
+  if (flagFlushInput) {
+  	  flushInput();
+  }
 }
 
 bool SafeStringReader::end() {
@@ -48,10 +51,11 @@ bool SafeStringReader::end() {
 	sfInputPtr->concat(delimiters[0]);
 	rtn =sfInputPtr->nextToken(*this, delimiters);
   }
-  sfInputPtr->clear();
+  sfInputPtr->clear(); // clears delimiter
   skipToDelimiterFlag = false;
-  echoInput = false;
-  timeout_mS = 0;
+  flagFlushInput = false;
+  //echoInput = false;
+  //timeout_mS = 0;
   streamPtr = NULL;
   charCounter = 0;
   return rtn;
@@ -91,6 +95,40 @@ char SafeStringReader::getDelimiter() {
   }
   //else {
   return (char) - 1;
+}
+
+
+// clear any buffered input and Stream RX buffer then skips to next delimiter or times out.
+// then goes back to normal input processing
+void SafeStringReader::flushInput() {
+  flagFlushInput = true;
+  if (!streamPtr) {
+  	  return; // connect will call back here if flagFlushInput true
+  }
+  
+  flagFlushInput = false;
+  // clear any buffered chars
+  sfInputPtr->clear();
+  //clear(); // clear SafeStringReader no leave is as may be still processing
+  //  clear stream RX buffer
+  while(streamPtr->available()) {
+  	 char c = (char)streamPtr->read();
+     if (c == '\0') {
+       setError(); // found '\0' in input
+#ifdef SSTRING_DEBUG
+// skip this because on power up RX buffer all zeros
+//       if (debugPtr) {
+//         debugPtr->println(); debugPtr->print(F("!! Error:")); outputName();
+//         debugPtr->println(F(" -- read '\\0' from Stream."));
+//       }
+#endif // SSTRING_DEBUG
+     } else if (echoInput) {
+       streamPtr->print(c);
+     }
+  }
+  skipToDelimiterFlag = true; // sets skipToDelimiter to true  
+  // skip msg
+  //skipToDelimiter(); // skip to next delimiter or time out if set
 }
 
 // Each call to this method removes any leading delimiters so if you need to check the delimiter do it BEFORE the next call to read()
