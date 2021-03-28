@@ -890,6 +890,9 @@ class SafeString : public Printable, public Print {
     size_t printInternal(long, int = DEC, bool assignOp = false);
     size_t printInternal(unsigned long, int = DEC, bool assignOp = false);
     size_t printInternal(double, int = 2, bool assignOp = false);
+    void setError();
+    void printlnErr()const ;
+    void debugInternalMsg(bool _fullDebug) const ;
 
   private:
     bool readUntilTokenInternal(Stream & input, SafeString & token, const char* delimitersIn, char delimiterIn, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_mS);
@@ -899,7 +902,6 @@ class SafeString : public Printable, public Print {
     bool fromBuffer; // true if createSafeStringFromBuffer created this object
     bool errorFlag; // set to true if error detected, cleared on each call to hasError()
     static bool classErrorFlag; // set to true if any error detected in any SafeString, cleared on each call to SafeString::errorDetected()
-    void setError();
     void cleanUp(); // reterminates buffer at capacity and resets len to current strlen
     const char *name;
     unsigned long timeoutStart_mS;
@@ -908,14 +910,12 @@ class SafeString : public Printable, public Print {
     static char nullBufferSafeStringBuffer[1];
     static char emptyDebugRtnBuffer[1];
     void debugInternal(bool _fullDebug) const ;
-    void debugInternalMsg(bool _fullDebug) const ;
     void debugInternalResultMsg(bool _fullDebug) const ;
     void concatErr()const ;
     void concatAssignError() const;
     void prefixErr()const ;
     void capError(const __FlashStringHelper * methodName, size_t neededCap, const char* cstr, const __FlashStringHelper *pstr = NULL, char c = '\0', size_t length = 0)const ;
     void assignError(size_t neededCap, const char* cstr, const __FlashStringHelper *pstr = NULL, char c = '\0', bool numberFlag = false) const;
-    void printlnErr()const ;
     void errorMethod(const __FlashStringHelper * methodName) const ;
     void assignErrorMethod() const ;
     void warningMethod(const __FlashStringHelper * methodName) const ;
