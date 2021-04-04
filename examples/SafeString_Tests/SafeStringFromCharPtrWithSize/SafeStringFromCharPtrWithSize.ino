@@ -128,6 +128,63 @@ void setup() {
   sfBuffer_1.debug();
   Serial.println();
   Serial.println(F("When working with char*, SafeString always terminates the array at its capacity(), in this case overwriting the 7 with a terminating '\\0'"));
+  Serial.println();
+
+  Serial.println(F("Check wrapping small char[] as char* with size"));
+  char ch0[0];
+  Serial.println(F("char ch0[0];"));
+  Serial.println(F(" createSafeStringFromCharPtrWithSize(sfStr0, ch0, 0); // or cSFPS(sfStr0, ch0, 0); "));
+  createSafeStringFromCharPtrWithSize(sfStr0, ch0, 0);
+  if (SafeString::errorDetected()) {
+    Serial.println(F(" Error in createSafeStringFromCharPtrWithSize(sfStr0, ch0, 0);"));
+  } else {
+    sfStr0.debug(F("No errors"));
+  }
+  Serial.println();
+
+  char ch1[1] = "";
+  Serial.println(F("char ch1[1]=\"\";"));
+  Serial.println(F(" createSafeStringFromCharPtrWithSize(sfStr1, ch1, 1); // or cSFPS(sfStr1, ch1, 1); "));
+  createSafeStringFromCharPtrWithSize(sfStr1, ch1, 1);
+  if (SafeString::errorDetected()) {
+    Serial.println(F(" Error in createSafeStringFromCharPtrWithSize(sfStr1, ch1, 1);"));
+  } else {
+    sfStr1.debug(F("No errors"));
+  }
+  Serial.println();
+
+  char ch2[2] = "";
+  Serial.println(F("char ch2[2]=\"\";"));
+  Serial.println(F(" createSafeStringFromCharPtrWithSize(sfStr2, ch2,2); // or cSFPS(sfStr2, ch2, 2); "));
+  createSafeStringFromCharPtrWithSize(sfStr2, ch2, 2);
+  if (SafeString::errorDetected()) {
+    Serial.println(F(" Error in createSafeStringFromCharPtrWithSize(sfStr2, ch2, 2);"));
+  } else {
+    sfStr2.debug(F("No errors"));
+  }
+  Serial.println();
+
+  char ch3[3] = "a";
+  strcat(ch3,"12");
+  Serial.println(F("char ch3[3] = \"a\"; strcat(ch3,\"12\");"));
+  Serial.println(F(" createSafeStringFromCharPtrWithSize(sfStr3, ch3, 3); // or cSFPS(sfStr3, ch3, 3); "));
+  createSafeStringFromCharPtrWithSize(sfStr3, ch3, 3);
+  if (SafeString::errorDetected()) {
+    Serial.println(F(" Error in createSafeStringFromCharPtrWithSize(sfStr3, ch3, 3);"));
+  } else {
+    sfStr3.debug(F("No errors"));
+  }
+  Serial.println();
+
+  char ch4[4] = "ab";
+  Serial.println(F("char ch4[4]=\"ab\";"));
+  Serial.println(F(" createSafeStringFromCharPtrWithSize(sfStr4, ch4, 4); // or cSFPS(sfStr4, ch4, 4); "));
+  createSafeStringFromCharPtrWithSize(sfStr4, ch4, 4);
+  if (SafeString::errorDetected()) {
+    Serial.println(F(" Error in createSafeStringFromCharPtrWithSize(sfStr4, ch4, 4);"));
+  } else {
+    sfStr4.debug(F("No errors"));
+  }
 
 }
 

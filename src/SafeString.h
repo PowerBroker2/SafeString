@@ -94,6 +94,11 @@
 // however Arduino uses unsigned char as return value so...
 #ifndef SafeString_class_h
 #define SafeString_class_h
+
+#if defined(ARDUINO_ARCH_SAM)
+#define bool int
+#endif
+
 #ifdef __cplusplus
 
 #include <stdlib.h>
@@ -893,6 +898,7 @@ class SafeString : public Printable, public Print {
     void setError();
     void printlnErr()const ;
     void debugInternalMsg(bool _fullDebug) const ;
+    size_t limitedStrLen(const char* p, size_t limit);
 
   private:
     bool readUntilTokenInternal(Stream & input, SafeString & token, const char* delimitersIn, char delimiterIn, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_mS);

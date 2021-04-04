@@ -70,6 +70,10 @@ void setup() {
   Serial.println(F("       (to wrap a char* use createSafeStringFromCharPtr (cSFP) instead) "));
   char *charArrayPtr = charArray;
   Serial.println(F("Check passing char* (NULL or otherwise) as the char[] to createSafeStringFromCharArray, prints error msg but does not blow up program."));
+  Serial.println(F("  Note: the sizeof(char*) varies between different Arduino boards Uno/Megs2560 sizeof(char*) == 2, more powerful boards like ESP8266/ESP32,etc sizeof(char*) == 4"));
+  Serial.println(F("  So for small char[] use 5 as the mininum size, ie. char cArray[5];"));
+  Serial.println();
+  
   Serial.println(F("char *charArrayPtr = charArray;"));
   Serial.println(F("cSFA(testStr1,charArrayPtr); // using the typing shortcut name"));
   cSFA(testStr1, charArrayPtr);
@@ -118,6 +122,63 @@ void setup() {
   Serial.println();
 
   Serial.println(F("You can now safely access and update buffers.buffer_1 via the SafeString, sfBuffer_1."));
+  Serial.println();
+
+  Serial.println(F("Check wrapping small char[] "));
+  char ch0[0];
+  Serial.println(F("char ch0[0];"));
+  Serial.println(F(" createSafeStringFromCharArray(sfStr0, ch0); // or cSFA(sfStr0, ch0); "));
+  createSafeStringFromCharArray(sfStr0, ch0);
+  if (SafeString::errorDetected()) {
+    Serial.println(F(" Error in createSafeStringFromCharArray(sfStr0, ch0);"));
+  } else {
+    sfStr0.debug(F("No errors"));
+  }
+  Serial.println();
+
+  char ch1[1] = "";
+  Serial.println(F("char ch1[1]=\"\";"));
+  Serial.println(F(" createSafeStringFromCharArray(sfStr1, ch1); // or cSFA(sfStr1, ch1); "));
+  createSafeStringFromCharArray(sfStr1, ch1);
+  if (SafeString::errorDetected()) {
+    Serial.println(F(" Error in createSafeStringFromCharArray(sfStr1, ch1);"));
+  } else {
+    sfStr1.debug(F("No errors"));
+  }
+  Serial.println();
+
+  char ch2[2] = "";
+  Serial.println(F("char ch2[2]=\"\";"));
+  Serial.println(F(" createSafeStringFromCharArray(sfStr2, ch2); // or cSFA(sfStr2, ch2); "));
+  createSafeStringFromCharArray(sfStr2, ch2);
+  if (SafeString::errorDetected()) {
+    Serial.println(F(" Error in createSafeStringFromCharArray(sfStr2, ch2);"));
+  } else {
+    sfStr2.debug(F("No errors"));
+  }
+  Serial.println();
+
+  char ch3[3] = "a";
+  strcat(ch3,"12");
+  Serial.println(F("char ch3[3]=\"a\"; strcat(ch3,\"12\");"));
+  Serial.println(F(" createSafeStringFromCharArray(sfStr3, ch3); // or cSFA(sfStr3, ch3); "));
+  createSafeStringFromCharArray(sfStr3, ch3);
+  if (SafeString::errorDetected()) {
+    Serial.println(F(" Error in createSafeStringFromCharArray(sfStr3, ch3);"));
+  } else {
+    sfStr3.debug(F("No errors"));
+  }
+  Serial.println();
+
+  char ch4[4] = "ab";
+  Serial.println(F("char ch4[4]=\"ab\";"));
+  Serial.println(F(" createSafeStringFromCharArray(sfStr4, ch4); // or cSFA(sfStr4, ch4); "));
+  createSafeStringFromCharArray(sfStr4, ch4);
+  if (SafeString::errorDetected()) {
+    Serial.println(F(" Error in createSafeStringFromCharArray(sfStr4, ch4);"));
+  } else {
+    sfStr4.debug(F("No errors"));
+  }
 
 }
 
