@@ -149,6 +149,53 @@ void setup() {
   Serial.println();
   Serial.println(F(" Any error in any SafeString sets the class global error flag."));
   Serial.print(F(" SafeString::errorDetected() => ")); Serial.println(SafeString::errorDetected() ? "true" : "false");
+  Serial.println();
+
+
+  Serial.println(F("Check small SafeString creation"));
+  Serial.println(F(" createSafeString(sfStr0, 0); // or cSF(sfStr0, 0); "));
+  createSafeString(sfStr0, 0);
+  if (SafeString::errorDetected()) {
+    Serial.println(F(" Error in createSafeString(sfStr0, 0);"));
+  } else {
+    sfStr0.debug(F("No errors"));
+  }
+  Serial.println();
+
+  Serial.println(F(" createSafeString(sfStr1, 1); // or cSF(sfStr1, 1); "));
+  createSafeString(sfStr1, 1);
+  if (SafeString::errorDetected()) {
+    Serial.println(F(" Error in createSafeString(sfStr1, 1);"));
+  } else {
+    sfStr1.debug(F("No errors"));
+  }
+  Serial.println();
+
+  Serial.println(F(" createSafeString(sfStr2, 2); // or cSF(sfStr2, 2); "));
+  createSafeString(sfStr2, 2);
+  if (SafeString::errorDetected()) {
+    Serial.println(F(" Error in createSafeString(sfStr2, 2);"));
+  } else {
+    sfStr2.debug(F("No errors"));
+  }
+  Serial.println();
+
+  Serial.println(F(" createSafeString(sfStr3, 3); // or cSF(sfStr3, 3); "));
+  createSafeString(sfStr3, 3);
+  if (SafeString::errorDetected()) {
+    Serial.println(F(" Error in createSafeString(sfStr3, 3);"));
+  } else {
+    sfStr3.debug(F("No errors"));
+  }
+  Serial.println();
+
+  Serial.println(F(" createSafeString(sfStr4, 4); // or cSF(sfStr4, 4); "));
+  createSafeString(sfStr4, 4);
+  if (SafeString::errorDetected()) {
+    Serial.println(F(" Error in createSafeString(sfStr4, 4);"));
+  } else {
+    sfStr4.debug(F("No errors"));
+  }
 
 }
 

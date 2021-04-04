@@ -100,16 +100,32 @@ void setup() {
   validChars.debug(F(" Valid token chars are => "));
   Serial.println();
 
-  Serial.println(F(" First use "));
-  Serial.println(F("nextIdx = stringOne.stoken(field, 0, validChars);"));
-  nextIdx = stringOne.stoken(field, 0, validChars);
-  Serial.print(F(" to find the first digit. This returns nextIdx : ")); Serial.println(nextIdx);
-  Serial.println(F(" Then use validChars not as delimiters but as the valid token chars to extract the number"));
+
+  nextIdx = 0;
+  Serial.println(F(" Use validChars not as delimiters but as the valid token chars to extract the number"));
   Serial.println(F(" the last false does this   nextIdx = stringOne.stoken(field, nextIdx, validChars, false, false); "));
-  Serial.println(F(" The first char not in validChars terminates the token."));
+  Serial.println(F(" Leading non-validChars are skipped and then the first char not in validChars terminates the token."));
   nextIdx = stringOne.stoken(field, nextIdx, validChars, false, false); // first false => do not return empty fields, second false => do NOT use delimiters as delimiters but use them as valid token chars
-  field.debug(F("stringOne.stoken(field, nextIdx, validChars, false, false); => "));
+  //field.debug(F("stringOne.stoken(field, nextIdx, validChars, false, false); => "));
   Serial.print(F(" Returned nextIdx is ")); Serial.println(nextIdx);
+  Serial.print(F(" Number is ")); Serial.println(field);
+  Serial.println();
+
+  char line2[] = " ,23.5,some text,335, some more text, ";
+  cSFP(sfLine2, line2); // wrap the line in a SafeString for processing
+  Serial.print(F("Input line is '")); Serial.print(sfLine2); Serial.println('\'');
+  Serial.print(F("validChars '")); Serial.print(validChars); Serial.println("'");
+  Serial.println(F("Using  nextIdx = sfLine2.stoken(field, nextIdx, validChars, false,false);"));
+  Serial.println(F("    // false, false, => skip multiple delimiters, delimit on complement of delimiters"));
+  Serial.println(F(" to extract number fields :-"));
+  nextIdx = 0; // start from beginning of sfLine
+  while (nextIdx >= 0) {
+    nextIdx = sfLine2.stoken(field, nextIdx, validChars, false, false); // false, false, => skip multiple delimiters, delimit on complement of delimiters
+    if (field.isEmpty()) {
+      break; // no more digits found
+    }
+    Serial.print(F("  Digit Field ")); Serial.println(field);
+  }
   Serial.println();
 
   Serial.println(F("Error checking.."));

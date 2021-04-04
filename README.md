@@ -23,6 +23,7 @@ See the top of each file for its license
 Note, this is NOT my work, I am simply hosting it for easy access. The original code belongs to [Forward Computing and Control Pty. Ltd](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
 
 # Revisions
+V4.0.3 allow createSafeString for small sizes, fixed bool for DUE (ARDUINO_ARCH_SAM)
 V4.0.2 added flushInput() method to SafeStringReader
 V4.0.1 fixed SafeStringReader timeout and NanoBLE F() macro
 V4.0.0 changes method returns to better match Arduino String methods, main change is indexOf now returns int and returns -1 if not found
