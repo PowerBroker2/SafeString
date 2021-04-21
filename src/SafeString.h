@@ -109,7 +109,7 @@
 
 #if defined(ESP_PLATFORM) || defined(ARDUINO_ARCH_ESP8266)
 #include <pgmspace.h>
-#elif defined(ARDUINO_ARDUINO_NANO33BLE)
+#elif defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_MBED_RP2040)
 #include <api/deprecated-avr-comp/avr/pgmspace.h>
 #else
 #include <avr/pgmspace.h>
@@ -119,7 +119,7 @@
 #include <Print.h>
 #include <Printable.h>
 // This include handles the rename of Stream for MBED compiles
-#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD)
+#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MBED_RP2040)
 #include <Stream.h>
 #elif defined( __MBED__ ) || defined( MBED_H )
 #include <WStream.h>
@@ -131,7 +131,7 @@
 
 // to skip this for SparkFun RedboardTurbo
 #ifndef ARDUINO_SAMD_ZERO
-#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR)
+#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR) || defined(ARDUINO_ARCH_MBED_RP2040)
 namespace arduino {
 #endif
 #endif // #ifndef ARDUINO_SAMD_ZERO
@@ -693,8 +693,8 @@ class SafeString : public Printable, public Print {
     /* Differences between stoken() and nextToken
        stoken() leaves the SafeString unchanged, nextToken() removes the token (and leading delimiters) from the SafeString giving space to add more input
        In stoken() the end of the SafeString is always treated as a delimiter, i.e. the last token is returned even if it is not followed by one of the delimiters
-       In nextToken() the end of the SafeString is NOT a delimiter, i.e. if the last token is not terminated it is left in the SafeString
-       this allows partial tokens to be read from a Stream and kept until the full token and delimiter is read
+       In nextToken() the end of the SafeString is a delimiter by default, but setting returnLastNonDelimitedToken =  false will leave last token that is not terminated in the SafeString
+       Setting returnLastNonDelimitedToken = false this allows partial tokens to be read from a Stream and kept until the full token and delimiter is read
     */
     /*
          stoken  -- The SafeString itself is not changed
@@ -730,10 +730,13 @@ class SafeString : public Printable, public Print {
 
     /* nextToken -- The token is removed from the SafeString ********************
       nextToken -- Any leading delimiters are first removed, then the delimited token found is removed from the SafeString.
-                   The following delimiters remain in the SafeString so you can test which delimiter terminated the token.
+                   See returnEmptyFields and returnLastNonDelimitedToken arguments below for controls on this.
+                   The following delimiters remain in the SafeString so you can test which delimiter terminated the token, provided this SafeString is not empty!
+                   If the SafeString ends with a delimiter no empty token is returned after the last delimiter is removed.
       The token argument is always cleared at the start of the nextToken().
-      IMPORTANT !! Only delimited tokens are returned. Partial un-delimited tokens are left in the SafeString and not returned
-      This allows the SafeString to hold partial tokens when reading from an input stream one char at a time.
+      IMPORTANT!! Changed V4.0.4 By default un-delimited tokens at the end of the SafeString are returned
+      To leave partial un-delimited tokens on the end of the SafeString, set returnLastNonDelimitedToken = false.
+      Setting returnLastNonDelimitedToken = false allows the SafeString to hold partial tokens when reading from an input stream one char at a time.
 
       params
       token - the SafeString to return the token in, it will be empty if no delimited token found or if there are errors
@@ -741,16 +744,19 @@ class SafeString : public Printable, public Print {
               If the token's capacity is < the next token, then nextToken() returns true, but the returned token argument is empty and an error messages printed if debug is enabled.
               In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
       delimiters - the delimiting characters, any one of which can delimit a token
+      returnEmptyFields -- default false, if set true will return empty token for consecuative delimiters.
+      returnLastNonDelimitedToken -- default true, will return last part of input even if not delimited. If set false, will keep it for further input to be added to this SafeString
 
       return -- true if nextToken() finds a token in this SafeString that is terminated by one of the delimiters after removing any leading delimiters, else false
-                If token argument did not have the capacity to hold the next token, hasError() is set on both this SafeString and the token SafeString.
+                returnEmptyFields controls removeing multiple leading delimiter, returnLastNonDelimitedToken controls if last un-terminated token is returned.
+                If the return is true, but hasError() is true then the SafeString token argument did not have the capacity to hold the next token.
                 In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
                 while being consistent with the SafeString's all or nothing insertion rule
          Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
     **/
-    unsigned char nextToken(SafeString & token, char delimiter);
-    unsigned char nextToken(SafeString & token, SafeString & delimiters);
-    unsigned char nextToken(SafeString & token, const char* delimiters);
+    unsigned char nextToken(SafeString & token, char delimiter, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true);
+    unsigned char nextToken(SafeString & token, SafeString & delimiters, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true);
+    unsigned char nextToken(SafeString & token, const char* delimiters, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true);
 
 
     /* *** ReadFrom from SafeString, writeTo SafeString ************************/
@@ -903,7 +909,7 @@ class SafeString : public Printable, public Print {
   private:
     bool readUntilTokenInternal(Stream & input, SafeString & token, const char* delimitersIn, char delimiterIn, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_mS);
     bool readUntilInternal(Stream & input, const char* delimitersIn, char delimiterIn);
-    bool nextTokenInternal(SafeString & token, const char* delimitersIn, char delimiterIn);
+    bool nextTokenInternal(SafeString & token, const char* delimitersIn, char delimiterIn, bool returnEmptyFields, bool returnLastNonDelimitedToken);
     int stokenInternal(SafeString &token, unsigned int fromIndex, const char* delimitersIn, char delimiterIn, bool returnEmptyFields, bool useAsDelimiters);
     bool fromBuffer; // true if createSafeStringFromBuffer created this object
     bool errorFlag; // set to true if error detected, cleared on each call to hasError()
@@ -930,7 +936,7 @@ class SafeString : public Printable, public Print {
 
 // to skip this for SparkFun RedboardTurbo
 #ifndef ARDUINO_SAMD_ZERO
-#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR)
+#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR)  || defined(ARDUINO_ARCH_MBED_RP2040)
 } // namespace arduino
 #endif
 #endif  // #ifndef ARDUINO_SAMD_ZERO

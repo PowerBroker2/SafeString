@@ -97,7 +97,7 @@ void BufferedOutput::connect(HardwareSerial& _serial) { // the output to write t
     // ESP8266 HardwareSerial does not have availableForWrite()
     while (1) {
       streamPtr->println("This board does not implement availableForWrite()");
-      streamPtr->println("You need to specify the I/O baudRate");
+      streamPtr->println("You need to use the  bufferedOutput.connect(stream, baudrate) to specify the baudrate");
       streamPtr->println("and add extra calls to nextByteOut() as only one byte is released each call.");
       streamPtr->println();
       streamPtr->flush();
@@ -115,7 +115,7 @@ void BufferedOutput::connect(HardwareSerial& _serial) { // the output to write t
     // need baud rate
     while (1) {
       streamPtr->println("availableForWrite() returns 0");
-      streamPtr->println("You need to specify the I/O baudRate");
+      streamPtr->println("You need to use the  bufferedOutput.connect(stream, baudrate) to specify the baudrate");
       streamPtr->println("and add extra calls to nextByteOut() as only one byte is released each call.");
       streamPtr->println();
       streamPtr->flush();
@@ -158,7 +158,7 @@ void BufferedOutput::connect(Stream& _stream, const uint32_t _baudRate) {
     // ESP32 ESP8266 Stream does not have availableForWrite()
     while (1) {
       streamPtr->println("ESP32 and ESP8266 Print does not implement availableForWrite()");
-      streamPtr->println("You need to specify the I/O baudRate");
+      streamPtr->println("You need to specify a non-zero I/O baudRate");
       streamPtr->println("and add extra calls to nextByteOut() as only one byte is released each call.");
       streamPtr->println();
       streamPtr->flush();
@@ -175,7 +175,7 @@ void BufferedOutput::connect(Stream& _stream, const uint32_t _baudRate) {
       while (1) {
         streamPtr->println();
         streamPtr->println("availableForWrite() returns 0");
-        streamPtr->println("You need to specify the I/O baudRate");
+        streamPtr->println("You need to specify a non-zero I/O baudRate");
         streamPtr->println("and add extra calls to nextByteOut() as only one byte is released each call.");
         streamPtr->println();
         streamPtr->flush();

@@ -46,12 +46,13 @@ void SafeStringReader::connect(Stream& stream) {
 }
 
 bool SafeStringReader::end() {
-  bool rtn = sfInputPtr->nextToken(*this, delimiters);
-  if (!rtn && (!sfInputPtr->isEmpty())) {
-	sfInputPtr->concat(delimiters[0]);
-	rtn =sfInputPtr->nextToken(*this, delimiters);
-  }
-  sfInputPtr->clear(); // clears delimiter
+	// skip multiple delimiters and return last one
+  bool rtn = sfInputPtr->nextToken(*this, delimiters, false, true);
+//  if (!rtn && (!sfInputPtr->isEmpty())) {
+//	sfInputPtr->concat(delimiters[0]);
+//	rtn =sfInputPtr->nextToken(*this, delimiters);
+//  }
+  sfInputPtr->clear(); // clears delimiter and rest of input
   skipToDelimiterFlag = false;
   flagFlushInput = false;
   //echoInput = false;
@@ -131,7 +132,7 @@ void SafeStringReader::flushInput() {
   //skipToDelimiter(); // skip to next delimiter or time out if set
 }
 
-// Each call to this method removes any leading delimiters so if you need to check the delimiter do it BEFORE the next call to read()
+// Each call to this method removes the lead delimiter so if you need to check the delimiter do it BEFORE the next call to read()
 // NOTE: this call always clears the SafeStringReader so no need to call clear() on sfReader at end of processing.
 bool SafeStringReader::read() {
   if (!streamPtr) {
