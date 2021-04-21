@@ -3558,8 +3558,8 @@ unsigned char SafeString::toDouble(double  &d) {
 /** Differences between stoken() and nextToken
    stoken() leaves the SafeString unchanged, nextToken() removes the token (and leading delimiters) from the SafeString giving space to add more input
    In stoken() the end of the SafeString is always treated as a delimiter, i.e. the last token is returned even if it is not followed by one of the delimiters
-   In nextToken() the end of the SafeString is NOT a delimiter, i.e. if the last token is not terminated it is left in the SafeString
-   this allows partial tokens to be read from a Stream and kept until the full token and delimiter is read
+   In nextToken() the end of the SafeString is a delimiter by default, but setting returnLastNonDelimitedToken =  false will leave last token that is not terminated in the SafeString
+   Setting returnLastNonDelimitedToken = false this allows partial tokens to be read from a Stream and kept until the full token and delimiter is read
 */
 /*******************************************************/
 /*
@@ -3728,11 +3728,13 @@ int SafeString::stokenInternal(SafeString &token, unsigned int fromIndex, const 
 
 /* nextToken -- The token is removed from the SafeString ********************
       nextToken -- Any leading delimiters are first removed, then the delimited token found is removed from the SafeString.
-                   The following delimiters remain in the SafeString so you can test which delimiter terminated the token.
+                   See returnEmptyFields and returnLastNonDelimitedToken arguments below for controls on this.
+                   The following delimiters remain in the SafeString so you can test which delimiter terminated the token, provided this SafeString is not empty!
+                   If the SafeString ends with a delimiter no empty token is returned after the last delimiter is removed.
       The token argument is always cleared at the start of the nextToken().
-      IMPORTANT !! Only delimited tokens are returned. Partial un-delimited tokens are left in the SafeString and not returned
-      This allows the SafeString to hold partial tokens when reading from an input stream one char at a time.
-      if token does not have the capacity to hold the substring, hasError() is set on both this SafeString and the token SafeString
+      IMPORTANT!! Changed V4.0.4 By default un-delimited tokens at the end of the SafeString are returned
+      To leave partial un-delimited tokens on the end of the SafeString, set returnLastNonDelimitedToken = false.
+      Setting returnLastNonDelimitedToken = false allows the SafeString to hold partial tokens when reading from an input stream one char at a time.
 
       params
       token - the SafeString to return the token in, it will be empty if no delimited token found or if there are errors
@@ -3740,13 +3742,17 @@ int SafeString::stokenInternal(SafeString &token, unsigned int fromIndex, const 
               If the token's capacity is < the next token, then nextToken() returns true, but the returned token argument is empty and an error messages printed if debug is enabled.
               In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
       delimiters - the delimiting characters, any one of which can delimit a token
+      returnEmptyFields -- default false, if set true will return empty token for consecuative delimiters.
+      returnLastNonDelimitedToken -- default true, will return last part of input even if not delimited. If set false, will keep it for further input to be added to this SafeString
 
       return -- true if nextToken() finds a token in this SafeString that is terminated by one of the delimiters after removing any leading delimiters, else false
-                If the return is true, but the returned token is empty, then the SafeString token argument did not have the capacity to hold the next token.
+                returnEmptyFields controls removeing multiple leading delimiter, returnLastNonDelimitedToken controls if last un-terminated token is returned.
+                If the return is true, but hasError() is true then the SafeString token argument did not have the capacity to hold the next token.
                 In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
                 while being consistent with the SafeString's all or nothing insertion rule
+      Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
 **/
-unsigned char SafeString::nextToken(SafeString& token, const char delimiter) {
+unsigned char SafeString::nextToken(SafeString& token, const char delimiter, bool returnEmptyFields, bool returnLastNonDelimitedToken) {
   token.clear();
   if (!delimiter) {
     setError();
@@ -3760,15 +3766,15 @@ unsigned char SafeString::nextToken(SafeString& token, const char delimiter) {
 #endif // SSTRING_DEBUG
     return false;
   }
-  return nextTokenInternal(token, NULL, delimiter);
+  return nextTokenInternal(token, NULL, delimiter, returnEmptyFields, returnLastNonDelimitedToken);
 }
 
-unsigned char SafeString::nextToken(SafeString& token, SafeString &delimiters) {
+unsigned char SafeString::nextToken(SafeString& token, SafeString &delimiters, bool returnEmptyFields, bool returnLastNonDelimitedToken) {
   delimiters.cleanUp();
-  return nextToken(token, delimiters.buffer); // calls cleanUp()
+  return nextToken(token, delimiters.buffer, returnEmptyFields, returnLastNonDelimitedToken); // calls cleanUp()
 }
 
-unsigned char SafeString::nextToken(SafeString& token, const char* delimiters) {
+unsigned char SafeString::nextToken(SafeString& token, const char* delimiters, bool returnEmptyFields, bool returnLastNonDelimitedToken) {
   token.clear();
   if (!delimiters) {
     setError();
@@ -3794,10 +3800,10 @@ unsigned char SafeString::nextToken(SafeString& token, const char* delimiters) {
 #endif // SSTRING_DEBUG
     return false;
   }
-  return nextTokenInternal(token, delimiters, '\0' );
+  return nextTokenInternal(token, delimiters, '\0', returnEmptyFields, returnLastNonDelimitedToken);
 }
 
-bool SafeString::nextTokenInternal(SafeString& token, const char* delimitersIn, const char delimiterIn) {
+bool SafeString::nextTokenInternal(SafeString& token, const char* delimitersIn, const char delimiterIn, bool returnEmptyFields, bool returnLastNonDelimitedToken) {
   cleanUp();
   token.clear();
   if (isEmpty()) {
@@ -3815,15 +3821,25 @@ bool SafeString::nextTokenInternal(SafeString& token, const char* delimitersIn, 
   size_t delim_count = 0;
   // skip leading delimiters  (prior to V2.0.2 leading delimiters not skipped)
   delim_count = strspn(buffer, delimiters); // count char ONLY in delimiters
+  if ((returnEmptyFields) && (delim_count > 1)) {
+  	  // only remove one delimiter
+  	  delim_count = 1;
+  }
   remove(0, delim_count); // remove leading delimiters
+  if (len == 0) {
+  	  // nothing left after last delimiter
+  	  return false; 
+  }
   // check for token
   // find first char not in delimiters
   size_t token_count = 0;
   token_count = strcspn(buffer, delimiters);
   if ((token_count) == len) {
     // no trailing delimiter
-    return false; // delimited token not found
-  }
+    if (!returnLastNonDelimitedToken) {
+      return false; // delimited token not found
+    }
+  } // return last one
   if (token_count > token._capacity) {
     setError();
     token.setError();
@@ -4239,16 +4255,19 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
         return false; // empty token
       } else {
         // added c above
-        haveReadDelimiter = c;
+       // if (!haveReadDelimiter) {
+        	haveReadDelimiter = c;
+        //}
         break; // process this token
       }
     }
   }
   // here either isFill() OR no more chars avail OR found delimiter
   // skipToDelimiter may still be true here if no delimiter found above
-  if (nextToken(token, delimiters)) {  // removes leading delimiters if any
+  // skip multiple delimiters and do not return last non-delimited token
+  if (nextToken(token, delimiters,false,false)) {  // removes leading delimiters if any
     // returns true only if have found delimited token, returns false if full and no delimiter
-    // IF found delimited token, delimiter was add just now and so timer reset
+    // IF found delimited token, delimiter was add just now and so timer was reset
     // skipToDelimiter is false here since found delimiter
     return true; // not full and not timeout and have new token
   } else if (haveReadDelimiter) {
@@ -4292,10 +4311,11 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
           return false;
         } // else pick up token
         // len > 0 so token only empty if too small
-        concat(delimiters[0]);   // certainly NOT full from above
-        nextToken(token, delimiters); // collect this token just delimited, this will clear input
+        //concat(delimiters[0]);   // certainly NOT full from above
+        // skip multiple delimiters, and return last one (default 
+        nextToken(token, delimiters, false, true); // collect this token just delimited, this will clear input
         // remove delimiter just added
-        remove(0, 1);
+        //remove(0, 1);
         return true;
       }
     }

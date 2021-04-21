@@ -28,13 +28,14 @@ void setup() {
 
   createSafeString(sfLine, 64); // a SafeString large enough to hold the whole line.
   sfLine = line; // initialize the SaftString for processing
-  Serial.print(F("Input line is '")); Serial.print(sfLine); Serial.println('\'');
+  sfLine.trim(); // remove final \n
+  Serial.print(F("The trimmed sfLine line is '")); Serial.print(sfLine); Serial.println('\'');
   Serial.println(F("The delimiters are comma and newline (\\n)"));
-  Serial.println(F("Note: the last field must be terminated by a delimiter or it will not be returned by nextToken()"));
+  Serial.println(F("Note: By default the last field will be returned even if not terminated by a delimiter.  The optional returnLastNonDelimitedToken argument controls this."));
   createSafeString(field, 10); // for the field strings. Should have capacity > largest field length
   Serial.println();
-  Serial.println(F("Fields with numbers are:-"));
-  while (sfLine.nextToken(field, delimiters)) {
+  Serial.println(F("Fields with numbers are:-  (returning empty fields, optional last argument true)"));
+  while (sfLine.nextToken(field, delimiters, true)) {
     double d;
     if (field.toDouble(d)) {
       Serial.println(d);
@@ -50,10 +51,10 @@ void setup() {
   Serial.println();
   Serial.println(F("sfLine = line; // re-initialize the line since nextToken removes the tokens and delimiters"));
   sfLine = line; // re-initialize the line since nextToken removes the tokens and delimiters
-  Serial.print(F("Input line is '")); Serial.print(sfLine); Serial.println('\'');
+  Serial.print(F("The untrimmed Input line is '")); Serial.print(sfLine); Serial.println('\'');
   createSafeString(sDelimiters, 4, ",\n");
   sDelimiters.debug(F(" Test using a SafeString for the delimiters  --  "));
-  Serial.println(F(" The fields with integers are:-"));
+  Serial.println(F(" The fields with integers are:-  (NOT returning empty fields, optional last argument defaults to false)"));
   while (sfLine.nextToken(field, sDelimiters)) {
     long l_num;
     if (field.toLong(l_num)) {

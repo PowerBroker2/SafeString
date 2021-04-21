@@ -90,6 +90,9 @@ void setup() {
 
 // Check token against valid commands
 void processCmd(SafeString & token) {
+  if (token.isEmpty()) {
+    return;
+  }
   for (size_t i = 0; i < NO_OF_CMDS; i++) {
     if (token == commands[i].cmd) { // found one
       cSF(sfMsg, 30);
