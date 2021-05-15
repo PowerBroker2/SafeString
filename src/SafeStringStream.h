@@ -12,12 +12,8 @@
 #include <Arduino.h>
 #include "SafeString.h"
 
-// to skip this for SparkFun RedboardTurbo
-#ifndef ARDUINO_SAMD_ZERO
-#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR) || defined(ARDUINO_ARCH_MBED_RP2040)
-namespace arduino {
-#endif
-#endif // #ifndef ARDUINO_SAMD_ZERO
+// handle namespace arduino
+#include "SafeStringNameSpaceStart.h"
 
 class SafeStringStream : public Stream {
   public:
@@ -56,15 +52,7 @@ class SafeStringStream : public Stream {
   	 SafeString *sfPtr;
 };
 
-
-
-// to skip this for SparkFun RedboardTurbo
-#ifndef ARDUINO_SAMD_ZERO
-#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR) || defined(ARDUINO_ARCH_MBED_RP2040)
-} // namespace arduino
-#endif
-#endif  // #ifndef ARDUINO_SAMD_ZERO
-
+#include "SafeStringNameSpaceEnd.h"
 
 #endif  // __cplusplus
 #endif  // SAFE_STRING_STREAM_H

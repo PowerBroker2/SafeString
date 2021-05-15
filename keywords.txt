@@ -77,6 +77,7 @@ read	KEYWORD2
 echoOn	KEYWORD2
 echoOff	KEYWORD2
 skipToDelimiter	KEYWORD2
+returnEmptyTokens	KEYWORD2
 setTimeout	KEYWORD2
 getDelimiter	KEYWORD2 
 debugInputBuffer	KEYWORD2
@@ -111,6 +112,17 @@ loopTimerClass	KEYWORD1
 check	KEYWORD2
 print	KEYWORD2
 loopTimer	KEYWORD2
+SerialComs	KEYWORD1
+setAsController	KEYWORD2
+connect	KEYWORD2
+sendAndReceive	KEYWORD2
+textReceived	KEYWORD2
+textToSend	KEYWORD2
+isConnected	KEYWORD2
+noCheckSum	KEYWORD2
+getTextReceived	KEYWORD2
+getTextToSend	KEYWORD2
+
 
 
 

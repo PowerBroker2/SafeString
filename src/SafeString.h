@@ -109,7 +109,7 @@
 
 #if defined(ESP_PLATFORM) || defined(ARDUINO_ARCH_ESP8266)
 #include <pgmspace.h>
-#elif defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_MBED_RP2040)
+#elif defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_MBED_RP2040)|| defined(ARDUINO_ARCH_RP2040)
 #include <api/deprecated-avr-comp/avr/pgmspace.h>
 #else
 #include <avr/pgmspace.h>
@@ -118,8 +118,9 @@
 #include <stdint.h>
 #include <Print.h>
 #include <Printable.h>
+
 // This include handles the rename of Stream for MBED compiles
-#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MBED_RP2040)
+#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040)
 #include <Stream.h>
 #elif defined( __MBED__ ) || defined( MBED_H )
 #include <WStream.h>
@@ -128,13 +129,8 @@
 #include <Stream.h>
 #endif
 
-
-// to skip this for SparkFun RedboardTurbo
-#ifndef ARDUINO_SAMD_ZERO
-#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR) || defined(ARDUINO_ARCH_MBED_RP2040)
-namespace arduino {
-#endif
-#endif // #ifndef ARDUINO_SAMD_ZERO
+// handle namespace arduino
+#include "SafeStringNameSpaceStart.h"
 
 class __FlashStringHelper;
 #ifndef F
@@ -189,7 +185,7 @@ class __FlashStringHelper;
   and the capacity of the SafeString is set to strlen(charBuffer) and cannot be increased.
 
   createSafeStringFromCharPtrWithSize(name, char*, unsigned int);  or cSFPS(name, char*, unsigned int);
-   wraps an existing char[] pointed to by char* in a SafeString of the given name and sets the capacity to the given size
+   wraps an existing char[] pointed to by char* in a SafeString of the given name and sets the capacity to the given size -1
   e.g.
   char charBuffer[15];
   char *bufPtr = charBuffer;
@@ -239,7 +235,14 @@ class __FlashStringHelper;
 class SafeString : public Printable, public Print {
 
   public:
-
+/**
+ In all cases when maxlen != -1, it is the actual size of the array
+ if _fromBuffer false (i.e. cSF(sfStr,20); ) then maxLen is the capacity+1 and the macro allocates an char[20+1], (_fromPtr ignored)
+ if _fromBuffer true and _fromPtr false (i.e. cSFA(sfStr, strArray); ) then maxLen is the sizeof the strArray and the capacity is maxLen-1, _fromPtr is false
+ if _fromBuffer true and _fromPtr true, then from char*, (i.e. cSFP(sfStr,strPtr) or cSFPS(sfStr,strPtr, maxLen) and maxLen is either -1 cSFP( ) the size of the char Array pointed cSFPS 
+    if maxLen == -1 then capacity == strlen(char*)  i.e. cSFP( )
+    else capacity == maxLen-1;   i.e. cSFPS( )
+ */
     explicit SafeString(unsigned int maxLen, char *buf, const char* cstr, const char* _name = NULL, bool _fromBuffer = false, bool _fromPtr = true);
     // _fromBuffer true does extra checking before each method execution for SafeStrings created from existing char[] buffers
     // _fromPtr is not checked unless _fromBuffer is true
@@ -280,6 +283,8 @@ class SafeString : public Printable, public Print {
     const char* debug(SafeString &stitle, bool verbose = true);
 
     virtual size_t write(uint8_t b);
+    // writes at most length chars to this SafeString,
+    // NOTE: write(cstr,length) will set hasError and optionally output errorMsg, if strlen(cstr) < length and nothing will be added to the SafeString
     virtual size_t write(const uint8_t *buffer, size_t length);
 
     size_t printTo(Print& p) const;
@@ -319,6 +324,20 @@ class SafeString : public Printable, public Print {
     size_t println(char);
     size_t println(SafeString &str);
     size_t println(void);
+    
+    // ********** special prints padding and formatting doubles (longs) **************
+    /** print to SafeString a double (or long) with decs after the decimal point and padd to specified width
+        width is a signed value, negative for left adjustment, +ve for right padding
+        by default the + sign is not added, set forceSign argument to true to force the display of the + sign
+        
+        If the result exceeds abs(width), reduce the decs after the decmial point to fit into width
+        If result with decs reduced to 0 is still > abs(width) raise an error and ,optionally, output an error msg
+
+        Note decs is quietly limited in this method to < 7 digit after the decimal point.
+    */
+    size_t println(double d, int decs, int width, bool forceSign = false);
+    size_t print(double d, int decs, int width, bool forceSign = false);
+
 
 
     /* Assignment operators **********************************
@@ -384,7 +403,10 @@ class SafeString : public Printable, public Print {
     SafeString & concat(const __FlashStringHelper * str);
     // ------------------------------------------------------
     // no corresponding methods these three (3) in  prefix, +=, -+
+    
     SafeString & concat(const char *cstr, size_t length); // concat at most length chars from cstr
+    // NOTE: concat(cstr,length) will set hasError and optionally output errorMsg, if strlen(cstr) < length and nothing will be concatinated.
+    
     SafeString & concat(const __FlashStringHelper * str, size_t length); // concat at most length chars
     SafeString & newline(); // append newline \r\n same as concat("\r\n"); same a println()
     // e.g. sfStr.concat("test").nl();
@@ -850,6 +872,7 @@ class SafeString : public Printable, public Print {
     size_t len;       // the SafeString length (not counting the '\0')
 
     class noDebugPrint : public Print {
+      public:
         inline size_t write(uint8_t b) {
           (void)(b);
           return 0;
@@ -859,7 +882,6 @@ class SafeString : public Printable, public Print {
           (void)(length);
           return 0;
         };
-      public:
         void flush() { }
     };
 
@@ -868,13 +890,13 @@ class SafeString : public Printable, public Print {
     static Print* currentOutput;// = &emptyPrint;
 
     class DebugPrint : public Print {
+      public:
         size_t write(uint8_t b) {
           return currentOutput->write(b);
         }
         size_t write(const uint8_t *buffer, size_t length) {
           return currentOutput->write(buffer, length);
         };
-      public:
         void flush() {
 #if defined(ESP_PLATFORM) || defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4)
           // ESP32 has no flush in Print!! but ESP8266 has
@@ -905,6 +927,7 @@ class SafeString : public Printable, public Print {
     void printlnErr()const ;
     void debugInternalMsg(bool _fullDebug) const ;
     size_t limitedStrLen(const char* p, size_t limit);
+    size_t printInt(double d, int decs, int width, bool forceSign, bool addNL);
 
   private:
     bool readUntilTokenInternal(Stream & input, SafeString & token, const char* delimitersIn, char delimiterIn, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_mS);
@@ -929,17 +952,12 @@ class SafeString : public Printable, public Print {
     void capError(const __FlashStringHelper * methodName, size_t neededCap, const char* cstr, const __FlashStringHelper *pstr = NULL, char c = '\0', size_t length = 0)const ;
     void assignError(size_t neededCap, const char* cstr, const __FlashStringHelper *pstr = NULL, char c = '\0', bool numberFlag = false) const;
     void errorMethod(const __FlashStringHelper * methodName) const ;
-    void assignErrorMethod() const ;
     void warningMethod(const __FlashStringHelper * methodName) const ;
+    void assignErrorMethod() const ;
     void outputFromIndexIfFullDebug(unsigned int fromIndex) const ;
 };
 
-// to skip this for SparkFun RedboardTurbo
-#ifndef ARDUINO_SAMD_ZERO
-#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR)  || defined(ARDUINO_ARCH_MBED_RP2040)
-} // namespace arduino
-#endif
-#endif  // #ifndef ARDUINO_SAMD_ZERO
+#include "SafeStringNameSpaceEnd.h"
 
 #endif  // __cplusplus
 #endif  // SafeString_class_h

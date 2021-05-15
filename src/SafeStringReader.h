@@ -1,7 +1,7 @@
 #ifndef SAFE_STRING_READER_H
 #define SAFE_STRING_READER_H
 /*
-  SafeStringStream.h  a Stream wrapper for a SafeString
+  SafeStringReader.h  a tokenizing Stream reader
   by Matthew Ford
   (c)2020 Forward Computing and Control Pty. Ltd.
   This code is not warranted to be fit for any purpose. You may only use it at your own risk.
@@ -11,54 +11,141 @@
 #ifdef __cplusplus
 #include <Arduino.h>
 #include "SafeString.h"
+// SafeString.h includes defines for Stream
 
-// This include handles the rename of Stream for MBED compiles
-#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MBED_RP2040)
-  #include <Stream.h>
-#elif defined( __MBED__ ) || defined( MBED_H )
-  #include <WStream.h>
-  #define Stream WStream
-#else
-  #include <Stream.h>
-#endif
+// handle namespace arduino
+#include "SafeStringNameSpaceStart.h"
 
-// to skip this for SparkFun RedboardTurbo
-#ifndef ARDUINO_SAMD_ZERO
-#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR) || defined(ARDUINO_ARCH_MBED_RP2040)
-namespace arduino {
-#endif
-#endif // #ifndef ARDUINO_SAMD_ZERO
-
-
+/**
+  createSafeStringReader( )
+  params
+    name - name of this SafeStringReader variable (DO NOT use " " just use the plain name see the examples)
+    size - the maximum length of the delimited token that can be read, NOT including the delimiter
+           If more then size chars read without finding a delimiter they are discarded and all chars upto the next delimiter are also discarded.
+           I.e. tokens longer than size are igorned and not returned.
+    delimiters - either a char ('\n') or a string of delimiters ("\r\n,.")
+    skipToDelimiterFlag - true if all data upto the first delimiter received should be ignored, default false
+    echoInput - true if all chars read (including delimiters) are to be echoed back to the Stream being read from, default false
+    timeout_mS - the mS timeout, if no more chars read for this timeout, the current input is returned as the token. In this case getDelimiter() returns -1,  default 0 i.e. never times out must read a delimiter
+    
+    example
+    createSafeStringReader(sfReader,20,'\n',false,true,100);
+    This creates a SafeStringReader sfReader which can read delimited tokens upto 20 chars long (not including the delimiter), no initial skipToDelimiter, echo is ON, timeout is 100mS
+    If no '\n' is received and no new chars read for 100mS the currently read char will be returned as the token
+  
+*/
 #define createSafeStringReader(name, size, ...) \
-char name ## _INPUT_BUFFER[(size)+2]; \
-char name ## _TOKEN_BUFFER[(size)+2]; \
-SafeString name ## _SF_INPUT((size)+2,  name ## _INPUT_BUFFER, "", #name "_InputBuffer"); \
-SafeStringReader name(name ## _SF_INPUT, (size)+2, name ## _TOKEN_BUFFER, #name, __VA_ARGS__ );
+  char name ## _INPUT_BUFFER[(size)+2]; \
+  char name ## _TOKEN_BUFFER[(size)+2]; \
+  SafeString name ## _SF_INPUT((size)+2,  name ## _INPUT_BUFFER, "", #name "_InputBuffer"); \
+  SafeStringReader name(name ## _SF_INPUT, (size)+2, name ## _TOKEN_BUFFER, #name, __VA_ARGS__ );
 
 
-
+// size + 1 for delimiter, + 1 for '\0'  actually token only ever size+1 for '\0' as delimiter not returned
+// size is the maximum size of the token to be read ignoring the delimiter
 class SafeStringReader : public SafeString {
-public:
-    explicit SafeStringReader(SafeString& _sfInput, size_t bufSize, char *tokenBuf, const char* _name, const char* delimiters, bool skipToDelimiterFlag=false, uint8_t echoInput = false, unsigned long timeout_mS = 0 );
-    explicit SafeStringReader(SafeString& _sfInput, size_t bufSize, char *tokenBuf, const char* _name, const char delimiter, bool skipToDelimiterFlag=false, uint8_t echoInput = false, unsigned long timeout_mS = 0 );
-    void connect(Stream& stream); // clears getReadCount() as well
-    bool end(); // returns true if have another token, terminates last token if any, disconnect from stream, turn echo off, set timeout to 0 and clear skipToDelimiter,  clears getReadCount()
-   bool read(); // NOTE: this call always clears the SafeStringReader so no need to call clear() on sfReader at end of processing.
-  void echoOn();
-  void echoOff();
-  void flushInput(); // clear any buffered input and Stream RX buffer then skips to next delimiter or times out. Then goes back to normal input processing
-  void skipToDelimiter(); // sets skipToDelimiter to true
-  void setTimeout(unsigned long mS);
-  size_t getReadCount(); // number of chars read since last connect called, cleared when end() called
+  public:
+  	  // here buffSize is max size of the token + 1 for delimiter + 1 for terminating '\0;
+    explicit SafeStringReader(SafeString& _sfInput, size_t bufSize, char *tokenBuf, const char* _name, const char* delimiters, bool skipToDelimiterFlag = false, uint8_t echoInput = false, unsigned long timeout_mS = 0 );
+    explicit SafeStringReader(SafeString& _sfInput, size_t bufSize, char *tokenBuf, const char* _name, const char delimiter, bool skipToDelimiterFlag = false, uint8_t echoInput = false, unsigned long timeout_mS = 0 );
 
-      /* Assignment operators **********************************
+    /**
+          connect(Stream& stream)
+          specifies the Stream to read chars from
+          params
+          stream -- the Stream to read from
+    */
+    void connect(Stream& stream); // clears getReadCount() as well
+
+    /**
+      setTimeout
+      sets the timeout to wait for more chars.
+      If no chars are received for the timeout_mS then a virtual delimiter (-1) is implied and the currently buffered text is returned as a token
+      getDelimiter() will return (char)-1 in this case and be used to detect a timeout.
+
+      default is 0, i.e. no timeout set. Only a delimiter will trigger the return of a token
+    */
+    void setTimeout(unsigned long mS);
+
+
+    /**
+      read()
+      returns true if a delimited token has been read from the stream.
+      sets this SafeStringReader to that token's text.  The delimiter is not returned as part of the token.
+      Use getDelimiter() to check which char delimited this token.
+      returnEmptyTokens() controls if empty tokens are returned. Default is to not return empty tokens, i.e. skip multiple consecutive delimiters.
+      NOTE: this call always clears the SafeStringReader so no need to call clear() on sfReader at end of processing.
+    */
+    bool read();
+
+    /**
+      getDelimiter()
+      returns the delimiter that terminated the last token
+      only valid when read() returns true
+      will return ((char)-1) is there is none, e.g. timed out or argument error
+    */
+    char getDelimiter();
+
+    /**
+      echoOn(), echoOff() control echoing back to the input Stream all chars read
+      default if echoOff();
+    */
+    void echoOn();
+    void echoOff();
+
+    /**
+      flushInput()
+      clears any buffered input and Stream RX buffer then sets skipToDelimiterFlag true
+      Once the next delimiter is read or if the timeout is set, the input times out,
+      then the SafeStringReader goes back to normal input processing.
+      Note: This differs from skipToDelimiter in that is clears any buffered Stream RX first
+    */
+    void flushInput();
+
+    /**
+      returnEmptyTokens
+      By default empty tokens are not returned, i.e. multiple consecutive delimiters are skipped
+      calling
+         returnEmptyTokens() or returnEmptyTokens(true) will return a token for every delimiter found (and every timeout)
+         returnEmptyTokens(false) restores the default
+    */
+    void returnEmptyTokens(bool flag = true);
+
+    /**
+        end()
+        returns true if have another token, terminates last token if any,
+        disconnect from stream, turn echo off, set timeout to 0 and clear skipToDelimiter,
+        clears getReadCount()
+    */
+    bool end();
+
+    /**
+      getReadCount()
+      The SafeStringReader counts the number of chars read since the last connect( ) call.
+      This can be used to terminate reading http response body when the response length is reached.
+      end() clears the read count.
+    */
+    size_t getReadCount();
+
+    /**
+      skipToDelimiter()
+      discards the next token read
+      Once the next delimiter is read or if the timeout is set, the input times out,
+      then the SafeStringReader goes back to normal input processing.
+    */
+    void skipToDelimiter();
+    /**
+      isSkippingToDelimiter returns true if currently skipping to next delimiter
+      */
+    bool isSkippingToDelimiter();
+
+    /* Assignment operators **********************************
       Set the SafeString to a char version of the assigned value.
       For = (const char *) the contents are copied to the SafeString buffer
       if the value is null or invalid,
       or too large to be fit in the string's internal buffer
       the string will be left empty
-     **/
+    */
     SafeStringReader & operator = (char c);
     SafeStringReader & operator = (unsigned char c);
     SafeStringReader & operator = (int num);
@@ -71,23 +158,25 @@ public:
     SafeStringReader & operator = (const char *cstr);
     SafeStringReader & operator = (const __FlashStringHelper *str); // handle F(" .. ") values
 
-  // return the delimiter that terminated the last token
-  // only valid when read() returns true
-  // will return ((char)-1) is there is none, e.g. timed out or argument error
-  char getDelimiter(); 
-  const char* debugInputBuffer(bool verbose = true);
-  const char* debugInputBuffer(const char* title, bool verbose = true);
-  const char* debugInputBuffer(const __FlashStringHelper *title, bool verbose = true);
-  const char* debugInputBuffer(SafeString &stitle, bool verbose = true);
+    /**
+      debugInputBuffer
+      These methods let you print out the current contents of the input buffer that the Stream is read into while
+      waiting to read a delimiter to terminate the current token.
+    */
+    const char* debugInputBuffer(bool verbose = true);
+    const char* debugInputBuffer(const char* title, bool verbose = true);
+    const char* debugInputBuffer(const __FlashStringHelper *title, bool verbose = true);
+    const char* debugInputBuffer(SafeString &stitle, bool verbose = true);
 
   private:
-  	SafeStringReader(const SafeStringReader& other);
-  	void init(SafeString& _sfInput, const char* delimiters, bool skipToDelimiterFlag, uint8_t echoInput, unsigned long timeout_mS);
-  //	void bufferInput(); // get more input
+    SafeStringReader(const SafeStringReader& other);
+    void init(SafeString& _sfInput, const char* delimiters, bool skipToDelimiterFlag, uint8_t echoInput, unsigned long timeout_mS);
+    //  void bufferInput(); // get more input
     SafeString* sfInputPtr;
     const char* delimiters;
     bool skipToDelimiterFlag;
     bool echoInput;
+    bool emptyTokensReturned; // default false
     bool flagFlushInput; // true if flushing
     unsigned long timeout_mS;
     bool haveToken; // true if have token but read() not called yet
@@ -96,12 +185,7 @@ public:
     char internalCharDelimiter[2]; // used if char delimiter passed
 };
 
-// to skip this for SparkFun RedboardTurbo
-#ifndef ARDUINO_SAMD_ZERO
-#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR) || defined(ARDUINO_ARCH_MBED_RP2040)
-} // namespace arduino
-#endif
-#endif  // #ifndef ARDUINO_SAMD_ZERO
+#include "SafeStringNameSpaceEnd.h"
 
 #endif  // __cplusplus
 #endif // SAFE_STRING_READER_H
