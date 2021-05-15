@@ -86,13 +86,11 @@ void setup() {
   sfReader.connect(Serial); // where SafeStringReader will read from
   sfReader.echoOn(); // echo back all input, by default echo is off
   sfReader.setTimeout(1000); // 1000mS = 1sec timeout
+  //sfReader.returnEmptyTokens(); if you want ,, etc to return true from sfReader.read() with an empty sfReader
 }
 
 // Check token against valid commands
 void processCmd(SafeString & token) {
-  if (token.isEmpty()) {
-    return;
-  }
   for (size_t i = 0; i < NO_OF_CMDS; i++) {
     if (token == commands[i].cmd) { // found one
       cSF(sfMsg, 30);

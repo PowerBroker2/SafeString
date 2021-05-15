@@ -29,7 +29,7 @@
    SafeString str(sizeof(charBuffer),charBuffer, charBuffer, "str", true);
 
   createSafeStringFromCharPtrWithSize(name, char*, size_t);  or cSFPS(name, char*, size_t);
-   wraps an existing char[] pointed to by char* in a SafeString of the given name and sets the capacity to the given size
+   wraps an existing char[] pointed to by char* in a SafeString of the given name and sets the capacity to the given size -1
   e.g.
   char charBuffer[15]; // can hold 14 char + terminating '\0'
   char *bufPtr = charBuffer;
@@ -149,6 +149,13 @@ bool SafeString::classErrorFlag = false; // set true if any SafeString object ha
 // _fromBuffer true does extra checking before each method execution for SafeStrings created from existing char[] buffers
 // _fromPtr is not checked unless _fromBuffer is true
 // _fromPtr true allows for any array size, if false it warns when passing char* by checking sizeof(charArray) != sizeof(char*)
+/**
+  if _fromBuffer false (i.e. cSF(sfStr,20); ) then maxLen is the capacity and the macro allocates an char[20+1], i.e. maxLen+1 (_fromPtr ignored)
+  if _fromBuffer true and _fromPtr false (i.e. cSFA(sfStr, strArray); ) then maxLen is the sizeof the strArray and the capacity is maxLen-1, _fromPtr is false
+  if _fromBuffer true and _fromPtr true, then from char*, (i.e. cSFP(sfStr,strPtr) or cSFPS(sfStr,strPtr, maxLen) and maxLen is either -1 cSFP( ) the size of the char Array pointed cSFPS
+    if maxLen == -1 then capacity == strlen(char*)  i.e. cSFP( )
+    else capacity == maxLen-1;   i.e. cSFPS( )
+*/
 SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _name, bool _fromBuffer, bool _fromPtr) {
   errorFlag = false;
   name = _name; // save name
@@ -252,7 +259,7 @@ SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _
              return;
             } // else
       **/
-      _capacity = maxLen - 1;
+      _capacity = maxLen - 1; // maxLen is actual array size so -1 to allow for '\0'
     }
     if (!keepBufferContents) {
       len = 0;
@@ -286,6 +293,34 @@ SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _
     return;
   }
 
+  // _capacity is set here
+  // check available memory
+  bool memFail = false;
+#if defined(ARDUINO_ARCH_AVR)
+  void *mem = malloc(_capacity); // will leave 128 for stack use
+#else
+  void *mem = malloc(_capacity + 256); // others 256 for stack use
+#endif
+  if (mem == NULL) {
+    memFail = true;
+  }
+  free(mem);
+  if (memFail) {
+    setError();
+    len = 0;
+    buffer[0] = '\0';
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      debugPtr->print(F("Error: SafeString("));
+      outputName(); debugPtr->print(F(", ...) request size:")); debugPtr->print(_capacity); debugPtr->print(F(" exceeds available memory. Returning zero capacity SafeString."));
+      _capacity = 0;
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    buffer = nullBufferSafeStringBuffer;
+    _capacity = 0;
+    return;
+  }
   size_t cstrLen = limitedStrLen(cstr, _capacity);
   if (cstrLen > _capacity) { // may be unterminated buffer
     if (!keepBufferContents) {
@@ -325,6 +360,7 @@ SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _
 #endif // SSTRING_DEBUG
     return;
   }
+
   if (!keepBufferContents) {
     memmove(buffer, cstr, cstrLen);
   }
@@ -332,6 +368,10 @@ SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _
   len = cstrLen;
   buffer[len] = '\0';
   buffer[_capacity] = '\0';
+  // just let the SafeString fail later :-(
+  //  for (size_t i= len+1; i<_capacity; i++) {
+  //      buffer[i] ='\0'; // force error here if stack overflow
+  //  }
 }
 
 // this is private and should never be called.
@@ -451,7 +491,7 @@ void SafeString::cleanUp() {
     return; // skip scanning for length changes in the buffer in normal SafeString
   }
   bool bufferOverrun = false;
-  if (buffer[_capacity] != '\0') {
+  if ((_capacity > 0) && (buffer[_capacity] != '\0')) {
     setError(); // buffer overrun
     bufferOverrun = true;
   }
@@ -621,13 +661,21 @@ size_t SafeString::write(uint8_t b) {
   return 1;
 }
 
+// write at most length chars from buffer into this SafeString
+// NOTE: write(cstr,length) will set hasError and optionally output errorMsg, if strlen(cstr) < length and nothing will be added to the SafeString
 size_t SafeString::write(const uint8_t *buffer, size_t length) {
   cleanUp();
   if (length == 0) {
     return 0;
   }
+  // concat check length so normalize it here
+  //  size_t bufferLen = limitedStrLen((char *)buffer, length);
+  //  if (bufferLen < length) {
+  //      length = bufferLen;
+  //  }
   size_t initialLen = len;
   size_t newlen = len + length;
+
   if (length > limitedStrLen((char *)buffer, length)) {
     setError();
 #ifdef SSTRING_DEBUG
@@ -648,6 +696,7 @@ size_t SafeString::write(const uint8_t *buffer, size_t length) {
 #endif // SSTRING_DEBUG
     return 0;
   }
+
   if (!reserve(newlen)) {
     setError();
 #ifdef SSTRING_DEBUG
@@ -712,7 +761,7 @@ SafeString & SafeString::concatln(const __FlashStringHelper * pstr) {
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       printlnErr();
-      debugPtr->print(F(" was passed a NULL pointer"));
+      debugPtr->print(F(" was passed a NULL F( ) pointer"));
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
@@ -759,9 +808,6 @@ SafeString & SafeString::concatln(const char *cstr, size_t length) {
   return *this;
 }
 
-SafeString & SafeString::concat(const char *cstr, size_t length) {
-  return concatInternal(cstr, length); // calls cleanUp()
-}
 
 
 //============= public print methods ===========
@@ -782,6 +828,176 @@ size_t SafeString::print(unsigned long l, int d) {
 }
 size_t SafeString::print(double d, int decs) {
   return printInternal(d, decs); // calls cleanUp()
+}
+
+/**
+  print to SafeString a double (or long) with decs after the decimal point
+  and padd to specified width
+  width is signed value, negative for left adjustment, +ve for right padding
+  by default the + sign is not added, set forceSign argument to true to force the display of the + sign
+
+  If the result exceed abs(width), reduce the decs after the decmial point to fit
+  If result with decs == 0 still > abs(width) raise an error and ,optionally, output an error msg
+
+  Note decs is quietly limited in this method to < 7
+*/
+size_t SafeString::print(double d, int decs, int width, bool forceSign) {
+  return printInt(d, decs, width, forceSign, false);
+}
+size_t SafeString::println(double d, int decs, int width, bool forceSign) {
+  return printInt(d, decs, width, forceSign, true);
+}
+
+size_t SafeString::printInt(double d, int decs, int width, bool forceSign, bool addNL) {
+  // if addNL need to allow 2 for nl in SafeString, width does not change
+  size_t nlExtra = addNL ? 2 : 0;
+
+  size_t absWidth = 0;
+  if (width < 0) {
+    absWidth = (-width);
+  } else {
+    absWidth = width;
+  }
+  // need to force a + sign
+  if (forceSign) {
+    if (d < 0) { // nothing to do
+      forceSign = false;
+    } else {
+      d = -d; // this will add a - which will be replaced with + at the end
+    }
+  }
+
+  if ((absWidth == 0) || ((absWidth == 1) && (forceSign))) {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      if (addNL) {
+        errorMethod(F("println"));
+      } else {
+        errorMethod(F("print"));
+      }
+      debugPtr->print(F(" width:")); debugPtr->print(width); debugPtr->print(F(" too small to display even just the integer part of "));  debugPtr->print(d);
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    return 0;
+  }
+
+  if (decs < 0) {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      if (addNL) {
+        errorMethod(F("println"));
+      } else {
+        errorMethod(F("print"));
+      }
+      debugPtr->print(F(" number places after the decimal point, ")); debugPtr->print(decs); debugPtr->print(F(" < 0"));
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    return 0;
+  }
+  if ((absWidth + nlExtra) > (_capacity - len)) {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      if (addNL) {
+        errorMethod(F("println"));
+      } else {
+        errorMethod(F("print"));
+      }
+      debugPtr->print(F(" needs capacity of ")); debugPtr->print(len + absWidth + nlExtra);  debugPtr->print(F(" too add number formatted to fixed width:")); debugPtr->print(width);
+      if (addNL) {
+        debugPtr->print(F(" and newline"));
+      }
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    return 0;
+  }
+  // max chars are 11 for integer part including sign (-4294967040), + 1 (.) + 7 prec (prec limited to 7) = 19 + '\0' => 20
+  char result[22]; // 19+'\0' + 2 for extra
+  result[0] = '\0';
+  if (isnan(d)) {
+    strcpy(result, "nan");
+  } else if (isinf(d)) {
+    strcpy(result, "inf");
+  } else if (d >= 4294967039.0) {
+    strcpy(result, "ovf"); // constant determined empirically
+  } else if (d <= -4294967039.0) {
+    strcpy(result, "-ovf"); // constant determined empirically
+  } else {
+    if (decs > 7) {
+      decs = 7; // seems to be the limit for print
+    }
+    dtostrf(d, width, decs, result);
+    while ((strlen(result) > absWidth) && (decs > 0)) {
+      // try reducing precision
+      decs--;
+      dtostrf(d, width, decs, result);
+    }
+  }
+  size_t resultLen = strlen(result);
+  if ((resultLen) > absWidth) {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      if (addNL) {
+        errorMethod(F("println"));
+      } else {
+        errorMethod(F("print"));
+      }
+      debugPtr->print(F(" width:")); debugPtr->print(width); debugPtr->print(F(" too small to display even just the integer part of "));  debugPtr->print(d);
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    // return 0;
+    result[0] = '\0'; // clear result and just padd below
+  }
+  // else may need to padd nan etc
+  cSFA(sfResult, result);
+  while (sfResult.length() < absWidth) {
+    if (width < 0) {
+      sfResult.prefix(' ');
+    } else {
+      sfResult.concat(' ');
+    }
+  }
+  if (forceSign) { // replace - with +
+    sfResult.replace('-', '+');
+    // note 0.0 does not have + so handle that here
+    if (sfResult.indexOf('+') < 0) {
+      // still need to add +
+      // find first digit
+      int idx = sfResult.indexOfCharFrom("0123456789.");
+      if (idx > 0) {
+        sfResult.setCharAt(idx - 1, '+');
+      } else {            // should not happen
+        setError();
+#ifdef SSTRING_DEBUG
+        if (debugPtr) {
+          if (addNL) {
+            errorMethod(F("println"));
+          } else {
+            errorMethod(F("print"));
+          }
+          debugPtr->print(F(" Internal Error: no space to add + sign with width:")); debugPtr->print(width); debugPtr->print(F(" d:"));  debugPtr->print(d);
+          debugInternalMsg(fullDebug);
+        }
+#endif // SSTRING_DEBUG          
+      }
+    }
+  }
+
+  // already padded just concat
+  if (nlExtra == 0) {
+    concat(result);
+    return resultLen;
+  } else {
+    concatln(result, resultLen);
+    return (resultLen + 2);
+  }
 }
 
 size_t SafeString::print(SafeString &str) {
@@ -854,11 +1070,24 @@ size_t SafeString::print(char c) {
 
 size_t SafeString::print(const __FlashStringHelper *pstr) {
   cleanUp();
+  if (!pstr) {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      errorMethod(F("print"));
+      debugPtr->print(F(" was passed a NULL F( ) pointer"));
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    return 0;
+  }
   size_t newlen = len + strlen_P((PGM_P)pstr);
   if (!reserve(newlen)) {
     setError();
 #ifdef SSTRING_DEBUG
-    capError(F("print"), newlen, NULL, pstr);
+    if (debugPtr) {
+      capError(F("print"), newlen, NULL, pstr);
+    }
 #endif // SSTRING_DEBUG
     return 0;
   }
@@ -973,6 +1202,17 @@ size_t SafeString::println(SafeString &str) {
 }
 
 size_t SafeString::println(const __FlashStringHelper *pstr) {
+  if (!pstr) {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      errorMethod(F("println"));
+      debugPtr->print(F(" was passed a NULL F( ) pointer"));
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    return 0;
+  }
   concatln(pstr); // calls cleanUp()
   return (strlen_P((PGM_P)pstr) + 2);
 }
@@ -1256,7 +1496,7 @@ SafeString & SafeString::prefix(const __FlashStringHelper * pstr, size_t length)
   if (length == 0) {
     return *this;
   }
-  if (length > strlen_P((PGM_P)pstr)) {
+  if (length > strlen_P((PGM_P)pstr)) { // what if not null terminated
     setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
@@ -1366,6 +1606,10 @@ SafeString & SafeString::concat(const char *cstr) {
   return concatInternal(cstr);
 }
 
+SafeString & SafeString::concat(const char *cstr, size_t length) {
+  return concatInternal(cstr, length); // calls cleanUp()
+}
+
 // you can concat to yourself if there is enough room, i.e. str.concat(str);
 SafeString & SafeString::concat(SafeString &s) {
   s.cleanUp();
@@ -1415,11 +1659,33 @@ SafeString & SafeString::concat(double num) {
   return concat(temp); // calls cleanUp()
 }
 SafeString & SafeString::concat(const __FlashStringHelper * pstr) {
+  if (!pstr) {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      errorMethod(F("concat"));
+      debugPtr->print(F(" was passed a NULL F( ) pointer"));
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    return *this;
+  }
   return concatInternal(pstr);
 }
 
 // concat at most length chars
 SafeString & SafeString::concat(const __FlashStringHelper * pstr, size_t length) {
+  if (!pstr) {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      errorMethod(F("concat"));
+      debugPtr->print(F(" was passed a NULL F( ) pointer"));
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    return *this;
+  }
   return concatInternal(pstr, length);
 }
 
@@ -1427,6 +1693,7 @@ SafeString & SafeString::concat(const __FlashStringHelper * pstr, size_t length)
 // concat at most length chars from cstr
 // this method applies assignOp
 SafeString & SafeString::concatInternal(const char *cstr, size_t length, bool assignOp) {
+
   cleanUp();
   size_t newlen = len + length;
   if (assignOp) {
@@ -1618,6 +1885,7 @@ SafeString & SafeString::concatInternal(char c, bool assignOp) {
 
 SafeString & SafeString::concatInternal(const char *cstr, bool assignOp) {
   cleanUp();
+
   if (!cstr) {
     setError();
 #ifdef SSTRING_DEBUG
@@ -3093,10 +3361,12 @@ void SafeString::replace(const char* findStr, const char *replacePtr) {
     if (!reserve(newlen)) {
       setError();
 #ifdef SSTRING_DEBUG
-      capError(F("replace"), newlen, findStr);
-      if (fullDebug) {
-        debugPtr->print(F("       "));
-        debugPtr->print(F(" Replace arg was '")); debugPtr->print(replacePtr); debugPtr->println('\'');
+      if (debugPtr) {
+        capError(F("replace"), newlen, findStr);
+        if (fullDebug) {
+          debugPtr->print(F("       "));
+          debugPtr->print(F(" Replace arg was '")); debugPtr->print(replacePtr); debugPtr->println('\'');
+        }
       }
 #endif // SSTRING_DEBUG
       return;
@@ -3822,13 +4092,13 @@ bool SafeString::nextTokenInternal(SafeString& token, const char* delimitersIn, 
   // skip leading delimiters  (prior to V2.0.2 leading delimiters not skipped)
   delim_count = strspn(buffer, delimiters); // count char ONLY in delimiters
   if ((returnEmptyFields) && (delim_count > 1)) {
-  	  // only remove one delimiter
-  	  delim_count = 1;
+    // only remove one delimiter
+    delim_count = 1;
   }
   remove(0, delim_count); // remove leading delimiters
   if (len == 0) {
-  	  // nothing left after last delimiter
-  	  return false; 
+    // nothing left after last delimiter
+    return false;
   }
   // check for token
   // find first char not in delimiters
@@ -4102,10 +4372,10 @@ bool SafeString::readUntilInternal(Stream& input, const char* delimitersIn, cons
       It is recommended that the capacity of the SafeString & token argument be >= this SaftString's capacity
       Each call to this method removes any leading delimiters so if you need to check the delimiter do it BEFORE the next call to readUntilToken()
       if token does not have the capacity to hold the substring, hasError() is set on both this SafeString and the token SafeString
-      If this SafeString is empty and received just a delimiter, then return an empty token and leave delimiter in the SafeString 
+      If this SafeString is empty and received just a delimiter, then return an empty token and leave delimiter in the SafeString
         On the next call may get just another delimiter in that case will skip over both, return empty token and add back last delimiter received
         Result is that multiple consecutive delimiters will return multiple empty tokens.
-      Reading of the input stream stops at the first delimiter read, so any following data is still in the stream's RX buffer  
+      Reading of the input stream stops at the first delimiter read, so any following data is still in the stream's RX buffer
 
       params
         input - the Stream object to read from
@@ -4255,8 +4525,8 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
         return false; // empty token
       } else {
         // added c above
-       // if (!haveReadDelimiter) {
-        	haveReadDelimiter = c;
+        // if (!haveReadDelimiter) {
+        haveReadDelimiter = c;
         //}
         break; // process this token
       }
@@ -4265,16 +4535,16 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
   // here either isFill() OR no more chars avail OR found delimiter
   // skipToDelimiter may still be true here if no delimiter found above
   // skip multiple delimiters and do not return last non-delimited token
-  if (nextToken(token, delimiters,false,false)) {  // removes leading delimiters if any
+  if (nextToken(token, delimiters, false, false)) { // removes leading delimiters if any
     // returns true only if have found delimited token, returns false if full and no delimiter
     // IF found delimited token, delimiter was add just now and so timer was reset
     // skipToDelimiter is false here since found delimiter
     return true; // not full and not timeout and have new token
   } else if (haveReadDelimiter) {
-  	//  this SafeString was empty and just got only a delimiter, so nextToken removed it and returns false
-  	// so add back the single delimiter just received and return an empty token
+    //  this SafeString was empty and just got only a delimiter, so nextToken removed it and returns false
+    // so add back the single delimiter just received and return an empty token
     concat(haveReadDelimiter); // is a delimiter
-    return true; // empty token, 
+    return true; // empty token,
   }
 
 
@@ -4312,7 +4582,7 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
         } // else pick up token
         // len > 0 so token only empty if too small
         //concat(delimiters[0]);   // certainly NOT full from above
-        // skip multiple delimiters, and return last one (default 
+        // skip multiple delimiters, and return last one (default
         nextToken(token, delimiters, false, true); // collect this token just delimited, this will clear input
         // remove delimiter just added
         //remove(0, 1);
@@ -4376,22 +4646,24 @@ void SafeString::debugInternalMsg(bool verbose) const {
 void SafeString::debugInternalResultMsg(bool verbose) const {
   (void)(verbose);
 #ifdef SSTRING_DEBUG
-  if (verbose) {
-    debugPtr->println(); // terminate first line
-    debugPtr->print(F("       "));
-  } else {
-    debugPtr->print(F(" --- ")); // not full debug
+  if (debugPtr) {
+    if (verbose) {
+      debugPtr->println(); // terminate first line
+      debugPtr->print(F("       "));
+    } else {
+      debugPtr->print(F(" --- ")); // not full debug
+    }
+    if (name) {
+      debugPtr->print(' ');
+      debugPtr->print(name);
+    } // else no name set
+    debugPtr->print(F(" cap:")); debugPtr->print(_capacity);
+    debugPtr->print(F(" len:")); debugPtr->print(len);
+    if (verbose) { // print SafeString current contents
+      debugPtr->print(F(" '")); debugPtr->print(buffer); debugPtr->print('\'');
+    }
+    debugPtr->println();
   }
-  if (name) {
-    debugPtr->print(' ');
-    debugPtr->print(name);
-  } // else no name set
-  debugPtr->print(F(" cap:")); debugPtr->print(_capacity);
-  debugPtr->print(F(" len:")); debugPtr->print(len);
-  if (verbose) { // print SafeString current contents
-    debugPtr->print(F(" '")); debugPtr->print(buffer); debugPtr->print('\'');
-  }
-  debugPtr->println();
 #endif // SSTRING_DEBUG
 }
 
@@ -4404,6 +4676,47 @@ void SafeString::outputName() const {
       debugPtr->print(F("SafeString"));
     }
   }
+}
+
+
+void SafeString::capError(const __FlashStringHelper * methodName, size_t neededCap, const char* cstr, const __FlashStringHelper * pstr, char c, size_t length) const {
+  (void)(methodName); (void)(neededCap);   (void)(cstr);   (void)(pstr);   (void)(c);   (void)(length);
+#ifdef SSTRING_DEBUG
+  if (debugPtr) {
+    errorMethod(methodName); // checks for NULL
+    debugPtr->print(F(" needs capacity of "));
+    debugPtr->print(neededCap);
+    if (fromBuffer) {
+      debugPtr->print(F("(i.e. char[")); debugPtr->print(neededCap + 1);  debugPtr->print(F("])"));
+    }
+    if (length != 0) {
+      debugPtr->print(F(" for the first ")); debugPtr->print(length); debugPtr->print(F(" chars of the input."));
+    }
+    if (!fullDebug) {
+      debugInternalMsg(fullDebug);
+    } else {
+      debugPtr->println();
+      debugPtr->print(F("       ")); // indent next line
+      if (cstr || pstr || (c != '\0')) {
+        debugPtr->print(F(" Input arg was "));
+        if (cstr) {
+          debugPtr->print('\'');
+          debugPtr->print(cstr);
+          debugPtr->print('\'');
+        } else if (pstr) {
+          debugPtr->print(F("F(\""));
+          debugPtr->print(pstr);
+          debugPtr->print("\")");
+        } else if (c != '\0') {
+          debugPtr->print('\'');
+          debugPtr->print(c);
+          debugPtr->print('\'');
+        }
+      }
+      debugInternalMsg(fullDebug);
+    }
+  }
+#endif
 }
 
 void SafeString::assignError(size_t neededCap, const char* cstr, const __FlashStringHelper * pstr, char c, bool numberFlag) const {
@@ -4440,71 +4753,44 @@ void SafeString::assignError(size_t neededCap, const char* cstr, const __FlashSt
 #endif
 }
 
-void SafeString::capError(const __FlashStringHelper * methodName, size_t neededCap, const char* cstr, const __FlashStringHelper * pstr, char c, size_t length) const {
-  (void)(methodName); (void)(neededCap);   (void)(cstr);   (void)(pstr);   (void)(c);   (void)(length);
-#ifdef SSTRING_DEBUG
-  if (debugPtr) {
-    errorMethod(methodName);
-    debugPtr->print(F(" needs capacity of "));
-    debugPtr->print(neededCap);
-    if (length != 0) {
-      debugPtr->print(F(" for the first ")); debugPtr->print(length); debugPtr->print(F(" chars of the input."));
-    }
-    if (!fullDebug) {
-      debugInternalMsg(fullDebug);
-    } else {
-      debugPtr->println();
-      debugPtr->print(F("       ")); // indent next line
-      if (cstr || pstr || (c != '\0')) {
-        debugPtr->print(F(" Input arg was "));
-        if (cstr) {
-          debugPtr->print('\'');
-          debugPtr->print(cstr);
-          debugPtr->print('\'');
-        } else if (pstr) {
-          debugPtr->print(F("F(\""));
-          debugPtr->print(pstr);
-          debugPtr->print("\")");
-        } else if (c != '\0') {
-          debugPtr->print('\'');
-          debugPtr->print(c);
-          debugPtr->print('\'');
-        }
-      }
-      debugInternalMsg(fullDebug);
-    }
-  }
-#endif
-}
-
 void SafeString::errorMethod(const __FlashStringHelper * methodName) const {
   (void)(methodName);
 #ifdef SSTRING_DEBUG
-  debugPtr->print(F("Error:"));
-  outputName();
-  debugPtr->print('.');
-  debugPtr->print(methodName);
-  debugPtr->print(F("()"));
+  if (debugPtr) {
+    debugPtr->print(F("Error:"));
+    outputName();
+    debugPtr->print('.');
+    if (methodName) {
+      debugPtr->print(methodName);
+    }
+    debugPtr->print(F("()"));
+  }
 #endif
 }
 
 void SafeString::warningMethod(const __FlashStringHelper * methodName) const {
   (void)(methodName);
 #ifdef SSTRING_DEBUG
-  debugPtr->print(F("Warning:"));
-  outputName();
-  debugPtr->print('.');
-  debugPtr->print(methodName);
-  debugPtr->print(F("()"));
+  if (debugPtr) {
+    debugPtr->print(F("Warning:"));
+    outputName();
+    debugPtr->print('.');
+    if (methodName) {
+      debugPtr->print(methodName);
+    }
+    debugPtr->print(F("()"));
+  }
 #endif
 }
 
 void SafeString::outputFromIndexIfFullDebug(unsigned int fromIndex) const {
   (void)(fromIndex);
 #ifdef SSTRING_DEBUG
-  if (fullDebug) {
-    debugPtr->println(); debugPtr->print(F("       "));
-    debugPtr->print(F(" fromIndex is ")); debugPtr->print(fromIndex);
+  if (debugPtr) {
+    if (fullDebug) {
+      debugPtr->println(); debugPtr->print(F("       "));
+      debugPtr->print(F(" fromIndex is ")); debugPtr->print(fromIndex);
+    }
   }
 #endif
 }
@@ -4517,9 +4803,11 @@ void SafeString::concatErr() const {
 
 void SafeString::assignErrorMethod() const {
 #ifdef SSTRING_DEBUG
-  debugPtr->print(F("Error:"));
-  outputName();
-  debugPtr->print(F(" = "));
+  if (debugPtr) {
+    debugPtr->print(F("Error:"));
+    outputName();
+    debugPtr->print(F(" = "));
+  }
 #endif
 }
 

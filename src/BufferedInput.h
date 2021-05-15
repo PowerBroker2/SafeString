@@ -35,24 +35,11 @@
 
 #include <Print.h>
 #include <Printable.h>
-// This include handles the rename of Stream for MBED compiles
-#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MBED_RP2040)
-#include <Stream.h>
-#elif defined( __MBED__ ) || defined( MBED_H )
-#include <WStream.h>
-#define Stream WStream
-#else
-#include <Stream.h>
-#endif
 
-#include "SafeString.h" // for SSTRING_DEBUG and SafeString::Output
+#include "SafeString.h" // for SSTRING_DEBUG and SafeString::Output and stream support
 
-// to skip this for SparkFun RedboardTurbo
-#ifndef ARDUINO_SAMD_ZERO
-#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR) || defined(ARDUINO_ARCH_MBED_RP2040)
-namespace arduino {
-#endif
-#endif // #ifndef ARDUINO_SAMD_ZERO
+// handle namespace arduino
+#include "SafeStringNameSpaceStart.h"
 
 #define createBufferedInput(name, size) uint8_t name ## _INPUT_BUFFER[(size)]; BufferedInput name(sizeof(name ## _INPUT_BUFFER),name ## _INPUT_BUFFER);
 
@@ -130,12 +117,7 @@ class BufferedInput : public Stream {
     void rb_internalWrite(uint8_t b);
 };
 
-// to skip this for SparkFun RedboardTurbo
-#ifndef ARDUINO_SAMD_ZERO
-#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR) || defined(ARDUINO_ARCH_MBED_RP2040)
-} // namespace arduino
-#endif
-#endif  // #ifndef ARDUINO_SAMD_ZERO
+#include "SafeStringNameSpaceEnd.h"
 
 #endif  // __cplusplus
 #endif // BufferedInput_h

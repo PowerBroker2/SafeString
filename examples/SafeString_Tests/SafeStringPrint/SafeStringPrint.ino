@@ -22,6 +22,7 @@ void setup() {
 
   Serial.println(F("Printing to a SafeString"));
   Serial.println(F("Using the well known print() methods is the easiest and most flexiable way to build up a SafeString"));
+  Serial.println(F(" Also see the SafeString_fixedWidthFormat example for padding numbers prints to a fixed width, left or right alinged"));
   Serial.println(F("SafeString::setOutput(Serial); // verbose == true"));
   // see the SafeString_ConstructorAndDebugging example for debugging settings
   SafeString::setOutput(Serial); // enable full debugging error msgs

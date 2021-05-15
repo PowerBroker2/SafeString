@@ -11,7 +11,8 @@ This library includes:-
 * **millisDelay**, a non-blocking delay replacement, with single-shot, repeating, restart and stop facilities.  
 
 # How-To
-See [SafeString Tutorial](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).  
+See [SafeString Tutorial](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html). 
+See [Arduino to Arduino/PC via Serial](https://www.forward.com.au/pfod/ArduinoProgramming/SoftwareSolutions/ComsPair.html).
 See [Arduino Text I/O for the Real World](https://www.forward.com.au/pfod/ArduinoProgramming/Serial_IO/index.html).  
 See [Simple Multitasking Arduino](https://www.forward.com.au/pfod/ArduinoProgramming/RealTimeArduino/index.html)  
 See [How to code Timers and Delays in Arduino](https://www.forward.com.au/pfod/ArduinoProgramming/TimingDelaysInArduino.html)  
@@ -23,6 +24,9 @@ See the top of each file for its license
 Note, this is NOT my work, I am simply hosting it for easy access. The original code belongs to [Forward Computing and Control Pty. Ltd](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
 
 # Revisions
+V4.1.1 fixed nullpointer, check for Out-Of-Memory on createSafeString, support for Earl Philhower's pi pico board package
+V4.1.0 added SerialComs class for Arduino to Arduino/PC via Serial, added fixed width formatting, print(value,decPlaces,width) see example SafeString_Tests/SafeString_fixedWidthFormat.ino
+V4.0.5 added returnEmptyTokens() option to SafeStringReader
 V4.0.4 adds support for Raspberry Pi Pico using Arduino Mbed OS RP2040 V2.0.0 board package ,nextToken() now returns last un-terminated token by default (can be overridded by optional arg), option to return empty tokens
 V4.0.3 allow createSafeString for small sizes, fixed bool for DUE (ARDUINO_ARCH_SAM)
 V4.0.2 added flushInput() method to SafeStringReader

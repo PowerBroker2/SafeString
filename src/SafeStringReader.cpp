@@ -18,6 +18,7 @@ using namespace arduino;
 #endif
 #endif // #ifndef ARDUINO_SAMD_ZERO
 
+// here buffSize is max size of the token + 1 for delimiter + 1 for terminating '\0;
 SafeStringReader::SafeStringReader(SafeString &sfInput_, size_t bufSize, char* tokenBuffer, const char* _name, const char delimiter, bool skipToDelimiterFlag_, uint8_t echoInput_, unsigned long timeout_mS_) : SafeString(bufSize, tokenBuffer, "", _name) {
   internalCharDelimiter[0] = delimiter;
   internalCharDelimiter[1] = '\0';
@@ -35,6 +36,11 @@ void SafeStringReader::init(SafeString& sfInput_,const char* delimiters_, bool s
   skipToDelimiterFlag = skipToDelimiterFlag_;
   echoInput = echoInput_;
   timeout_mS = timeout_mS_;
+  emptyTokensReturned = false;
+}
+
+bool SafeStringReader::isSkippingToDelimiter() {
+	return (flagFlushInput || skipToDelimiterFlag);
 }
 
 void SafeStringReader::connect(Stream& stream) {
@@ -45,6 +51,10 @@ void SafeStringReader::connect(Stream& stream) {
   }
 }
 
+void SafeStringReader::returnEmptyTokens(bool flag) {
+	emptyTokensReturned = flag;
+}
+	
 bool SafeStringReader::end() {
 	// skip multiple delimiters and return last one
   bool rtn = sfInputPtr->nextToken(*this, delimiters, false, true);
@@ -163,6 +173,9 @@ bool SafeStringReader::read() {
     SafeString::Output.print(F("!! Input exceeded buffer size. Skipping Input upto next delimiter.\n")); // input overflow
 #endif // SSTRING_DEBUG
   }
+  if ((!emptyTokensReturned) && isEmpty()) {
+  	  return false;
+  } // else
   return rtn;
 }
 
