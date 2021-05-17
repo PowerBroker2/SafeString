@@ -230,7 +230,7 @@ void SerialComs::receiveNextMsg() {
     return;
   }
   // do this check second so that if non-controller takes a long time to process textToSendPtr and generate response
-  // the above code will first clear all previous newline prompts
+  // the above code will first clear all previous XON prompts
   // then this code will timeout and set non-connected and clearToSendFlag == false for next prompt
  // checkConnectionTimeout(); // if CONTROLLER the other side if not connected and this side is the controller
 
@@ -238,10 +238,12 @@ void SerialComs::receiveNextMsg() {
     return;
   }
   if (textReceivedPtr->hasError()) { // previous input length exceeded or read 0
-    DEBUG.println(F(" textReceivedPtr hasError. Read '\\0' or Input overflowed."));
+    DEBUG.println(F(" textReceived hasError. Read '\\0' or Input overflowed."));
   }
   if (textReceivedPtr->getDelimiter() == ((char) - 1)) { // no delimiter so timed out
-    DEBUG.println(F("textReceivedPtr timeout without newline"));
+    DEBUG.println(F("textReceived timeout without receiving terminating XON (0x13)"));
+    textReceivedPtr->debug(" ");
+    textReceivedPtr->clear(); // skip the invalid line
     return;
   }
   // Only one message allowed at a time so clear any following data

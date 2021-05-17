@@ -24,6 +24,7 @@ See the top of each file for its license
 Note, this is NOT my work, I am simply hosting it for easy access. The original code belongs to [Forward Computing and Control Pty. Ltd](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
 
 # Revisions
+V4.1.2 fixed SerialComs when msg times out without delimiter, fixed support for Adafruit Feather nRF52 (V0.21.0)
 V4.1.1 fixed nullpointer, check for Out-Of-Memory on createSafeString, support for Earl Philhower's pi pico board package
 V4.1.0 added SerialComs class for Arduino to Arduino/PC via Serial, added fixed width formatting, print(value,decPlaces,width) see example SafeString_Tests/SafeString_fixedWidthFormat.ino
 V4.0.5 added returnEmptyTokens() option to SafeStringReader
