@@ -711,6 +711,8 @@ class SafeString : public Printable, public Print {
     unsigned char toFloat(float  & f) ;
     unsigned char toDouble(double & d) ;
 
+    // float toFloat(); possible alternative
+
     /* Tokenizeing methods,  stoken(), nextToken() ************************/
     /* Differences between stoken() and nextToken
        stoken() leaves the SafeString unchanged, nextToken() removes the token (and leading delimiters) from the SafeString giving space to add more input
@@ -898,7 +900,7 @@ class SafeString : public Printable, public Print {
           return currentOutput->write(buffer, length);
         };
         void flush() {
-#if defined(ESP_PLATFORM) || defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4)
+#if defined(ESP_PLATFORM) || defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4) || defined(ARDUINO_NRF52832_FEATHER)
           // ESP32 has no flush in Print!! but ESP8266 has
 #else
           currentOutput->flush();

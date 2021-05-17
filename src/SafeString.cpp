@@ -103,6 +103,10 @@
 #include "SafeString.h"
 #include <limits.h>
 
+#if defined(ARDUINO_NRF52832_FEATHER) || defined(ARDUINO_ARCH_SAM)
+#include "avr/dtostrf.h"
+#endif
+
 // to skip this for SparkFun RedboardTurbo
 #ifndef ARDUINO_SAMD_ZERO
 #if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR)
@@ -3786,12 +3790,32 @@ unsigned char SafeString::hexToLong(long &l) {
   return true; // OK
 }
 
+/**  possible alternative
+// convert float number, returns 0.0 and sets error flag not a valid number
+float SafeString::toFloat() {
+  cleanUp();
+  double d;
+  if (toDouble(d)) {
+    return (float)d; // need to ckeck size here
+  } // else
+  setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      errorMethod(F("toFloat()"));
+      debugPtr->print(F(" invalid float "));
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG  
+  return 0.0;
+}
+****/
+
 // convert float number , arg f unchanged if no valid number found
 unsigned char SafeString::toFloat(float  &f) {
   cleanUp();
   double d;
   if (toDouble(d)) {
-    f = (float)d;
+    f = (float)d; // need to ckeck size here
     return true;
   } // else
   return false;
@@ -4830,3 +4854,14 @@ void SafeString::prefixErr() const {
 }
 /*****************  end of private internal debug support methods *************************/
 
+/**
+// dtostrf for those boards that don't have it
+static char *dtostrf (double val, signed char width, unsigned char prec, char *sout) {
+  asm(".global _printf_float");
+
+  char fmt[20];
+  sprintf(fmt, "%%%d.%df", width, prec);
+  sprintf(sout, fmt, val);
+  return sout;
+}
+**/
