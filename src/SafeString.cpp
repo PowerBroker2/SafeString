@@ -103,7 +103,7 @@
 #include "SafeString.h"
 #include <limits.h>
 
-#if defined(ARDUINO_NRF52832_FEATHER)
+#if defined(ARDUINO_NRF52832_FEATHER) || defined(ARDUINO_ARCH_SAM)
 #include "avr/dtostrf.h"
 #endif
 
