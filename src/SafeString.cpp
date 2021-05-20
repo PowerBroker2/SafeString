@@ -103,9 +103,16 @@
 #include "SafeString.h"
 #include <limits.h>
 
-#if defined(ARDUINO_NRF52832_FEATHER) || defined(ARDUINO_ARCH_SAM)
-#include "avr/dtostrf.h"
+#if !defined(ARDUINO_ARCH_AVR)
+#ifdef __cplusplus
+extern "C" {
 #endif
+char *dtostrf(double val, signed char width, unsigned char prec, char *sout);
+#ifdef __cplusplus
+}
+#endif
+#endif
+
 
 // to skip this for SparkFun RedboardTurbo
 #ifndef ARDUINO_SAMD_ZERO
