@@ -24,6 +24,7 @@ See the top of each file for its license
 Note, this is NOT my work, I am simply hosting it for easy access. The original code belongs to [Forward Computing and Control Pty. Ltd](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
 
 # Revisions
+V4.1.4 fixed dtostrf support
 V4.1.3 added Arduino Due support
 V4.1.2 fixed SerialComs when msg times out without delimiter, fixed support for Adafruit Feather nRF52 (V0.21.0)
 V4.1.1 fixed nullpointer, check for Out-Of-Memory on createSafeString, support for Earl Philhower's pi pico board package
