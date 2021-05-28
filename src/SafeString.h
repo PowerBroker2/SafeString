@@ -552,16 +552,15 @@ class SafeString : public Printable, public Print {
       0 to length() and (unsigned int)(-1) are valid for fromIndex, if fromIndex == length() or -1 false is returned
       if the argument is null or fromIndex > length(), an error is flagged and false returned
     **/
-    unsigned char startsWith( const char *str2) ;
-    unsigned char startsWith( const char *str2, unsigned int fromIndex ) ;
-    unsigned char startsWithIgnoreCase( const char *str2 ) ;
-    unsigned char startsWithIgnoreCase( const char *str2, unsigned int fromIndex ) ;
-    unsigned char startsWith( SafeString &s2) ;
-    unsigned char startsWith(SafeString &s2, unsigned int fromIndex) ;
-    unsigned char startsWithIgnoreCase( SafeString &s2 ) ;
-    unsigned char startsWithIgnoreCase( SafeString &s2, unsigned int fromIndex ) ;
+    unsigned char startsWith(const char c, unsigned int fromIndex = 0);
+    unsigned char startsWith( const char *str2, unsigned int fromIndex = 0) ;
+    unsigned char startsWith(SafeString &s2, unsigned int fromIndex = 0) ;
+    unsigned char startsWithIgnoreCase(const char c, unsigned int fromIndex = 0);
+    unsigned char startsWithIgnoreCase( const char *str2, unsigned int fromIndex = 0) ;
+    unsigned char startsWithIgnoreCase( SafeString &s2, unsigned int fromIndex = 0) ;
     
     /* endsWith methods  *******************/
+    unsigned char endsWith(const char c);
     unsigned char endsWith(SafeString &suffix) ;
     unsigned char endsWith(const char *suffix) ;
     unsigned char endsWithCharFrom(SafeString &suffix) ;
@@ -752,12 +751,14 @@ class SafeString : public Printable, public Print {
     int stoken(SafeString & token, unsigned int fromIndex, const char* delimiters, bool returnEmptyFields = false, bool useAsDelimiters = true);
     int stoken(SafeString & token, unsigned int fromIndex, SafeString & delimiters, bool returnEmptyFields = false, bool useAsDelimiters = true);
 
-    /* nextToken -- The token is removed from the SafeString ********************
+    /* firstToken, nextToken -- The token is removed from the SafeString ********************
+      firstToken -- No leading delimiters are removed, then the delimited token found is removed from the SafeString.
+                   See returnEmptyFields and returnLastNonDelimitedToken arguments below for controls on this.
+                   The following delimiters remain in the SafeString so you can test which delimiter terminated the token, provided this SafeString is not empty!
       nextToken -- Any leading delimiters are first removed, then the delimited token found is removed from the SafeString.
                    See returnEmptyFields and returnLastNonDelimitedToken arguments below for controls on this.
                    The following delimiters remain in the SafeString so you can test which delimiter terminated the token, provided this SafeString is not empty!
-                   If the SafeString ends with a delimiter no empty token is returned after the last delimiter is removed.
-      The token argument is always cleared at the start of the nextToken().
+      The token argument is always cleared at the start of the firstToken() and nextToken().
       IMPORTANT!! Changed V4.0.4 By default un-delimited tokens at the end of the SafeString are returned
       To leave partial un-delimited tokens on the end of the SafeString, set returnLastNonDelimitedToken = false.
       Setting returnLastNonDelimitedToken = false allows the SafeString to hold partial tokens when reading from an input stream one char at a time.
@@ -768,16 +769,21 @@ class SafeString : public Printable, public Print {
               If the token's capacity is < the next token, then nextToken() returns true, but the returned token argument is empty and an error messages printed if debug is enabled.
               In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
       delimiters - the delimiting characters, any one of which can delimit a token
-      returnEmptyFields -- default false, if set true will return empty token for consecuative delimiters.
+      returnEmptyFields -- default false, if true, for firstToken() will return false, and an empty token, if first char is a delimiter
+                                                   for nextToken() will return true, and an empty token for each consecuative delimiters.
       returnLastNonDelimitedToken -- default true, will return last part of input even if not delimited. If set false, will keep it for further input to be added to this SafeString
 
-      return -- true if nextToken() finds a token in this SafeString that is terminated by one of the delimiters after removing any leading delimiters, else false
-                returnEmptyFields controls removeing multiple leading delimiter, returnLastNonDelimitedToken controls if last un-terminated token is returned.
+      return -- true if firstToken()/nextToken() finds a token in this SafeString that is terminated by one of the delimiters, else false
+                nextToken() first removes any leading delimiters, 
+                returnEmptyFields controls removing multiple leading delimiters, returnLastNonDelimitedToken controls if last un-terminated token is returned.
                 If the return is true, but hasError() is true then the SafeString token argument did not have the capacity to hold the next token.
                 In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
                 while being consistent with the SafeString's all or nothing insertion rule
          Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
     **/
+    unsigned char firstToken(SafeString & token, char delimiter, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true);
+    unsigned char firstToken(SafeString & token, SafeString & delimiters, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true);
+    unsigned char firstToken(SafeString & token, const char* delimiters, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true);
     unsigned char nextToken(SafeString & token, char delimiter, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true);
     unsigned char nextToken(SafeString & token, SafeString & delimiters, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true);
     unsigned char nextToken(SafeString & token, const char* delimiters, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true);

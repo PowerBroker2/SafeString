@@ -263,7 +263,7 @@ SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _
         #ifdef SSTRING_DEBUG
               if (debugPtr) {
                 debugPtr->print(F("Error: cSFPS / createSafeStringFromCharPtrWithSize("));
-                outputName(); debugPtr->print(F(", ...) specified size: ")); debugPtr->print(maxLen); debugPtr->print(F(" exceed max allowable size for this board: ")); debugPtr->print(SAFE_STRING_MAX_CSTRING_SIZE);
+                outputName(); debugPtr->print(F(", ...) specified size: ")); debugPtr->print(maxLen); debugPtr->print(F(" exceeds max allowable size for this board: ")); debugPtr->print(SAFE_STRING_MAX_CSTRING_SIZE);
                 debugInternalMsg(fullDebug);
               }
         #endif // SSTRING_DEBUG
@@ -2122,18 +2122,24 @@ unsigned char SafeString::equalsConstantTime(SafeString &s2) {
 /*********************************************/
 /** startsWith(), endsWith()  methods        */
 /*********************************************/
-unsigned char SafeString::startsWith( SafeString &s2 ) {
-  s2.cleanUp();
-  cleanUp();
-  if (len < s2.len) {
+unsigned char SafeString::startsWith(const char c, unsigned int fromIndex) {
+  if (c == '\0') {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      errorMethod(F("startsWith"));
+      debugPtr->print(F(" was passed \\0"));
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
     return false;
   }
-  return startsWith(s2, 0);
+  char str[2];
+  str[0] = c;
+  str[1] = '\0';
+  return startsWith(str,fromIndex);
 }
 
-unsigned char SafeString::startsWith( const char *str2) {
-  return startsWith(str2, 0); // calls cleanUp()
-}
 
 unsigned char SafeString::startsWith( const char *str2, unsigned int fromIndex ) {
   cleanUp();
@@ -2253,14 +2259,22 @@ unsigned char SafeString::startsWith( SafeString &s2, unsigned int fromIndex ) {
   return strncmp( &buffer[fromIndex], s2.buffer, s2.len ) == 0;
 }
 
-
-unsigned char SafeString::startsWithIgnoreCase( SafeString &s2 ) {
-  s2.cleanUp();
-  cleanUp();
-  if (len < s2.len) {
+unsigned char SafeString::startsWithIgnoreCase(const char c, unsigned int fromIndex) {
+  if (c == '\0') {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      errorMethod(F("startsWithIgnoreCase"));
+      debugPtr->print(F(" was passed \\0"));
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
     return false;
   }
-  return startsWithIgnoreCase(s2, 0);
+  char str[2];
+  str[0] = c;
+  str[1] = '\0';
+  return startsWithIgnoreCase(str,fromIndex);
 }
 
 unsigned char SafeString::startsWithIgnoreCase( SafeString &s2, unsigned int fromIndex ) {
@@ -2322,10 +2336,6 @@ unsigned char SafeString::startsWithIgnoreCase( SafeString &s2, unsigned int fro
     }
   }
   return true;
-}
-
-unsigned char SafeString::startsWithIgnoreCase( const char *str2 ) {
-  return startsWithIgnoreCase(str2, 0); // calls cleanUp()
 }
 
 // return 0 false 1 true
@@ -2414,6 +2424,24 @@ unsigned char SafeString::endsWith( SafeString &s2 ) {
     }
   **/
   return strcmp(&buffer[len - s2.len], s2.buffer) == 0;
+}
+
+unsigned char SafeString::endsWith(const char c) {
+  if (c == '\0') {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      errorMethod(F("endsWith"));
+      debugPtr->print(F(" was passed \\0"));
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    return false;
+  }
+  char str[2];
+  str[0] = c;
+  str[1] = '\0';
+  return endsWith(str);
 }
 
 unsigned char SafeString::endsWith(const char *suffix) {
@@ -4027,12 +4055,14 @@ int SafeString::stokenInternal(SafeString &token, unsigned int fromIndex, const 
 }
 /** end of stoken methods *******************/
 
-/* nextToken -- The token is removed from the SafeString ********************
+    /* firstToken, nextToken -- The token is removed from the SafeString ********************
+      firstToken -- No leading delimiters are removed, then the delimited token found is removed from the SafeString.
+                   See returnEmptyFields and returnLastNonDelimitedToken arguments below for controls on this.
+                   The following delimiters remain in the SafeString so you can test which delimiter terminated the token, provided this SafeString is not empty!
       nextToken -- Any leading delimiters are first removed, then the delimited token found is removed from the SafeString.
                    See returnEmptyFields and returnLastNonDelimitedToken arguments below for controls on this.
                    The following delimiters remain in the SafeString so you can test which delimiter terminated the token, provided this SafeString is not empty!
-                   If the SafeString ends with a delimiter no empty token is returned after the last delimiter is removed.
-      The token argument is always cleared at the start of the nextToken().
+      The token argument is always cleared at the start of the firstToken() and nextToken().
       IMPORTANT!! Changed V4.0.4 By default un-delimited tokens at the end of the SafeString are returned
       To leave partial un-delimited tokens on the end of the SafeString, set returnLastNonDelimitedToken = false.
       Setting returnLastNonDelimitedToken = false allows the SafeString to hold partial tokens when reading from an input stream one char at a time.
@@ -4043,16 +4073,89 @@ int SafeString::stokenInternal(SafeString &token, unsigned int fromIndex, const 
               If the token's capacity is < the next token, then nextToken() returns true, but the returned token argument is empty and an error messages printed if debug is enabled.
               In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
       delimiters - the delimiting characters, any one of which can delimit a token
-      returnEmptyFields -- default false, if set true will return empty token for consecuative delimiters.
+      returnEmptyFields -- default false, if true, for firstToken() will return false, and an empty token, if first char is a delimiter
+                                                   for nextToken() will return true, and an empty token for each consecuative delimiters.
       returnLastNonDelimitedToken -- default true, will return last part of input even if not delimited. If set false, will keep it for further input to be added to this SafeString
 
-      return -- true if nextToken() finds a token in this SafeString that is terminated by one of the delimiters after removing any leading delimiters, else false
-                returnEmptyFields controls removeing multiple leading delimiter, returnLastNonDelimitedToken controls if last un-terminated token is returned.
+      return -- true if firstToken()/nextToken() finds a token in this SafeString that is terminated by one of the delimiters, else false
+                nextToken() first removes any leading delimiters, 
+                returnEmptyFields controls removing multiple leading delimiters, returnLastNonDelimitedToken controls if last un-terminated token is returned.
                 If the return is true, but hasError() is true then the SafeString token argument did not have the capacity to hold the next token.
                 In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
                 while being consistent with the SafeString's all or nothing insertion rule
-      Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
-**/
+         Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
+    **/
+unsigned char SafeString::firstToken(SafeString & token, char delimiter, bool returnEmptyFields, bool returnLastNonDelimitedToken) {
+  cleanUp();
+  token.clear();
+  if (!delimiter) {
+    setError();
+    token.setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      errorMethod(F("nextToken"));
+      debugPtr->print(F(" was passed a '\\0' delimiter"));
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    return false;
+  }
+  if (isEmpty()) {
+  	  // empty token returned
+     return false;
+  }
+  if ((delimiter == charAt(0)) && returnEmptyFields) {
+  	  // empty token returned
+  	  return  true;
+  }
+  // else have a non-empty field just call nextToken
+  return nextToken(token, delimiter, returnEmptyFields, returnLastNonDelimitedToken);
+}
+
+unsigned char SafeString::firstToken(SafeString & token, SafeString & delimiters, bool returnEmptyFields, bool returnLastNonDelimitedToken) {
+  delimiters.cleanUp();
+  return firstToken(token, delimiters.buffer, returnEmptyFields, returnLastNonDelimitedToken); // calls cleanUp() token.clear()
+}
+   
+unsigned char SafeString::firstToken(SafeString & token, const char* delimiters, bool returnEmptyFields, bool returnLastNonDelimitedToken) {
+  cleanUp();
+  token.clear();
+  if (!delimiters) {
+    setError();
+    token.setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      errorMethod(F("nextToken"));
+      debugPtr->print(F(" was passed a NULL pointer for delimiters"));
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    return false;
+  }
+  if (*delimiters == '\0') {
+    setError();
+    token.setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      errorMethod(F("nextToken"));
+      debugPtr->print(F(" was passed a empty list of delimiters"));
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    return false;
+  }
+  if (isEmpty()) {
+  	  // empty token returned
+     return false;
+  }
+  if (startsWith(delimiters) && returnEmptyFields) {
+  	  // empty token returned
+  	  return  true; // true if return empty fileds
+  }
+  // else have a non-empty field just call nextToken
+  return nextToken(token, delimiters, returnEmptyFields, returnLastNonDelimitedToken);
+}
+
 unsigned char SafeString::nextToken(SafeString& token, const char delimiter, bool returnEmptyFields, bool returnLastNonDelimitedToken) {
   token.clear();
   if (!delimiter) {
@@ -4129,7 +4232,7 @@ bool SafeString::nextTokenInternal(SafeString& token, const char* delimitersIn, 
   remove(0, delim_count); // remove leading delimiters
   if (len == 0) {
     // nothing left after last delimiter
-    return false;
+    return (returnEmptyFields && returnLastNonDelimitedToken);
   }
   // check for token
   // find first char not in delimiters
@@ -4587,7 +4690,7 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
     token.setError();
     if (debugPtr) {
       debugPtr->println(); debugPtr->print(F("!! Error:")); outputName();
-      debugPtr->print(F(" -- input length exceed capacity "));
+      debugPtr->print(F(" -- input length exceeds capacity "));
       debugInternalMsg(fullDebug);
     }
     clear();  // not full now
