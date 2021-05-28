@@ -61,6 +61,7 @@ readUntil	KEYWORD2
 readUntilToken	KEYWORD2
 getLastReadCount	KEYWORD2
 stoken	KEYWORD2
+firstToken	KEYWORD2
 nextToken	KEYWORD2
 SafeStringStream	KEYWORD1
 begin	KEYWORD2

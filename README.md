@@ -24,18 +24,19 @@ See the top of each file for its license
 Note, this is NOT my work, I am simply hosting it for easy access. The original code belongs to [Forward Computing and Control Pty. Ltd](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
 
 # Revisions
-V4.1.4 fixed dtostrf support
-V4.1.3 added Arduino Due support
-V4.1.2 fixed SerialComs when msg times out without delimiter, fixed support for Adafruit Feather nRF52 (V0.21.0)
-V4.1.1 fixed nullpointer, check for Out-Of-Memory on createSafeString, support for Earl Philhower's pi pico board package
-V4.1.0 added SerialComs class for Arduino to Arduino/PC via Serial, added fixed width formatting, print(value,decPlaces,width) see example SafeString_Tests/SafeString_fixedWidthFormat.ino
-V4.0.5 added returnEmptyTokens() option to SafeStringReader
-V4.0.4 adds support for Raspberry Pi Pico using Arduino Mbed OS RP2040 V2.0.0 board package ,nextToken() now returns last un-terminated token by default (can be overridded by optional arg), option to return empty tokens
-V4.0.3 allow createSafeString for small sizes, fixed bool for DUE (ARDUINO_ARCH_SAM)
-V4.0.2 added flushInput() method to SafeStringReader
-V4.0.1 fixed SafeStringReader timeout and NanoBLE F() macro
-V4.0.0 changes method returns to better match Arduino String methods, main change is indexOf now returns int and returns -1 if not found
-V3.1.0 adds hasError() method
-V3.0.6 adds support for Arduino megaAVR boards
-V3.0.5 adds support for SparkFun Redboard Turbo,but may interfer with other SAM ZERO based boards, also adds support for Due and STM32F1 and STM32F4
+V4.1.5 SerialComs timeout 5sec, added firstToken()  
+V4.1.4 fixed dtostrf support  
+V4.1.3 added Arduino Due support  
+V4.1.2 fixed SerialComs when msg times out without delimiter, fixed support for Adafruit Feather nRF52 (V0.21.0)  
+V4.1.1 fixed nullpointer, check for Out-Of-Memory on createSafeString, support for Earl Philhower's pi pico board package  
+V4.1.0 added SerialComs class for Arduino to Arduino/PC via Serial, added fixed width formatting, print(value,decPlaces,width) see example SafeString_Tests/SafeString_fixedWidthFormat.ino  
+V4.0.5 added returnEmptyTokens() option to SafeStringReader  
+V4.0.4 adds support for Raspberry Pi Pico using Arduino Mbed OS RP2040 V2.0.0 board package ,nextToken() now returns last un-terminated token by default (can be overridded by optional arg), option to return empty tokens  
+V4.0.3 allow createSafeString for small sizes, fixed bool for DUE (ARDUINO_ARCH_SAM)  
+V4.0.2 added flushInput() method to SafeStringReader  
+V4.0.1 fixed SafeStringReader timeout and NanoBLE F() macro  
+V4.0.0 changes method returns to better match Arduino String methods, main change is indexOf now returns int and returns -1 if not found  
+V3.1.0 adds hasError() method  
+V3.0.6 adds support for Arduino megaAVR boards  
+V3.0.5 adds support for SparkFun Redboard Turbo,but may interfer with other SAM ZERO based boards, also adds support for Due and STM32F1 and STM32F4  
 

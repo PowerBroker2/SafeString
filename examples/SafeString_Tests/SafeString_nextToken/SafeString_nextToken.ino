@@ -10,8 +10,8 @@
 */
 #include "SafeString.h"
 
-char line[] = "23.5, 44a ,, , -5. , +.5, 7a, 33,fred5, 6.5.3, a.5,b.3\n";
-char delimiters[] = ",\n"; // just comma for delimiter, could also use ",;" if comma or semi-colon seperated fields
+char line[] = ",23.5, 44a ,, , -5. , +.5, 7a, 33,fred5, 6.5.3, a.5,b.3\n";
+char delimiters[] = ","; // just comma for delimiter, could also use ",;" if comma or semi-colon seperated fields
 
 void setup() {
   // Open serial communications and wait a few seconds
@@ -21,27 +21,28 @@ void setup() {
     delay(500);
   }
   Serial.println();
-  Serial.println(F("Using SafeString nextToken() to parse a comma separated line for the numbers it contains."));
+  Serial.println(F("Using SafeString firstToken()/nextToken() to parse a comma separated line for the numbers it contains."));
   Serial.println(F("SafeString::setOutput(Serial); // verbose"));
   // see the SafeString_ConstructorAndDebugging example for debugging settings
   SafeString::setOutput(Serial); // enable full debugging error msgs
 
   createSafeString(sfLine, 64); // a SafeString large enough to hold the whole line.
   sfLine = line; // initialize the SaftString for processing
-  sfLine.trim(); // remove final \n
-  Serial.print(F("The trimmed sfLine line is '")); Serial.print(sfLine); Serial.println('\'');
-  Serial.println(F("The delimiters are comma and newline (\\n)"));
+  Serial.print(F("The sfLine line is '")); Serial.print(sfLine); Serial.println('\'');
+  Serial.println(F("The delimiter is comma"));
   Serial.println(F("Note: By default the last field will be returned even if not terminated by a delimiter.  The optional returnLastNonDelimitedToken argument controls this."));
   createSafeString(field, 10); // for the field strings. Should have capacity > largest field length
   Serial.println();
-  Serial.println(F("Fields with numbers are:-  (returning empty fields, optional last argument true)"));
-  while (sfLine.nextToken(field, delimiters, true)) {
+  Serial.println(F("Fields with numbers are:-  (returning empty fields, third optional argument true)"));
+  bool haveToken = sfLine.firstToken(field, delimiters, true); // will return true and empty field if first char is ,
+  while (haveToken) {
     double d;
     if (field.toDouble(d)) {
       Serial.println(d);
     } else {
       Serial.print(F("  Field '")); Serial.print(field); Serial.println(F("' is not a number"));
     }
+    haveToken = sfLine.nextToken(field, delimiters, true);
   }
   Serial.println();
 
@@ -52,16 +53,18 @@ void setup() {
   Serial.println(F("sfLine = line; // re-initialize the line since nextToken removes the tokens and delimiters"));
   sfLine = line; // re-initialize the line since nextToken removes the tokens and delimiters
   Serial.print(F("The untrimmed Input line is '")); Serial.print(sfLine); Serial.println('\'');
-  createSafeString(sDelimiters, 4, ",\n");
+  createSafeString(sDelimiters, 4, ",");
   sDelimiters.debug(F(" Test using a SafeString for the delimiters  --  "));
-  Serial.println(F(" The fields with integers are:-  (NOT returning empty fields, optional last argument defaults to false)"));
-  while (sfLine.nextToken(field, sDelimiters)) {
+  Serial.println(F(" The fields with integers are:-  (NOT returning empty fields)"));
+  haveToken = sfLine.firstToken(field, delimiters); // will return true and empty field if first char is ,
+  while (haveToken) {
     long l_num;
     if (field.toLong(l_num)) {
       Serial.println(l_num);
     } else {
-      Serial.print(F("  Field ,")); Serial.print(field); Serial.println(F(" is not an integer number"));
+      Serial.print(F("  Field ")); Serial.print(field); Serial.println(F(" is not an integer number"));
     }
+    haveToken = sfLine.nextToken(field, delimiters);
   }
   Serial.println();
 

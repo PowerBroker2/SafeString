@@ -47,7 +47,7 @@ static const char XON = (char)0x11;
 SerialComs::SerialComs(size_t sendSize, size_t receiveSize) : SafeString(1, emptyCharArray, "") {
   _receiveSize = receiveSize;
   _sendSize = sendSize;
-  connectionTimeout_mS = 250; // connection timeout
+  connectionTimeout_mS = 5000; // connection timeout
   outOfMemory = false;
   memoryLow = false;
   connected = false;
@@ -180,15 +180,27 @@ bool SerialComs::connect(Stream &io) {
     connectionTimeout.start(connectionTimeout_mS);
   }
 
-  textReceivedPtr->setTimeout(connectionTimeout_mS); // set connectionTimeout_mS sec timeout for flushInput and missing XON
+  // make sure the other side times out
+  unsigned long timeout = connectionTimeout_mS/2;
+  if (timeout < 1) {
+  	  timeout = 1;
+  }
+  textReceivedPtr->setTimeout(timeout); // set connectionTimeout_mS/2 sec timeout for flushInput and missing XON NOTE: needs to < timeout so prompt from other side does not prevent flush completing
   textReceivedPtr->returnEmptyTokens();
   textReceivedPtr->flushInput();
   textReceivedPtr->connect(*stream_io_ptr); // read from COMS_SERIAL
-//  textReceivedPtr->setTimeout(4*connectionTimeout_mS); // set connectionTimeout_mS sec timeout for flushInput and missing XON
-//  while(textReceivedPtr->isSkippingToDelimiter()) {
-//  	  textReceivedPtr->read();
-//  }
-//  textReceivedPtr->setTimeout(connectionTimeout_mS); // set connectionTimeout_mS sec timeout for flushInput and missing XON
+  DEBUG.println(F(" SerialComs clearing out old data . . ."));
+  while(textReceivedPtr->isSkippingToDelimiter()) {
+  	  textReceivedPtr->read();
+  }
+  timeout = connectionTimeout_mS;
+  if (timeout > 10) {
+  	  timeout = 10;
+  }
+  if (timeout < 1) {
+  	  timeout = 1;
+  }
+  textReceivedPtr->setTimeout(timeout); // 10mS timeout 10 chars at 9600, 1 char at 960 baud timeout missing XON
   DEBUG.println(F(" SerialComs -  started"));
   return true;
 }
@@ -227,6 +239,7 @@ void SerialComs::receiveNextMsg() {
 	// clearToSendFlag -> false so we do not clear RX buffer after timeout
   if (clearToSendFlag) { // we should be sending so ignore any input
     clearIO_Available();
+//    DEBUG.println(F(" clearIO_Available clearToSendFlag."));
     return;
   }
   // do this check second so that if non-controller takes a long time to process textToSendPtr and generate response
@@ -248,6 +261,7 @@ void SerialComs::receiveNextMsg() {
   }
   // Only one message allowed at a time so clear any following data
   clearIO_Available();
+ //  DEBUG.println(F(" clearIO_Available after read."));
   // only reach here is got msg with delimiter
   
   // for both controller and non-controller,
