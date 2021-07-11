@@ -1,6 +1,6 @@
 // !!!!!!!!! WARNING in V2 substring endIdx is EXCLUSIVE !!!!!!!!!! change from V1 inclusive
 /*
-   The SafeString class V3.0.6
+   The SafeString class V4.1.6
    Note: ESP32 gives warning: "F" redefined which can be ignored
 
   -----------------  creating SafeStrings ---------------------------------
@@ -195,7 +195,7 @@ class __FlashStringHelper;
   The capacity of the SafeString is set to 14.
 
 ****************************************************************************************/
-/***************************************************
+/*  **************************************************
    If str is a SafeString then
    str = .. works for signed/unsigned ints, char*, char, F(".."), SafeString float, double etc
    str.concat(..) and string.prefix(..) also works for those
@@ -211,7 +211,7 @@ class __FlashStringHelper;
    the SafeStrings created remain valid as long as the underlying char[] is valid.
      Usually the only way the char[] can become invalid is if it was allocated (via calloc/malloc)
      and then freed while the SafeString wrapping it is still in use.
-****************************************************/
+*  ***************************************************/
 
 
 #ifdef SSTRING_DEBUG
@@ -232,17 +232,95 @@ class __FlashStringHelper;
 #define cSFP createSafeStringFromCharPtr
 #define cSFPS createSafeStringFromCharPtrWithSize
 
+/**************
+  To create SafeStrings use one of the four (4) macros **createSafeString** or **cSF**, **createSafeStringFromCharArray** or **cSFA**, **createSafeStringFromCharPtr** or **cSFP**, **createSafeStringFromCharPtrWithSize** or **cSFPS** see the detailed description. 
+  
+  There are four (4) macros used to create SafeStrings.<br> 
+  createSafeString(name, size); creates a char[size+1] for you and wraps it in a SafeString called name.<br> 
+  createSafeStringFromCharArray(name, char[]); wraps an existing char[] in a SafeString called name.<br> 
+  createSafeStringFromCharPtr(name, char*);  wraps an existing char[], pointed to by char*, in a SafeString called name.  The capacity of the SafeString is limited to the initial strlen(char*) and cannot be increased<br> 
+  createSafeStringFromCharPtrWithSize(name, char*, size);  wraps an existing char[size], pointed to by char*, in a SafeString called name.<br> 
+  
+  Each of thise macros has a short hand<br> 
+  cSF(name,size) for createSafeString(name, size);<br> 
+  cSFA(name,char[]) for createSafeStringFromCharArray(name, char[]);<br> 
+  cSFP(name,char*) for createSafeStringFromCharPtr(name, char*);<br> 
+  cSFPS(name,char*,size) for createSafeStringFromCharPtrWithSize(name, char*, size);
+  
+<H1>createSafeString and cSF</H1>  
+ createSafeString(name, size) or cSF(name,size)<br>
+ and<br>
+ <code>createSafeString(name, size, "initialText")</code> or <code>cSF(name,size,"initialText")</code><br>
+are utility macros to create a SafeString of a given name and size and optionally, an initial value
+  
+  createSafeString(str, 40);  or  cSF(str, 40);
+expands in the pre-processor to<br>
+<code>char str_SAFEBUFFER[40+1];</code><br> 
+<code>SafeString str(sizeof(str_SAFEBUFFER),str_SAFEBUFFER,"","str");</code>
+
+  createSafeString(str, 40, "test");  or cSF(str, 40, "test"); 
+expands in the pre-processor to<br>
+<code>char str_SAFEBUFFER[40+1];</code><br>
+<code>SafeString str(sizeof(str_SAFEBUFFER),str_SAFEBUFFER,"test","str");</code>
+
+
+<H1>createSafeStringFromCharArray and cSFA</H1>  
+createSafeStringFromCharArray(name, char[]);  or cSFA(name, char[]);
+wraps an existing char[] in a SafeString of the given name. e.g.<br>
+<code>char charBuffer[15]; </code><br>
+<code>createSafeStringFromCharArray(str,charBuffer); or cSFA(str,charBuffer);</code><br> 
+expands in the pre-processor to<br>
+<code>SafeString str(sizeof(charBuffer),charBuffer, charBuffer, "str", true);</code><br>
+  The capacity of the SafeString is set to 14, from the **sizeof(charBuffer)-1** to allow for the terminating '\0'.
+
+
+<H1>createSafeStringFromCharPtr and cSFP</H1>  
+  createSafeStringFromCharPtr(name, char*);  or cSFP(name, char*);
+   wraps an existing char[] pointed to by char* in a SafeString of the given name<br>
+  The capacity of the SafeString is set to <code>strlen(charBuffer)</code> and cannot be increased.
+   e.g.<br>
+<code>char charBuffer[15] = "1234567890";</code><br>
+<code>char *bufPtr = charBuffer;</code><br>
+<code>createSafeStringFromCharPtr(str,bufPtr); or cSFP(str,bufPtr);</code><br>
+  expands in the pre-processor to<br>
+<code>SafeString str((unsigned int)-1,charBuffer, charBuffer, "str", true);</code><br>
+  The capacity of the SafeString is set to 10, from the **strlen(bufPtr)**
+
+<H1>createSafeStringFromCharPtrWithSize and cSFPS</H1>  
+  createSafeStringFromCharPtrWithSize(name, char*, unsigned int size);  or cSFPS(name, char*, unsigned int size);
+   wraps an existing char[], pointed to by char*, in a SafeString of the given name<br>
+   and sets the capacity to the given unsigned int size e.g.<br>
+<code>char charBuffer[15]="1234567890";</code><br>
+<code>char *bufPtr = charBuffer;</code><br>
+<code>createSafeStringFromCharPtrWithSize(str,bufPtr, 15); or cSFPS(str,bufPtr, 15);</code><br>
+  expands in the pre-processor to<br>
+<code>SafeString str(15,charBuffer, charBuffer, "str", true);</code><br>
+  The capacity of the SafeString is set to 14 from **size-1** to allow for the terminating '\0'.
+
+<H3>For example sketches see<br>
+SafeString_ConstructorAndDebugging.ino, SafeStringFromCharArray.ino, SafeStringFromCharPtr.ino and SafeStringFromCharPtrWithSize.ino</H3>
+  
+****************************************************************************************/
 class SafeString : public Printable, public Print {
 
   public:
-/**
- In all cases when maxlen != -1, it is the actual size of the array
- if _fromBuffer false (i.e. cSF(sfStr,20); ) then maxLen is the capacity+1 and the macro allocates an char[20+1], (_fromPtr ignored)
- if _fromBuffer true and _fromPtr false (i.e. cSFA(sfStr, strArray); ) then maxLen is the sizeof the strArray and the capacity is maxLen-1, _fromPtr is false
- if _fromBuffer true and _fromPtr true, then from char*, (i.e. cSFP(sfStr,strPtr) or cSFPS(sfStr,strPtr, maxLen) and maxLen is either -1 cSFP( ) the size of the char Array pointed cSFPS 
-    if maxLen == -1 then capacity == strlen(char*)  i.e. cSFP( )
-    else capacity == maxLen-1;   i.e. cSFPS( )
- */
+/*********************************************
+  SafeString Constructor called from the macros **createSafeString** or **cSF**, **createSafeStringFromCharArray** or **cSFA**, **createSafeStringFromCharPtr** or **cSFP**, **createSafeStringFromCharPtrWithSize** or **cSFPS**.
+  
+  This constructor is not designed to called directly by your code
+  @param maxLen - the number of chars that can stored not including the terminating '\0'
+  @param buf - the fixed sized char buffer to hold the data
+  @param cstr - the initial data to be loaded into this SafeString
+  @param _name - the code variable name of this SafeString, default NULL
+  @param _fromBuffer - true if this SafeString is wrapping an existing char[]
+  @param _fromPtr - true if this SafeString's buf parameter was a char* rather then a char[], _fromPtr is not checked unless _fromBuffer is true
+ ********************************************/
+// In all cases when maxlen != -1, it is the actual size of the array
+// if _fromBuffer false (i.e. cSF(sfStr,20); ) then maxLen is the capacity+1 and the macro allocates an char[20+1], (_fromPtr ignored)
+// if _fromBuffer true and _fromPtr false (i.e. cSFA(sfStr, strArray); ) then maxLen is the sizeof the strArray and the capacity is maxLen-1, _fromPtr is false
+// if _fromBuffer true and _fromPtr true, then from char*, (i.e. cSFP(sfStr,strPtr) or cSFPS(sfStr,strPtr, maxLen) and maxLen is either -1 cSFP( ) the size of the char Array pointed cSFPS 
+//    if maxLen == -1 then capacity == strlen(char*)  i.e. cSFP( )
+//    else capacity == maxLen-1;   i.e. cSFPS( )
     explicit SafeString(unsigned int maxLen, char *buf, const char* cstr, const char* _name = NULL, bool _fromBuffer = false, bool _fromPtr = true);
     // _fromBuffer true does extra checking before each method execution for SafeStrings created from existing char[] buffers
     // _fromPtr is not checked unless _fromBuffer is true
@@ -253,23 +331,43 @@ class SafeString : public Printable, public Print {
     // NO other constructors, NO conversion constructors
 
   public:
-    // call setOutput( ) to turn on Error msgs and debug( ) output for all SafeStrings
-    // This also sets output for the debug( ) method
-    // verbose is an optional argument, if missing defaults to true, use false for compact error messages or call setVerbose(false)
+    /*****************
+     Turns on Error msgs and debug( ) output for all SafeStrings.
+     
+     This also sets output for the debug( ) method.
+     @param debugOut - where to send the messages to, usually Serial, e.g. SafeString::setOutput(Serial);
+     @param verbose - optional, if missing defaults to true, use false for compact error messages or call setVerbose(false)
+    ***************/    
     static void setOutput(Print& debugOut, bool verbose = true);
     // static SafeString::DebugPrint Output;  // a Print object controlled by setOutput() / turnOutputOff() is defined at the bottom
 
+    /*****************
+     Turns off all debugging messages, both error messages AND debug() method output.
+     
+     Errors are still detected and flagged.
+    ***************/    
     static void turnOutputOff(void);     // call this to turn all debugging OFF, both error messages AND debug( ) method output
 
     // use this to control error messages verbose output
+    /*****************
+     Controls size of error messages, setOutput sets verbose to true
+     
+     @param verbose - true for detailed error messages, else short error messages.
+    ***************/    
     static void setVerbose(bool verbose); // turn verbose error msgs on/off.  setOutput( ) sets verbose to true
 
     // returns true if error detected, errors are detected even is setOutput has not been called
     // each call to hasError() clears the errorFlag
+    /*****************
+     Returns non-zero if any error detected for this SafeString, each call clears the internal flag
+    ***************/    
     unsigned char hasError();
 
     // returns true if error detected in any SafeString object, errors are detected even is setOutput has not been called
     // each call to errorDetected() clears the classErrorFlag
+    /*****************
+     Returns non-zero if any SafeString has detected and error, each call clears the internal global static flag
+    ***************/    
     static unsigned char errorDetected();
 
     // these methods print out info on this SafeString object, iff setOutput has been called
@@ -277,27 +375,101 @@ class SafeString : public Printable, public Print {
     // Each of these debug( ) methods defaults to outputing the string contents.  Set the optional verbose argument to false to suppress outputing string contents
     // NOTE!! all these debug methods return a pointer to an empty string.
     // This is so that if you add .debug() to Serial.println(str);  i.e. Serial.println(str.debug()) will work as expected
+    /*****************
+     Output the details about the this SafeString to the output specified by setOutput().
+     
+     @param verbose - true for detailed output including current contents
+    ***************/    
     const char* debug(bool verbose = true);
+    
+    /*****************
+     Output the details about the this SafeString to the output specified by setOutput().
+     
+     @param title - the title to preceed the debug output, a space between this and the debug output
+     @param verbose - true for detailed output including current contents
+    ***************/    
     const char* debug(const char* title, bool verbose = true);
+
+    /*****************
+     Output the details about the this SafeString to the output specified by setOutput().
+     
+     @param title - the title to preceed the debug output, a space between this and the debug output
+     @param verbose - true for detailed output including current contents
+    ***************/    
     const char* debug(const __FlashStringHelper *title, bool verbose = true);
+
+    /*****************
+     Output the details about the this SafeString to the output specified by setOutput().
+     
+     @param title - the title to preceed the debug output, a space between this and the debug output
+     @param verbose - true for detailed output including current contents
+    ***************/    
     const char* debug(SafeString &stitle, bool verbose = true);
 
+    /*****************
+     Write (i.e. concatinate) a byte to this SafeString, from Print class.
+     
+     '\0' bytes are not allowed and will not be added to the SafeString and will raise an error.
+     
+     @param b - the byte to concatinate to this SafeString
+    ***************/    
     virtual size_t write(uint8_t b);
     // writes at most length chars to this SafeString,
     // NOTE: write(cstr,length) will set hasError and optionally output errorMsg, if strlen(cstr) < length and nothing will be added to the SafeString
+    
+    /*****************
+     Write (i.e. concatinate) bytes to this SafeString, from Print class.
+     
+     '\0' bytes are not allowed and will be skipped over and will raise an error.
+     
+     @param buffer - bytes to concatinate to this SafeString
+     @param length - number of bytes to concatinate 
+    ***************/    
     virtual size_t write(const uint8_t *buffer, size_t length);
 
+    /*****************
+     Implements the Printable interface
+     
+     @param p - where to print to
+    ***************/    
     size_t printTo(Print& p) const;
 
     // reserve returns 0 if _capacity < size
+    /*****************
+     Checks there is enough free space in this SafeString for the current operation
+     
+     @param size - total number of chars that will be in the SafeString if the operation completes
+    ***************/    
     unsigned char reserve(unsigned int size);
 
+    /*****************
+     Number of characters current in the SafeString, excluding the terminating '\0'
+    ***************/    
     unsigned int length(void);
+    
+    /*****************
+     The maximum number of characters this SafeString can hold, excluding the terminating '\0'
+    ***************/    
     unsigned int capacity(void);
+    
+    /*****************
+     Returns non-zero if the SafeString is full
+    ***************/    
     unsigned char isFull(void);
+    
+    /*****************
+     Returns non-zero if the SafeString is empty
+    ***************/    
     unsigned char isEmpty(void);
+    
+    /*****************
+     Returns the number chars that can be added to this SafeString before it is full
+    ***************/    
     int availableForWrite(void);
 
+    /*****************
+     Empties this SafeString
+    ***************/    
     SafeString & clear(void);
 
   public:
@@ -326,39 +498,146 @@ class SafeString : public Printable, public Print {
     size_t println(void);
     
     // ********** special prints padding and formatting doubles (longs) **************
-    /** print to SafeString a double (or long) with decs after the decimal point and padd to specified width
-        width is a signed value, negative for left adjustment, +ve for right padding
-        by default the + sign is not added, set forceSign argument to true to force the display of the + sign
-        
-        If the result exceeds abs(width), reduce the decs after the decmial point to fit into width
-        If result with decs reduced to 0 is still > abs(width) raise an error and ,optionally, output an error msg
-
-        Note decs is quietly limited in this method to < 7 digit after the decimal point.
-    */
+    // print to SafeString a double (or long) with decs after the decimal point and padd to specified width
+    //    width is a signed value, negative for left adjustment, +ve for right padding
+    //    by default the + sign is not added, set forceSign argument to true to force the display of the + sign
+    //    
+    //    If the result exceeds abs(width), reduce the decs after the decmial point to fit into width
+    //    If result with decs reduced to 0 is still > abs(width) raise an error and ,optionally, output an error msg
+    //
+    //    Note decs is quietly limited in this method to < 7 digit after the decimal point.
+    
+    /*************************************************************
+    Prints a double (or long/int) to this SafeString padded with spaces (left or right) and limited to the specified width and adds a trailing CR NL
+    
+    This methods can also be used for ints and longs by passing 0 for the decs.
+    
+    @param d - the double to convert to text
+    @param decs - the preferred number of decimial places to output (limited to <7).  This will be reduced automatically to fit the fixed width
+    @param width - fixed width the output is to padded/limited to
+    @param forceSign - optional, defaults to false, if true the + sign is added for +ve numbers
+    ****************************************************************************/
     size_t println(double d, int decs, int width, bool forceSign = false);
+    
+    /*************************************************************
+    Prints a double (or long/int) to this SafeString padded with spaces (left or right) and limited to the specified width.
+    
+    This methods can also be used for ints and longs by passing 0 for the decs.
+    
+    @param d - the double to convert to text
+    @param decs - the preferred number of decimial places to output(limited to <7).  This will be reduced automatically to fit the fixed width
+    @param width - fixed width the output is to padded/limited to
+    @param forceSign - optional, defaults to false, if true the + sign is added for +ve numbers
+    ****************************************************************************/
     size_t print(double d, int decs, int width, bool forceSign = false);
 
 
 
-    /* Assignment operators **********************************
-      Set the SafeString to a char version of the assigned value.
-      For = (const char *) the contents are copied to the SafeString buffer
-      if the value is null or invalid,
-      or too large to be fit in the string's internal buffer
-      the string will be left empty
-     **/
+    // Assignment operators **********************************
+    //  Set the SafeString to a char version of the assigned value.
+    //  For = (const char *) the contents are copied to the SafeString buffer
+    //  if the value is null or invalid,
+    //  or too large to be fit in the string's internal buffer
+    //  the string will be left empty
+    
+    /*************************************************************
+    Clears this SafeString and concatinates a single char.
+    
+    If the value is null or invalid, or too large to be fit in the string's internal buffer the resulting SafeString will be empty
+    
+    @param c - the char
+    ****************************************************************************/
     SafeString & operator = (char c);
-    SafeString & operator = (unsigned char c);
+    
+    /*************************************************************
+    Clears this SafeString and concatinates the text version of the argument
+    
+    If the value is null or invalid, or too large to be fit in the string's internal buffer the resulting SafeString will be empty
+    
+    @param num - the number to convert to text
+    ****************************************************************************/
+    SafeString & operator = (unsigned char num);
+    
+    /*************************************************************
+    Clears this SafeString and concatinates the text version of the argument
+    
+    If the value is null or invalid, or too large to be fit in the string's internal buffer the resulting SafeString will be empty
+    
+    @param num - the number to convert to text
+    ****************************************************************************/
     SafeString & operator = (int num);
+
+    /*************************************************************
+    Clears this SafeString and concatinates the text version of the argument
+    
+    If the value is null or invalid, or too large to be fit in the string's internal buffer the resulting SafeString will be empty
+    
+    @param num - the number to convert to text
+    ****************************************************************************/
     SafeString & operator = (unsigned int num);
+
+    /*************************************************************
+    Clears this SafeString and concatinates the text version of the argument
+    
+    If the value is null or invalid, or too large to be fit in the string's internal buffer the resulting SafeString will be empty
+    
+    @param num - the number to convert to text
+    ****************************************************************************/
     SafeString & operator = (long num);
+
+    /*************************************************************
+    Clears this SafeString and concatinates the text version of the argument
+    
+    If the value is null or invalid, or too large to be fit in the string's internal buffer the resulting SafeString will be empty
+    
+    @param num - the number to convert to text
+    ****************************************************************************/
     SafeString & operator = (unsigned long num);
+
+    /*************************************************************
+    Clears this SafeString and concatinates the text version of the argument
+    
+    If the value is null or invalid, or too large to be fit in the string's internal buffer the resulting SafeString will be empty
+    
+    @param num - the number to convert to text
+    ****************************************************************************/
     SafeString & operator = (float num);
+
+    /*************************************************************
+    Clears this SafeString and concatinates the text version of the argument
+    
+    If the value is null or invalid, or too large to be fit in the string's internal buffer the resulting SafeString will be empty
+    
+    @param num - the number to convert to text
+    ****************************************************************************/
     SafeString & operator = (double num);
 
-    SafeString & operator = (SafeString &rhs);
+    /*************************************************************
+    Clears this SafeString and copies and concatinates the contents of the argument
+    
+    If the value is null or invalid, or too large to be fit in the string's internal buffer the resulting SafeString will be empty
+    
+    @param sfStr - the SafeString to assign
+    ****************************************************************************/
+    SafeString & operator = (SafeString &sfStr);
+
+    /*************************************************************
+    Clears this SafeString and copies and concatinates the contents of the argument
+    
+    If the value is null or invalid, or too large to be fit in the string's internal buffer the resulting SafeString will be empty
+    
+    @param cstr - the '\0' terminated char string to assign
+    ****************************************************************************/
     SafeString & operator = (const char *cstr);
-    SafeString & operator = (const __FlashStringHelper *str); // handle F(" .. ") values
+
+    /*************************************************************
+    Clears this SafeString and copies and concatinates the contents of the argument
+    
+    If the value is null or invalid, or too large to be fit in the string's internal buffer the resulting SafeString will be empty
+    
+    @param pstr - the '\0' terminated F("..") string to assign
+    ****************************************************************************/
+    SafeString & operator = (const __FlashStringHelper *pstr); // handle F(" .. ") values
 
     /* Prefix methods **************************
       add to the front of the current SafeString
