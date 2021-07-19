@@ -7,13 +7,14 @@ This library includes:-
 * **BufferedOutput**, non-blocking replacement for Serial print()  
 * **SafeStringStream**, a stream to provide test inputs for repeated testing of I/O sketches   
 * **BufferedInput**, extra buffering for text input  
-* **loopTimer**, to track of the maximum and average run times for the loop()  
+* **loopTimer**, (loopTimerClass) to track of the maximum and average run times for the loop()  
 * **millisDelay**, a non-blocking delay replacement, with single-shot, repeating, restart and stop facilities.  
+* **SerialComs**, to send messages between Arduinos via Serial
 
 # How-To
-See [SafeString Tutorial](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html). 
-See [Arduino to Arduino/PC via Serial](https://www.forward.com.au/pfod/ArduinoProgramming/SoftwareSolutions/ComsPair.html).
-See [Arduino Text I/O for the Real World](https://www.forward.com.au/pfod/ArduinoProgramming/Serial_IO/index.html).  
+See [SafeString Tutorial](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html)  
+See [Arduino to Arduino/PC via Serial](https://www.forward.com.au/pfod/ArduinoProgramming/SoftwareSolutions/ComsPair.html)  
+See [Arduino Text I/O for the Real World](https://www.forward.com.au/pfod/ArduinoProgramming/Serial_IO/index.html)  
 See [Simple Multitasking Arduino](https://www.forward.com.au/pfod/ArduinoProgramming/RealTimeArduino/index.html)  
 See [How to code Timers and Delays in Arduino](https://www.forward.com.au/pfod/ArduinoProgramming/TimingDelaysInArduino.html)  
 
@@ -24,6 +25,8 @@ See the top of each file for its license
 Note, this is NOT my work, I am simply hosting it for easy access. The original code belongs to [Forward Computing and Control Pty. Ltd](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
 
 # Revisions
+V4.1.7 added MegaTinyCore support
+V4.1.6 added Teensy2 to Teensy4.1 support (dtostrf)  
 V4.1.5 SerialComs timeout 5sec, added firstToken()  
 V4.1.4 fixed dtostrf support  
 V4.1.3 added Arduino Due support  

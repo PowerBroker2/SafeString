@@ -1,12 +1,8 @@
 #include <Arduino.h>
 #include "BufferedOutput.h"
 
-// to skip this for SparkFun RedboardTurbo
-#ifndef ARDUINO_SAMD_ZERO
-#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR)
-using namespace arduino;
-#endif
-#endif // #ifndef ARDUINO_SAMD_ZERO
+#include "SafeStringNameSpace.h"
+
 
 /**
   BufferedOutput.cpp
@@ -26,6 +22,7 @@ using namespace arduino;
 // For ESP32 and ESP8266 serialPtr->availableForWrite() does not seem to return the 'correct' value, i.e. serialPtr->availableForWrite() == 1 still blocks on write()
 // so for ALL boards require serialPtr->availableForWrite() > 1 before writing to serialPtr
 // Also ESP32 and ESP8266 do not have availableForWrite() in Print.h  (Arduino does!!)
+// MegaTinyCore does not have availableForWrite() in Stream or HardwareSerial
 
 /**
     use
@@ -93,7 +90,7 @@ void BufferedOutput::connect(HardwareSerial& _serial) { // the output to write t
   serialPtr->flush(); // try and clear hardware buffer
   delay(10); // wait for a few ms for Tx buffer to clear if flush() does not do it
   int avail = 0;
-#if defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4)
+#if defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4) || defined(MEGATINYCORE_MAJOR) 
     // ESP8266 HardwareSerial does not have availableForWrite()
     while (1) {
       streamPtr->println("This board does not implement availableForWrite()");
@@ -103,7 +100,7 @@ void BufferedOutput::connect(HardwareSerial& _serial) { // the output to write t
       streamPtr->flush();
       delay(5000);
     }
-#else  // not ARDUINO_ARCH_ESP8266
+#else  // not ARDUINO_ARCH_ESP8266 etc
   avail = serialPtr->availableForWrite();
 #endif
   if (txBufferSize < avail) {
@@ -154,7 +151,7 @@ void BufferedOutput::connect(Stream& _stream, const uint32_t _baudRate) {
   delay(10); // wait for a few ms for Tx buffer to clear if flush() does not do it
   baudRate = _baudRate;
   if (baudRate == 0) {  // no baudrate  use availableForWrite() if it is available
-#if defined(ESP_PLATFORM) || defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4)
+#if defined(ESP_PLATFORM) || defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4) || defined(MEGATINYCORE_MAJOR)
     // ESP32 ESP8266 Stream does not have availableForWrite()
     while (1) {
       streamPtr->println("ESP32 and ESP8266 Print does not implement availableForWrite()");
@@ -164,7 +161,7 @@ void BufferedOutput::connect(Stream& _stream, const uint32_t _baudRate) {
       streamPtr->flush();
       delay(5000);
     }
-#else  // not ESP_PLATFORM || ARDUINO_ARCH_ESP8266
+#else  // not ESP_PLATFORM || ARDUINO_ARCH_ESP8266 etc
     int avail = streamPtr->availableForWrite();
     if (txBufferSize < avail) {
       txBufferSize = avail;
@@ -296,13 +293,13 @@ int BufferedOutput::internalStreamAvailableForWrite() {
   int avail = 0;
   if (serialPtr) {
   	//  do not have availableForWrite
-#if defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4)
+#if defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4) || defined(MEGATINYCORE_MAJOR)
   	// nothing
 #else
     avail = serialPtr->availableForWrite();
 #endif
   } else { // streamPtr should always be non-NULL
-#if defined(ESP_PLATFORM) || defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4)
+#if defined(ESP_PLATFORM) || defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4) || defined(MEGATINYCORE_MAJOR)
     return 0;    // ESP stream does not have availableForWrite
 #else
     avail = streamPtr->availableForWrite();

@@ -53,7 +53,7 @@
 
 ****************************************************************************************/
 
-/***************************************************
+/*  **************************************************
    If str is a SafeString then
    str = .. works for signed/unsigned ints, char*, char, F(".."), SafeString float, double etc
    str.concat(..) and string.prefix(..) also works for those
@@ -69,7 +69,7 @@
    the SafeStrings created remain valid as long as the underlying char[] is valid.
      Usually the only way the char[] can become invalid is if it was allocated (via calloc/malloc)
      and then freed while the SafeString wrapping it is still in use.
-****************************************************/
+*  ***************************************************/
 
 /*
   SafeString.cpp V2.0.0 static memory SafeString library modified by
@@ -107,19 +107,18 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#if defined(ARDUINO_TEENSY41) || defined(ARDUINO_TEENSY40) ||defined(ARDUINO_TEENSY36) ||defined(ARDUINO_TEENSY35) ||defined(ARDUINO_TEENSY32) ||defined(ARDUINO_TEENSY30) ||defined(ARDUINO_TEENSYLC) || defined(ARDUINO_TEENSY2PP) ||defined(ARDUINO_TEENSY2)
+char *dtostrf(float val, int width, unsigned int precision, char *buf);
+#else
 char *dtostrf(double val, signed char width, unsigned char prec, char *sout);
+#endif
 #ifdef __cplusplus
 }
 #endif
 #endif
 
+#include "SafeStringNameSpace.h"
 
-// to skip this for SparkFun RedboardTurbo
-#ifndef ARDUINO_SAMD_ZERO
-#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR)
-using namespace arduino;
-#endif
-#endif // #ifndef ARDUINO_SAMD_ZERO
 
 // this code is not used at present
 #if defined(ARDUINO_AVR_MEGA2560)
@@ -152,9 +151,9 @@ SafeString::DebugPrint SafeString::Output;
 bool SafeString::fullDebug = true; // output current contents of SafeString and input arg
 bool SafeString::classErrorFlag = false; // set true if any SafeString object has an error.
 
-/*********************************************/
+/*  ********************************************/
 /**  Constructor                             */
-/*********************************************/
+/*  ********************************************/
 
 // This constructor overwrites any data already in buf with cstr unless  &buf == &cstr  in that case just clear both.
 // _fromBuffer true does extra checking before each method execution for SafeStrings created from existing char[] buffers
@@ -928,7 +927,9 @@ size_t SafeString::printInt(double d, int decs, int width, bool forceSign, bool 
     return 0;
   }
   // max chars are 11 for integer part including sign (-4294967040), + 1 (.) + 7 prec (prec limited to 7) = 19 + '\0' => 20
-  char result[22]; // 19+'\0' + 2 for extra
+  // ESP32
+  // max chars are 19 for integer part including sign (-9223372036854775807L), + 1 (.) + 7 prec (prec limited to 7) = 19 +1 + 7 + '\0' => 27
+  char result[33]; // 19 +1 + 7 + '\0' => 27 for extra
   result[0] = '\0';
   if (isnan(d)) {
     strcpy(result, "nan");
