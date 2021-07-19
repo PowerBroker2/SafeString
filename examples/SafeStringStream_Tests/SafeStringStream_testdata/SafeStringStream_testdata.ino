@@ -55,6 +55,7 @@ void setup() {
   Serial.println();
   Serial.println(F(" The SafeString readUntilToken() method does all the work. By default it echos the input, but you can turn that off."));
   Serial.println(F(" See the SafeString_read() example sketch for the internals of readUntilToken()."));
+  Serial.println(F(" cmds (words) that are too long e.g. looooooooooooong and nothing, are flagged as errors and ignored."));
   Serial.println();
   if (running) {
     Serial.println(F(" Counter Started"));
@@ -85,7 +86,8 @@ void handleResetCmd() {
 
 
 void loop() {
-  if (input.readUntilToken(StreamInput, token, delimiters, skipToDelimiter, true)) { // echo true on makes TEST_DATA, sfStream, loop continually as read chars are just written back on the end
+  if (input.readUntilToken(StreamInput, token, delimiters, skipToDelimiter, true)) {
+    // echo true on makes TEST_DATA, sfStream, loop continually as read chars are just written back on the end
     if (token == startCmd) {
       handleStartCmd();
     } else if (token == stopCmd) {

@@ -9,12 +9,7 @@
 
 #include "SafeStringStream.h"
 
-// to skip this for SparkFun RedboardTurbo
-#ifndef ARDUINO_SAMD_ZERO
-#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MEGAAVR)
-using namespace arduino;
-#endif
-#endif // #ifndef ARDUINO_SAMD_ZERO
+#include "SafeStringNameSpace.h"
 
 /**  SafeStringStream methods **/
 // Use this constructor to set an rxBuffer to use insted of the internal 8 byte buffer
@@ -121,6 +116,7 @@ int SafeStringStream::available() {
     rxBuf = sfRxBufferPtr;
   }
   sendTimerStart = micros() - excessTime; // allow for this processing time
+
   return rxBuf->length();
 }
 
