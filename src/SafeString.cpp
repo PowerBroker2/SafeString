@@ -2621,9 +2621,9 @@ const char* SafeString::c_str() {
 // 0 to length() and -1 is valid for fromIndex
 // if fromIndex > length(), than the error flag is set and -1 returned and prints an error if debug enabled
 // if fromIndex == (unsigned int)(-1) -1 is returned without error.
-int SafeString::indexOf(char c) {
-  return indexOf(c, 0); // calls cleanUp()
-}
+//int SafeString::indexOf(char c) {
+//  return indexOf(c, 0); // calls cleanUp()
+//}
 
 int SafeString::indexOf( char c, unsigned int fromIndex ) {
   cleanUp();
@@ -2666,6 +2666,7 @@ int SafeString::indexOf( char c, unsigned int fromIndex ) {
   return temp - buffer;
 }
 
+/**
 int SafeString::indexOf(SafeString &s2) {
   s2.cleanUp();
   cleanUp();
@@ -2687,6 +2688,8 @@ int SafeString::indexOf(SafeString &s2) {
   //  }
   return indexOf(s2, 0);
 }
+
+**/
 
 int SafeString::indexOf(SafeString &s2, unsigned int fromIndex) {
   s2.cleanUp();
@@ -2734,9 +2737,11 @@ int SafeString::indexOf(SafeString &s2, unsigned int fromIndex) {
   return found - buffer;
 }
 
+/**
 int SafeString::indexOf( const char* str ) {
   return indexOf(str, 0); // calls cleanUp()
 }
+**/
 
 int SafeString::indexOf(const char* cstr , unsigned int fromIndex) {
   cleanUp();
@@ -2846,6 +2851,7 @@ int SafeString::lastIndexOf(char ch, unsigned int fromIndex) {
   return temp - buffer;
 }
 
+
 int SafeString::lastIndexOf(SafeString &s2) {
   s2.cleanUp();
   cleanUp();
@@ -2854,6 +2860,7 @@ int SafeString::lastIndexOf(SafeString &s2) {
   //  } // else len - s2.len is valid
   return lastIndexOf(s2, len - s2.len);
 }
+
 
 int SafeString::lastIndexOf( const char *cstr ) {
   if (!cstr) {
@@ -2873,6 +2880,7 @@ int SafeString::lastIndexOf( const char *cstr ) {
   //  } // else len - strlen(cstr) is valid
   return lastIndexOf(cstr, len - cstrlen);
 }
+
 
 int SafeString::lastIndexOf(SafeString &s2, unsigned int fromIndex) {
   s2.cleanUp();
@@ -3005,22 +3013,25 @@ int SafeString::lastIndexOf(const char* cstr, unsigned int fromIndex) {
   return found;
 }
 
-/**
+/*
   find first index of one of the chars in the arg
-*/
+
 int SafeString::indexOfCharFrom(SafeString &str) {
   str.cleanUp();
   return indexOfCharFrom(str.buffer, 0); // calls cleanUp()
 }
+**/
 
 int SafeString::indexOfCharFrom(SafeString &str, unsigned int fromIndex) {
   str.cleanUp();
   return indexOfCharFrom(str.buffer, fromIndex); // calls cleanUp()
 }
 
+/**
 int SafeString::indexOfCharFrom(const char* chars) {
   return indexOfCharFrom(chars, 0); // calls cleanUp()
 }
+**/
 
 int SafeString::indexOfCharFrom(const char* chars, unsigned int fromIndex) {
   cleanUp();
@@ -3826,6 +3837,114 @@ unsigned char SafeString::hexToLong(long &l) {
   return true; // OK
 }
 
+// convert decimal number to long, arg 1 unchanged if no valid number found
+unsigned char SafeString::toUnsignedLong(unsigned long &l) {
+  cleanUp();
+  if (len == 0) {
+    return false; // not found
+  }
+  char* endPtr;
+  unsigned long result = strtoul(buffer, &endPtr, 10); // handles 123 (use 0 for 0xAF and 037 (octal))
+  if (result == ULONG_MAX) {
+    return false;
+  }
+  // check endPtr to see if number valid 5a is invalid,  5. is valid
+  if (endPtr == buffer)  { // no numbers found at all
+    return false;
+  } // else
+  // else check for trailing white space
+  while (*endPtr != '\0') {
+    if (!isspace(*endPtr)) { // number terminated by white space
+      return false;
+    }
+    endPtr++;
+  }
+  // else all OK
+  l = result;
+  return true; // OK
+}
+
+// convert binary number to long, arg 1 unchanged if no valid number found
+unsigned char SafeString::binToUnsignedLong(unsigned long &l) {
+  cleanUp();
+  if (len == 0) {
+    return false; // not found
+  }
+  char* endPtr;
+  unsigned long result = strtoul(buffer, &endPtr, 2);
+  if (result == ULONG_MAX) {
+    return false;
+  }
+  // check endPtr to see if number valid 5a is invalid,  5. is valid
+  if (endPtr == buffer)  { // no numbers found at all
+    return false;
+  } // else
+  // else check for trailing white space
+  while (*endPtr != '\0') {
+    if (!isspace(*endPtr)) { // number terminated by white space
+      return false;
+    }
+    endPtr++;
+  }
+  // else all OK
+  l = result;
+  return true; // OK
+}
+
+// convert octal number to long, arg 1 unchanged if no valid number found
+unsigned char SafeString::octToUnsignedLong(unsigned long &l) {
+  cleanUp();
+  if (len == 0) {
+    return false; // not found
+  }
+  char* endPtr;
+  unsigned long result = strtoul(buffer, &endPtr, 8);
+  if (result == ULONG_MAX) {
+    return false;
+  }
+  // check endPtr to see if number valid 5a is invalid,  5. is valid
+  if (endPtr == buffer)  { // no numbers found at all
+    return false;
+  } // else
+  // else check for trailing white space
+  while (*endPtr != '\0') {
+    if (!isspace(*endPtr)) { // number terminated by white space
+      return false;
+    }
+    endPtr++;
+  }
+  // else all OK
+  l = result;
+  return true; // OK
+}
+
+// convert hex number to long, arg 1 unchanged if no valid number found
+unsigned char SafeString::hexToUnsignedLong(unsigned long &l) {
+  cleanUp();
+  if (len == 0) {
+    return false; // not found
+  }
+  char* endPtr;
+  unsigned long result = strtoul(buffer, &endPtr, 16); //
+  if (result == ULONG_MAX) {
+    return false;
+  }
+  // check endPtr to see if number valid 5a is invalid,  5. is valid
+  if (endPtr == buffer)  { // no numbers found at all
+    return false;
+  } // else
+  // else check for trailing white space
+  while (*endPtr != '\0') {
+    if (!isspace(*endPtr)) { // number terminated by white space
+      return false;
+    }
+    endPtr++;
+  }
+  // else all OK
+  l = result;
+  return true; // OK
+}
+
 /**  possible alternative
 // convert float number, returns 0.0 and sets error flag not a valid number
 float SafeString::toFloat() {
@@ -4056,10 +4175,7 @@ int SafeString::stokenInternal(SafeString &token, unsigned int fromIndex, const 
 }
 /** end of stoken methods *******************/
 
-    /* firstToken, nextToken -- The token is removed from the SafeString ********************
-      firstToken -- No leading delimiters are removed, then the delimited token found is removed from the SafeString.
-                   See returnEmptyFields and returnLastNonDelimitedToken arguments below for controls on this.
-                   The following delimiters remain in the SafeString so you can test which delimiter terminated the token, provided this SafeString is not empty!
+    /* nextToken -- The token is removed from the SafeString ********************
       nextToken -- Any leading delimiters are first removed, then the delimited token found is removed from the SafeString.
                    See returnEmptyFields and returnLastNonDelimitedToken arguments below for controls on this.
                    The following delimiters remain in the SafeString so you can test which delimiter terminated the token, provided this SafeString is not empty!
@@ -4068,25 +4184,26 @@ int SafeString::stokenInternal(SafeString &token, unsigned int fromIndex, const 
       To leave partial un-delimited tokens on the end of the SafeString, set returnLastNonDelimitedToken = false.
       Setting returnLastNonDelimitedToken = false allows the SafeString to hold partial tokens when reading from an input stream one char at a time.
 
-      params
-      token - the SafeString to return the token in, it will be empty if no delimited token found or if there are errors
-              The token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.
+      @param token - the SafeString to return the token in, it is always cleared first and will be empty if no delimited token is found or if there are errors<br>
+              The token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.<br>
               If the token's capacity is < the next token, then nextToken() returns true, but the returned token argument is empty and an error messages printed if debug is enabled.
               In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
-      delimiters - the delimiting characters, any one of which can delimit a token
-      returnEmptyFields -- default false, if true, for firstToken() will return false, and an empty token, if first char is a delimiter
-                                                   for nextToken() will return true, and an empty token for each consecuative delimiters.
-      returnLastNonDelimitedToken -- default true, will return last part of input even if not delimited. If set false, will keep it for further input to be added to this SafeString
+      @param delimiters - the delimiting characters, any one of which can delimit a token
+      @param returnEmptyFields -- default false, if true, nextToken() will return true, and an empty token for each consecuative delimiters
+      @param returnLastNonDelimitedToken -- default true, will return last part of SafeString even if not delimited. If set false, will keep it for further input to be added to this SafeString
+      @param firstToken -- default false, a leading delimiter will be stepped over before looking for a delimited token<br>
+      if set to true, a leading delimiter will delimit an empty token which will be returned only if returnEmptyFields is true otherwise it is skipped over.<br>
+      NOTE: if returnEmptyFields == false this firstToken argument has no effect.
+      NOTE: since the last delimiter is left in the SafeString, you must set firstToken to be false (or omit it) after the first call.
 
-      return -- true if firstToken()/nextToken() finds a token in this SafeString that is terminated by one of the delimiters, else false
-                nextToken() first removes any leading delimiters, 
-                returnEmptyFields controls removing multiple leading delimiters, returnLastNonDelimitedToken controls if last un-terminated token is returned.
-                If the return is true, but hasError() is true then the SafeString token argument did not have the capacity to hold the next token.
-                In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
-                while being consistent with the SafeString's all or nothing insertion rule
-         Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
+      @return -- true if nextToken() finds a token in this SafeString that is terminated by one of the delimiters, else false<br>
+                If the return is true, but hasError() is true then the SafeString token argument did not have the capacity to hold the next token.<br.
+                in this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()<br>
+                while being consistent with the SafeString's all or nothing insertion rule<br>
+               Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
     **/
-unsigned char SafeString::firstToken(SafeString & token, char delimiter, bool returnEmptyFields, bool returnLastNonDelimitedToken) {
+
+unsigned char SafeString::nextToken(SafeString& token, const char delimiter, bool returnEmptyFields, bool returnLastNonDelimitedToken, bool firstToken) {
   cleanUp();
   token.clear();
   if (!delimiter) {
@@ -4105,81 +4222,20 @@ unsigned char SafeString::firstToken(SafeString & token, char delimiter, bool re
   	  // empty token returned
      return false;
   }
-  if ((delimiter == charAt(0)) && returnEmptyFields) {
+  if (firstToken && (delimiter == charAt(0)) && returnEmptyFields) {
   	  // empty token returned
   	  return  true;
-  }
-  // else have a non-empty field just call nextToken
-  return nextToken(token, delimiter, returnEmptyFields, returnLastNonDelimitedToken);
-}
-
-unsigned char SafeString::firstToken(SafeString & token, SafeString & delimiters, bool returnEmptyFields, bool returnLastNonDelimitedToken) {
-  delimiters.cleanUp();
-  return firstToken(token, delimiters.buffer, returnEmptyFields, returnLastNonDelimitedToken); // calls cleanUp() token.clear()
-}
-   
-unsigned char SafeString::firstToken(SafeString & token, const char* delimiters, bool returnEmptyFields, bool returnLastNonDelimitedToken) {
-  cleanUp();
-  token.clear();
-  if (!delimiters) {
-    setError();
-    token.setError();
-#ifdef SSTRING_DEBUG
-    if (debugPtr) {
-      errorMethod(F("nextToken"));
-      debugPtr->print(F(" was passed a NULL pointer for delimiters"));
-      debugInternalMsg(fullDebug);
-    }
-#endif // SSTRING_DEBUG
-    return false;
-  }
-  if (*delimiters == '\0') {
-    setError();
-    token.setError();
-#ifdef SSTRING_DEBUG
-    if (debugPtr) {
-      errorMethod(F("nextToken"));
-      debugPtr->print(F(" was passed a empty list of delimiters"));
-      debugInternalMsg(fullDebug);
-    }
-#endif // SSTRING_DEBUG
-    return false;
-  }
-  if (isEmpty()) {
-  	  // empty token returned
-     return false;
-  }
-  if (startsWith(delimiters) && returnEmptyFields) {
-  	  // empty token returned
-  	  return  true; // true if return empty fileds
-  }
-  // else have a non-empty field just call nextToken
-  return nextToken(token, delimiters, returnEmptyFields, returnLastNonDelimitedToken);
-}
-
-unsigned char SafeString::nextToken(SafeString& token, const char delimiter, bool returnEmptyFields, bool returnLastNonDelimitedToken) {
-  token.clear();
-  if (!delimiter) {
-    setError();
-    token.setError();
-#ifdef SSTRING_DEBUG
-    if (debugPtr) {
-      errorMethod(F("nextToken"));
-      debugPtr->print(F(" was passed a '\\0' delimiter"));
-      debugInternalMsg(fullDebug);
-    }
-#endif // SSTRING_DEBUG
-    return false;
   }
   return nextTokenInternal(token, NULL, delimiter, returnEmptyFields, returnLastNonDelimitedToken);
 }
 
-unsigned char SafeString::nextToken(SafeString& token, SafeString &delimiters, bool returnEmptyFields, bool returnLastNonDelimitedToken) {
+unsigned char SafeString::nextToken(SafeString& token, SafeString &delimiters, bool returnEmptyFields, bool returnLastNonDelimitedToken, bool firstToken) {
   delimiters.cleanUp();
-  return nextToken(token, delimiters.buffer, returnEmptyFields, returnLastNonDelimitedToken); // calls cleanUp()
+  return nextToken(token, delimiters.buffer, returnEmptyFields, returnLastNonDelimitedToken, firstToken); // calls cleanUp()
 }
 
-unsigned char SafeString::nextToken(SafeString& token, const char* delimiters, bool returnEmptyFields, bool returnLastNonDelimitedToken) {
+unsigned char SafeString::nextToken(SafeString& token, const char* delimiters, bool returnEmptyFields, bool returnLastNonDelimitedToken, bool firstToken) {
+  cleanUp();
   token.clear();
   if (!delimiters) {
     setError();
@@ -4204,6 +4260,14 @@ unsigned char SafeString::nextToken(SafeString& token, const char* delimiters, b
     }
 #endif // SSTRING_DEBUG
     return false;
+  }
+  if (isEmpty()) {
+  	  // empty token returned
+     return false;
+  }
+  if (firstToken && startsWith(delimiters) && returnEmptyFields) {
+  	  // empty token returned
+  	  return  true; // true if return empty fileds
   }
   return nextTokenInternal(token, delimiters, '\0', returnEmptyFields, returnLastNonDelimitedToken);
 }
