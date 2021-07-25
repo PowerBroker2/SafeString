@@ -21,7 +21,7 @@ void setup() {
     delay(500);
   }
   Serial.println();
-  Serial.println(F("Using SafeString firstToken()/nextToken() to parse a comma separated line for the numbers it contains."));
+  Serial.println(F("Using SafeString nextToken() to parse a comma separated line for the numbers it contains."));
   Serial.println(F("SafeString::setOutput(Serial); // verbose"));
   // see the SafeString_ConstructorAndDebugging example for debugging settings
   SafeString::setOutput(Serial); // enable full debugging error msgs
@@ -33,8 +33,8 @@ void setup() {
   Serial.println(F("Note: By default the last field will be returned even if not terminated by a delimiter.  The optional returnLastNonDelimitedToken argument controls this."));
   createSafeString(field, 10); // for the field strings. Should have capacity > largest field length
   Serial.println();
-  Serial.println(F("Fields with numbers are:-  (returning empty fields, third optional argument true)"));
-  bool haveToken = sfLine.firstToken(field, delimiters, true); // will return true and empty field if first char is ,
+  Serial.println(F("Fields with numbers are:-  (returning empty fields, last field and an empty first field if first char is a delimiter)"));
+  bool haveToken = sfLine.nextToken(field, delimiters, true, true, true); // will return true and empty field if first char is ,
   while (haveToken) {
     double d;
     if (field.toDouble(d)) {
@@ -56,7 +56,7 @@ void setup() {
   createSafeString(sDelimiters, 4, ",");
   sDelimiters.debug(F(" Test using a SafeString for the delimiters  --  "));
   Serial.println(F(" The fields with integers are:-  (NOT returning empty fields)"));
-  haveToken = sfLine.firstToken(field, delimiters); // will return true and empty field if first char is ,
+  haveToken = sfLine.nextToken(field, delimiters); // will not return empty field if first char is ,
   while (haveToken) {
     long l_num;
     if (field.toLong(l_num)) {

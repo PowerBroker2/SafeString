@@ -468,7 +468,10 @@ class SafeString : public Printable, public Print {
     int availableForWrite(void);
 
     /*****************
-     Empties this SafeString
+     Empties this SafeString.
+     
+      returns the current SafeString so you can cascade calls e.g.<br>
+      <code>sfStr.clear().concat("New output");</code><br>
     ***************/    
     SafeString & clear(void);
 
@@ -639,12 +642,13 @@ class SafeString : public Printable, public Print {
     ****************************************************************************/
     SafeString & operator = (const __FlashStringHelper *pstr); // handle F(" .. ") values
 
-    /* Prefix methods **************************
-      add to the front of the current SafeString
-      returns the current SafeString so you can cascade calls
-      eg. sfStr.prefix(2).prefix("first");
-      if there's not enough memory for the to add prefix, the SafeString
-      will be left unchanged
+    /********
+      prefix methods add to the front of the current SafeString.
+      
+      returns the current SafeString so you can cascade calls, e.g.<br>
+      <code>sfStr.prefix(2).prefix("first");</code><br>
+      If there's not enough memory for the to add prefix, the SafeString will be left unchanged<br>
+      If the argument is null or invalid, the prefix is considered unsucessful.
     **/
     SafeString & prefix(SafeString &s);
     SafeString & prefix(const char *cstr);
@@ -660,14 +664,13 @@ class SafeString : public Printable, public Print {
     SafeString & prefix(const char *cstr, size_t length);
     SafeString & prefix(const __FlashStringHelper * str, size_t length);
 
-    /* Concat i.e. append methods ******************
-      adds to the end of the current SafeString
-      returns the current SafeString so you can cascade calls
-      eg. sfStr.concat(1).concat("second");
-      if there's not enough memory for the concatenated value, the SafeString
-      will be left unchanged
-       if the argument is null or invalid, the
-      concatenation is considered unsucessful.
+    /*******
+      concat methods add to the end of the current SafeString.
+      
+      returns the current SafeString so you can cascade calls e.g.<br>
+      <code>sfStr.concat(1).concat("second");</code><br>
+      If there's not enough memory for the concatenated value, the SafeString will be left unchanged.<br>
+      If the argument is null or invalid, the concatenation is considered unsucessful.
     **/
     SafeString & concat(SafeString &str);
     SafeString & concat(const char *cstr);
@@ -687,8 +690,14 @@ class SafeString : public Printable, public Print {
     // NOTE: concat(cstr,length) will set hasError and optionally output errorMsg, if strlen(cstr) < length and nothing will be concatinated.
     
     SafeString & concat(const __FlashStringHelper * str, size_t length); // concat at most length chars
-    SafeString & newline(); // append newline \r\n same as concat("\r\n"); same a println()
-    // e.g. sfStr.concat("test").nl();
+    
+    /******
+      Adds \\r\\n to this SafeString.
+      returns the current SafeString so you can cascade calls e.g.<br>
+      <code>sfStr.newline().concat("next line");</code><br>
+    *****/
+      SafeString & newline(); // append newline \r\n same as concat("\r\n"); same a println()
+    // e.g. sfStr.concat("test").newline();
 
     /* prefix() operator  -=  ******************
       Operator version of prefix( )
@@ -696,6 +705,13 @@ class SafeString : public Printable, public Print {
       To cascade operators use ( )
       e.g. (sfStr -= 'a') -= 5;
      **/
+     /***
+       -= operator prefixes the SafeString.
+       e.g.<br>
+       <code> sfStr -= "top";</code><br>
+       gives the same SafeString as<br>
+       <code> sfStr.prefix("top");<code><br>
+     **/  
     SafeString & operator -= (SafeString &rhs) {
       return prefix(rhs);
     }
@@ -736,6 +752,13 @@ class SafeString : public Printable, public Print {
       To cascade operators use ( )
       e.g. (sfStr += 'a') += 5;
      **/
+     /***
+       += operator concatinate to the SafeString.
+       e.g.<br>
+       <code> sfStr += "end";</code><br>
+       gives the same SafeString as<br>
+       <code> sfStr.concat("end");<code><br>
+     **/  
     SafeString & operator += (SafeString &rhs)  {
       return concat(rhs);
     }
@@ -775,8 +798,15 @@ class SafeString : public Printable, public Print {
       These methods used to be  ... const {
       but now with createSafeStringFromBuffer( ) the SafeString may be modified by cleanUp()
      **/
+     /***
+       returns -1 if this SafeString is < s, 0 if this SafeString == s and +1 if this SafeString > s
+     **/
     int compareTo(SafeString &s) ;
+     /***
+       returns -1 if this SafeString is < cstr, 0 if this SafeString == cstr and +1 if this SafeString > cst
+     **/
     int compareTo(const char *cstr) ;
+    
     unsigned char equals(SafeString &s) ;
     unsigned char equals(const char *cstr) ;
     unsigned char equals(const char c) ;
@@ -824,6 +854,7 @@ class SafeString : public Printable, public Print {
     }
     unsigned char equalsIgnoreCase(SafeString &s) ;
     unsigned char equalsIgnoreCase(const char *str2) ;
+    
     unsigned char equalsConstantTime(SafeString &s) ;
 
     /* startsWith methods  *******************
@@ -831,18 +862,80 @@ class SafeString : public Printable, public Print {
       0 to length() and (unsigned int)(-1) are valid for fromIndex, if fromIndex == length() or -1 false is returned
       if the argument is null or fromIndex > length(), an error is flagged and false returned
     **/
+    /** 
+      returns non-zero of this SafeString starts this argument looking from fromIndex onwards.
+      
+      @param c -- char to check for
+      @param fromIndex -- where in the SafeString to start looking, default 0 i.e. start from beginning
+    **/
     unsigned char startsWith(const char c, unsigned int fromIndex = 0);
+    /** 
+      returns non-zero of this SafeString starts this argument looking from fromIndex onwards.
+      
+      @param str -- string to check for
+      @param fromIndex -- where in the SafeString to start looking, default 0 i.e. start from beginning
+    **/
     unsigned char startsWith( const char *str2, unsigned int fromIndex = 0) ;
+    /** 
+      returns non-zero of this SafeString starts this argument looking from fromIndex onwards.
+      
+      @param s -- the SafeString to check for
+      @param fromIndex -- where in the SafeString to start looking, default 0 i.e. start from beginning
+    **/
     unsigned char startsWith(SafeString &s2, unsigned int fromIndex = 0) ;
+    
+    /** 
+      returns non-zero of this SafeString starts this argument, ignoring case, looking from fromIndex onwards.
+      
+      @param c -- char to check for, ignoring case
+      @param fromIndex -- where in the SafeString to start looking, default 0 i.e. start from beginning
+    **/
     unsigned char startsWithIgnoreCase(const char c, unsigned int fromIndex = 0);
+    /** 
+      returns non-zero of this SafeString starts this argument, ignoring case, looking from fromIndex onwards.
+      
+      @param str -- string to check for, ignoring case
+      @param fromIndex -- where in the SafeString to start looking, default 0 i.e. start from beginning
+    **/
     unsigned char startsWithIgnoreCase( const char *str2, unsigned int fromIndex = 0) ;
+    /** 
+      returns non-zero of this SafeString starts this argument, ignoring case, looking from fromIndex onwards.
+      
+      @param s -- SafeString to check for, ignoring case
+      @param fromIndex -- where in the SafeString to start looking, default 0 i.e. start from beginning
+    **/
     unsigned char startsWithIgnoreCase( SafeString &s2, unsigned int fromIndex = 0) ;
     
     /* endsWith methods  *******************/
+    /** 
+      returns non-zero of this SafeString ends with the argument
+      
+      @param c -- the char to check for
+    **/
     unsigned char endsWith(const char c);
+    /** 
+      returns non-zero of this SafeString ends with the argument
+      
+      @param suffix -- SafeString to check for
+    **/
     unsigned char endsWith(SafeString &suffix) ;
+    /** 
+      returns non-zero of this SafeString ends with the argument
+      
+      @param suffix -- string to check for
+    **/
     unsigned char endsWith(const char *suffix) ;
+    /** 
+      returns non-zero of this SafeString ends any one of the chars in the argument
+      
+      @param suffix -- the SafeString containing the chars to check for
+    **/
     unsigned char endsWithCharFrom(SafeString &suffix) ;
+    /** 
+      returns non-zero of this SafeString ends any one of the chars in the argument
+      
+      @param suffix -- the string containing the chars to check for
+    **/
     unsigned char endsWithCharFrom(const char *suffix) ;
 
     /* character acccess methods  *******************
@@ -850,16 +943,40 @@ class SafeString : public Printable, public Print {
       For these methods 0 to length()-1 is valid for index
       index greater than length() -1 will return 0 and set the error flag and will print errors if debug enabled
     **/
+    /**
+      returns the char at that location in this SafeString.
+      
+      @param index - the zero based index of the char to return.<br>
+       
+      @return the char at that index OR if index >= length() return 0 and raise error 
+      **/
     char charAt(unsigned int index) ; // if index >= length() returns 0 and prints a error msg
+    /**
+      returns the char at that location in this SafeString.
+      
+      @param index - the zero based index of the char to return.<br>
+       
+      @return the char at that index OR if index >= length() return 0 and raise error 
+      **/
     char operator [] (unsigned int index) ; // if index >= length() returns 0 and prints a error msg
 
     // setting a char in the SafeString
     // str[..] = c;  is not supported because it allows direct access to modify the underlying char buffer
+    /**
+      sets the char at that location in this SafeString.
+      
+      @param index - the zero based index of the char to return.<br>
+      @param c - the char to set at that index. '\\0' chars are ignored and an error raised.
+      **/
     void setCharAt(unsigned int index, char c); //if index >= length() the error flag is set
     // calls to setCharAt(length(), ..) and  setCharAt(.. , '\0') are ignored and error flag is set
 
     // returning the underlying buffer
     // returned as a const and should not be changesdor recast to a non-const
+    /**
+      returns a const char* to the underlying char[ ] in this SafeString.
+      <b>Do not make changes this char[ ]</b>
+      **/
     const char* c_str();
 
 
@@ -872,25 +989,99 @@ class SafeString : public Printable, public Print {
     // 0 to length() and -1 is valid for fromIndex
     // if fromIndex > length(), than the error flag is set and -1 returned and prints an error if debug enabled
     // if fromIndex == (unsigned int)(-1) -1 is returned without error.
-    int indexOf( char ch ) ;
-    int indexOf( char ch, unsigned int fromIndex ) ;
-    int indexOf( SafeString & str ) ;
-    int indexOf( const char* str ) ;
-    int indexOf(const char* str , unsigned int fromIndex) ;
-    int indexOf( SafeString & str, unsigned int fromIndex ) ;
+    /*
+      returns the index
+    */
+    //int indexOf( char ch ) ;
+    /**
+      returns the index of the char, searching from fromIndex.
+      @param ch - the char to search for
+      @param fromIndex - where to start the search from, default 0 i.e. from begining<br> if fromIndex > length() raise an error<br> if fromIndex == -1 OR fromIndex == length(), return -1 without error
+        
+      @return -1 if not found, else the index in the range 0 to length()-1
+      */
+    int indexOf( char ch, unsigned int fromIndex = 0) ;
+    //int indexOf( SafeString & str ) ;
+    //int indexOf( const char* str ) ;
+    /**
+      returns the index of the string, searching from fromIndex.
+      @param str - the string to search for
+      @param fromIndex - where to start the search from, default 0 i.e. from begining<br> if fromIndex > length() raise an error<br> if fromIndex == -1 OR fromIndex == length(), return -1 without error
+      @return -1 if not found, else the index in the range 0 to length()-1
+      */
+    int indexOf(const char* str , unsigned int fromIndex = 0) ;
+    /**
+      returns the index of the SafeString, searching from fromIndex.
+      @param str - the SafeString to search for
+      @param fromIndex - where to start the search from, default 0 i.e. from begining<br> if fromIndex > length() raise an error<br> if fromIndex == -1 OR fromIndex == length(), return -1 without error
+      @return -1 if not found, else the index in the range 0 to length()-1
+      */
+    int indexOf( SafeString & str, unsigned int fromIndex = 0 ) ;
+
+    /**
+      returns the last index of the char, searching backwards from fromIndex (inclusive).
+      @param c - the char to search for
+      @return -1 if not found, else the index in the range 0 to length()-1
+      */
     int lastIndexOf( char ch ) ;
-    int lastIndexOf( char ch, unsigned int fromIndex ) ;
+
+    /**
+      returns the last index of the char, searching backwards from fromIndex (inclusive).
+      @param c - the char to search for
+      @param fromIndex - where to start searching backwards from,<br> if fromIndex > length() raise an error<br> if fromIndex == -1 OR fromIndex == length(), return -1 without error
+      @return -1 if not found, else the index in the range 0 to length()-1
+      */
+    int lastIndexOf( char ch, unsigned int fromIndex) ;
+
+    /**
+      returns the last index of the arguement, searching backwards from fromIndex (inclusive).
+      @param str - the SafeString to search for
+      @return -1 if not found, else the index in the range 0 to length()-1
+      */
     int lastIndexOf( SafeString & str ) ;
+    /**
+      returns the last index of the char, searching backwards from fromIndex (inclusive).
+      @param str - the SafeString to search for
+      @param fromIndex - where to start searching backwards from,<br> if fromIndex > length() raise an error<br> if fromIndex == -1 OR fromIndex == length(), return -1 without error
+      @return -1 if not found, else the index in the range 0 to length()-1
+      */
+    int lastIndexOf( SafeString & str, unsigned int fromIndex) ;
+
+    /**
+      returns the last index of the arguement, searching backwards from fromIndex (inclusive).
+      @param cstr - the string to search for
+      @return -1 if not found, else the index in the range 0 to length()-1
+      */
     int lastIndexOf( const char *cstr ) ;
-    int lastIndexOf( SafeString & str, unsigned int fromIndex ) ;
+
+    /**
+      returns the last index of the char, searching backwards from fromIndex (inclusive).
+      @param cstr - the string to search for
+      @param fromIndex - where to start searching backwards from,<br> if fromIndex > length() raise an error<br> if fromIndex == -1 OR fromIndex == length(), return -1 without error
+      @return -1 if not found, else the index in the range 0 to length()-1
+      */
     int lastIndexOf(const char* cstr, unsigned int fromIndex);
+    
     // first index of the chars listed in chars string
     // loop through chars and look for index of each and return the min index or -1 if none found
-    int indexOfCharFrom(SafeString & str);
-    int indexOfCharFrom(const char* chars);
+    //int indexOfCharFrom(SafeString & str);
+    //int indexOfCharFrom(const char* chars);
     // start searching from fromIndex
-    int indexOfCharFrom(SafeString & str, unsigned int fromIndex);
-    int indexOfCharFrom(const char* chars, unsigned int fromIndex);
+    /**
+      returns the first index of any char from the argument.
+      @param str - the SafeString containing the chars to search for
+      @param fromIndex - where to start searching from,<br> if fromIndex > length() raise an error<br> if fromIndex == -1 OR fromIndex == length(), return -1 without error
+      @return -1 if not found, else the index in the range 0 to length()-1
+      */
+    int indexOfCharFrom(SafeString & str, unsigned int fromIndex = 0);
+
+    /**
+      returns the first index of any char from the argument
+      @param chars - the string containing the chars to search for
+      @param fromIndex - where to start searching backwards from,<br> if fromIndex > length() raise an error<br> if fromIndex == -1 OR fromIndex == length(), return -1 without error
+      @return -1 if not found, else the index in the range 0 to length()-1
+      */
+    int indexOfCharFrom(const char* chars, unsigned int fromIndex = 0);
 
 
     /* *** substring methods ************/
@@ -901,6 +1092,22 @@ class SafeString : public Printable, public Print {
     // beginIdx == (unsigned int)(-1) returns an empty result without an error
     // You can take substring of yourself  e.g. str.substring(str,3);
     // if result does not have the capacity to hold the substring, hasError() is set on both this SafeString and the result SafeString
+    
+    /**
+      The result is the substring from the beginIdx to the end of the SafeString
+      @param result - the substring
+      @param beginIdx - the index of the start of the substring, <br> if beginIdx == length(), the result is empty (no error)<br>
+      if beginIdx > length(), the result is empty and an error is raised.<br>
+      if beginIdx == (unsigned int)(-1),the result is empty (no error).
+      
+      @return this SaftString
+      
+      The result SafeString is ALWAYS cleares to start with and so will be empty if there are any errors.<br>
+      If the result SafeString does not have the capacity to hold the substring, an empty result is returned and an error raised on both this SafeString and the result.<br>
+      You can take a substring of yourself e.g.<br>
+      <code>sfStr.substring(sfStr,3);<code>
+      
+      */
     SafeString & substring(SafeString & result, unsigned int beginIdx);
 
     // The result substring is ALWAYS first cleared by this method so it will be empty on errors
@@ -912,53 +1119,146 @@ class SafeString : public Printable, public Print {
     // substring is from beginIdx to endIdx-1, endIdx is exclusive
     // You can take substring of yourself  e.g. str.substring(str,3,6);
     // if result does not have the capacity to hold the substring, and empty result is returned and hasError() is set on both this SafeString and the result SafeString
+    /**
+      The result is the substring from the beginIdx to endIdx (exclusive), i.e. the endIdx is NOT included
+      @param result - the substring
+      @param beginIdx - the index of the start of the substring, <br> if beginIdx == length(), the result is empty (no error)<br>
+      if beginIdx > length(), the result is empty and an error is raised.<br>
+      if beginIdx == (unsigned int)(-1),the result is empty (no error).<br>
+      if beginIdx > endIdx, beginIdx and endIdx will be swapped so that beginIdx <= endIdx and the error flag is set on both this SafeString and the result SafeString
+      @param endIdx - the index after the end of the substring, i.e. endIdx is NOT included<br>
+      if endIdx > length(), endIdx is set to length(); and the error flag is set on both this SafeString and the result SafeString<br>
+      if endIdx == (unsigned int)(-1) is treated as endIdx == length() returns a result without an error
+      
+      @return this SaftString
+      
+      The result SafeString is ALWAYS cleares to start with and so will be empty if there are any errors.<br>
+      If the result SafeString does not have the capacity to hold the substring, an empty result is returned and an error raised on both this SafeString and the result.<br>
+      You can take a substring of yourself e.g.<br>
+      <code>sfStr.substring(sfStr,3);<code>
+      */
     SafeString & substring(SafeString & result, unsigned int beginIdx, unsigned int endIdx);
 
     /* *** SafeString modification methods ************/
 
     /* *** replace ************/
+    /**
+      replace the findChar with the replaceChar
+      @param findChar - the char to be replaced
+      @param replaceChar - the char to replace it
+      */
     void replace(char findChar, char replaceChar);
+
+    /**
+      replace the findChar with the replace string
+      @param findChar - the char to be replaced
+      @param replaceStr - the string to replace it
+      */
     void replace(const char findChar, const char *replaceStr);
+
+    /**
+      replace the findChar with the sfReplace SafeString contents
+      @param findChar - the char to be replaced
+      @param sfReplace - the SafeString whose contents will replace it
+      */
     void replace(const char findChar, SafeString& sfReplace);
+
+    /**
+      replace the findStr string with the replace string
+      @param findStr - the string to be replaced
+      @param replaceStr - the string to replace it
+      */
     void replace(const char* findStr, const char *replaceStr);
+
+    /**
+      replace the occurances of the sfFind string, with the sfReplace SafeString contents
+      @param sfFind - the SafeString containing the string of chars to be replaced
+      @param sfReplace - the SafeString whose contents will replace it
+      */
     void replace(SafeString & sfFind, SafeString & sfReplace);
 
     /* *** remove ************/
     // remove from index to end of SafeString
     // 0 to length() and (unsigned int)(-1) are valid for index,
     // -1 => length() for processing and just returns without error
+    /**
+      remove all chars from startIndex to the end of the SafeString (inclusive)
+      @param startIndex - the index of the first char to be removed<br>
+      Valid startIndex is 0 to length(), and -1 which is treated as length()<br>
+      Other startIndex raise an error.
+      */
     void removeFrom(unsigned int startIndex);
 
     // remove from 0 to startIdx (excluding startIdx)
     // 0 to length() and (unsigned int)(-1) are valid for index,
     // -1 => length() for processing
+    /**
+      remove all chars from 0 to startIndex (exclusive), i.e. the char at startIndex is NOT removed
+      @param startIndex - the index of the first char NOT to be removed<br>
+      Valid startIndex is 0 to length(), and -1 which is treated as length()<br>
+      Other startIndex raise an error.
+      */
     void removeBefore(unsigned int startIndex);
 
     // remove from index to end of SafeString
     // 0 to length() and (unsigned int)(-1) are valid for index,
     // -1 => length() for processing and just returns without error
+    /**
+      remove all chars from index to the end of the SafeString (inclusive)
+      @param index - the index of the first char to be removed<br>
+      Valid index is 0 to length(), and -1 which is treated as length()<br>
+      Other index raise an error.
+      */
     void remove(unsigned int index);
 
     // remove count chars starting from index
     // 0 to length() and unsigned int(-1) are valid for index
     // -1 just returns without error
     // 0 to (length()- index) is valid for count, larger values set the error flag and remove from idx to end of string
+    /**
+      remove count chars starting from index
+      @param index - the index of the first char to be removed<br>
+      Valid index is 0 to length(), and -1 which is treated as length()<br>
+      Other index raise an error.
+      @param count - the number of chars to remove<br> 
+      if count > length() - index, count is set to length() - index, and a error raised.
+      */
     void remove(unsigned int index, unsigned int count);
 
     // remove the last 'count' chars
     // 0 to length() is valid for count,
     // count >= length() clears the SafeString
     // count > length() set the error flag
+    /**
+      remove the last count chars
+      @param count - the number of chars to remove<br>
+      0 to length() is valid for count<br>
+      count >= length() clears the SafeString<br>
+      count > length() raises and error
+      */
     void removeLast(unsigned int count);
 
     // keep last 'count' number of chars remove the rest
     // 0 to length() is valid for count, passing in count == 0 clears the SafeString
     // count > length() sets error flag and returns SafeString unchanged
+    /**
+      keep the last count chars and remove the rest
+      @param count - the number of chars to keep<br>
+      0 to length() is valid for count<br>
+      count == 0 clears the SafeString<br>
+      count > length() raises and error and leaves the SafeString unchanged
+      */
     void keepLast(unsigned int count);
 
 
     /* *** change case ************/
+    /**
+      convert this SafeString to all lower case
+      */
     void toLowerCase(void);
+    /**
+      convert this SafeString to all lower case
+      */
     void toUpperCase(void);
 
     /* *** remove white space from front and back of SafeString ************/
@@ -969,10 +1269,26 @@ class SafeString : public Printable, public Print {
     //    '\v'  (0x0b)  vertical tab (VT)
     //    '\f'  (0x0c)  feed (FF)
     //    '\r'  (0x0d)  carriage return (CR)
+    /**
+      remove all white space from the front and back of this SafeString.
+      
+      The C method isspace() is used. For the 'C' local the following are trimmed<br>
+        ' '     (0x20)  space (SPC)<br>
+        '\\t'  (0x09)  horizontal tab (TAB)<br>
+        '\\n'  (0x0a)  newline (LF)<br>
+        '\\v'  (0x0b)  vertical tab (VT)<br>
+        '\\f'  (0x0c)  feed (FF)<br>
+        '\\r'  (0x0d)  carriage return (CR)<br>
+      */
     void trim(void); // trims front and back
 
     // processBackspaces recursively remove backspaces, '\b' and the preceeding char
     // use for processing inputs from terminal (Telent) connections
+    /**
+      recursively remove backspaces, '\\b' and the preceeding char.
+      
+      useful for processing inputs from terminal (Telent) connections
+      */
     void processBackspaces(void);
 
     /* *** numgber parsing/conversion ************/
@@ -981,12 +1297,83 @@ class SafeString : public Printable, public Print {
     // else leave the argument unchanged
     // SafeString conversions are stricter than the Arduino String version
     // trailing chars can only be white space
+    /**
+      convert the SafeString to an int.
+      @param i -- int reference, where the result is stored. i is only updated if the conversion is successful
+      @return -- 0 if the SafeString is not a valid int, else return non-zero<br>
+        leading and trailing white space is allowed around a valid int
+     */         
     unsigned char toInt(int & i) ;
+    /**
+      convert the SafeString to a long.
+      @param l -- long reference, where the result is stored. l is only updated if the conversion is successful
+      @return -- 0 if the SafeString is not a valid int, else return non-zero<br>
+        leading and trailing white space is allowed around a valid int
+     */         
     unsigned char toLong(long & l) ;
+
+    /**
+      convert the SafeString to a long assuming the SafeString in binary (0/1).
+      @param l -- long reference, where the result is stored. l is only updated if the conversion is successful
+      @return -- 0 if the SafeString is not a valid int, else return non-zero<br>
+        leading and trailing white space is allowed around a valid int
+     */         
     unsigned char binToLong(long & l) ;
+    /**
+      convert the SafeString to a long assuming the SafeString in octal (0 to 7).
+      @param l -- long reference, where the result is stored. l is only updated if the conversion is successful
+      @return -- 0 if the SafeString is not a valid int, else return non-zero<br>
+        leading and trailing white space is allowed around a valid int
+     */         
     unsigned char octToLong(long & l) ;
+    /**
+      convert the SafeString to a long assuming the SafeString in HEX (0 to f or 0 to F).
+      @param l -- long reference, where the result is stored. l is only updated if the conversion is successful
+      @return -- 0 if the SafeString is not a valid int, else return non-zero<br>
+        leading and trailing white space is allowed around a valid int
+     */         
     unsigned char hexToLong(long & l) ;
+    /**
+      convert the SafeString to an unsigned long.
+      @param l -- long reference, where the result is stored. l is only updated if the conversion is successful
+      @return -- 0 if the SafeString is not a valid int, else return non-zero<br>
+        leading and trailing white space is allowed around a valid int
+     */         
+    unsigned char toUnsignedLong(unsigned long & l) ;
+    /**
+      convert the SafeString to an unsigned long assuming the SafeString in binary (0/1).
+      @param l -- unsigned long reference, where the result is stored. l is only updated if the conversion is successful
+      @return -- 0 if the SafeString is not a valid int, else return non-zero<br>
+        leading and trailing white space is allowed around a valid int
+     */         
+    unsigned char binToUnsignedLong(unsigned long & l) ;
+    /**
+      convert the SafeString to an unsigned long assuming the SafeString in octal (0 to 7).
+      @param l -- unsigned long reference, where the result is stored. l is only updated if the conversion is successful
+      @return -- 0 if the SafeString is not a valid int, else return non-zero<br>
+        leading and trailing white space is allowed around a valid int
+     */         
+    unsigned char octToUnsignedLong(unsigned long & l) ;
+    /**
+      convert the SafeString to an unsigned long assuming the SafeString in HEX (0 to f or 0 to F).
+      @param l -- unsigned long reference, where the result is stored. l is only updated if the conversion is successful
+      @return -- 0 if the SafeString is not a valid int, else return non-zero<br>
+        leading and trailing white space is allowed around a valid int
+     */         
+    unsigned char hexToUnsignedLong(unsigned long & l) ;
+    /**
+      convert the SafeString to a float assuming the SafeString in the decimal format (not scientific)
+      @param f -- float reference, where the result is stored. l is only updated if the conversion is successful
+      @return -- 0 if the SafeString is not a valid int, else return non-zero<br>
+        leading and trailing white space is allowed around a valid int
+     */          
     unsigned char toFloat(float  & f) ;
+    /**
+      convert the SafeString to a float assuming the SafeString in the decimal format (not scientific)
+      @param d -- double reference, where the result is stored. l is only updated if the conversion is successful
+      @return -- 0 if the SafeString is not a valid int, else return non-zero<br>
+        leading and trailing white space is allowed around a valid int
+     */          
     unsigned char toDouble(double & d) ;
 
     // float toFloat(); possible alternative
@@ -1026,129 +1413,361 @@ class SafeString : public Printable, public Print {
          Input argument errors return -1 and an empty token and hasError() is set on both this SafeString and the token SafeString.
     **/
 
+    /**
+         break into the SafeString into tokens using the char delimiter, the end of the SafeString is always a delimiter
+         
+         Any leading delimiters are first stepped over and then the delimited token is return in the token argument (less the delimiter).<br>
+         The token argument is always cleared at the start of the stoken().<br>
+         if there are any argument errors or the token does not have the capacity to hold the substring, hasError() is set on both this SafeString and the token SafeString<br>
+
+         @param token - the SafeString to return the token in, it is cleared if no delimited token found or if there are errors<br>
+                 The found delimited token (less the delimiter) is returned in the token SafeString argument if there is capacity.<br>
+                 The token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.<br>
+                 If the token's capacity is < the next token, then token is returned empty and an error messages printed if debug is enabled.<br>
+                 in this case the return (nextIndex) is still updated.<br>
+         @param fromIndex - where to start the search from  0 to length() and -1 is valid for fromIndex,  -1 => length() for processing
+         @param delimiter - the char that delimits a token. The end of the SafeString is always a delimiter.
+         @param returnEmptyFields - default false, if true only skip one leading delimiter after each call.<br>
+             If the fromIndex is 0 and there is a delimiter at the beginning of the SafeString, an empty token will be returned
+         @param useAsDelimiters - default true, if false then token will consists of only chars in the delimiters and any other char terminates the token
+
+         @return - nextIndex, the next index in this SafeString after the end of the token just found, -1 if this is the last token<br>
+                  Use this as the fromIndex for the next call<br>
+                  NOTE: if there are no delimiters then -1 is returned and the whole SafeString returned in token if the SafeString token argument is large enough<br>
+                  If the token's capacity is < the next token, the token returned is empty and an error messages printed if debug is enabled.<br>
+                  In this case the returned nextIndex is still updated to end of the token just found so that that the program will not be stuck in an infinite loop testing for nextIndex >=0<br>
+                  while being consistent with the SafeString's all or nothing insertion rule<br>
+                  Input argument errors return -1 and an empty token and hasError() is set on both this SafeString and the token SafeString.
+    **/
     int stoken(SafeString & token, unsigned int fromIndex, const char delimiter, bool returnEmptyFields = false, bool useAsDelimiters = true);
+
+    /**
+         break into the SafeString into tokens using the delimiters, the end of the SafeString is always a delimiter
+         
+         Any leading delimiters are first stepped over and then the delimited token is return in the token argument (less the delimiter).<br>
+         The token argument is always cleared at the start of the stoken().<br>
+         if there are any argument errors or the token does not have the capacity to hold the substring, hasError() is set on both this SafeString and the token SafeString<br>
+
+         @param token - the SafeString to return the token in, it is cleared if no delimited token found or if there are errors<br>
+                 The found delimited token (less the delimiter) is returned in the token SafeString argument if there is capacity.<br>
+                 The token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.<br>
+                 If the token's capacity is < the next token, then token is returned empty and an error messages printed if debug is enabled.<br>
+                 in this case the return (nextIndex) is still updated.<br>
+         @param fromIndex - where to start the search from  0 to length() and -1 is valid for fromIndex,  -1 => length() for processing
+         @param delimiters - the string containing the characters that any one of which can delimit a token. The end of the SafeString is always a delimiter.
+         @param returnEmptyFields - default false, if true only skip one leading delimiter after each call.<br>
+             If the fromIndex is 0 and there is a delimiter at the beginning of the SafeString, an empty token will be returned
+         @param useAsDelimiters - default true, if false then token will consists of only chars in the delimiters and any other char terminates the token
+
+         @return - nextIndex, the next index in this SafeString after the end of the token just found, -1 if this is the last token<br>
+                  Use this as the fromIndex for the next call<br>
+                  NOTE: if there are no delimiters then -1 is returned and the whole SafeString returned in token if the SafeString token argument is large enough<br>
+                  If the token's capacity is < the next token, the token returned is empty and an error messages printed if debug is enabled.<br>
+                  In this case the returned nextIndex is still updated to end of the token just found so that that the program will not be stuck in an infinite loop testing for nextIndex >=0<br>
+                  while being consistent with the SafeString's all or nothing insertion rule<br>
+                  Input argument errors return -1 and an empty token and hasError() is set on both this SafeString and the token SafeString.
+    **/
     int stoken(SafeString & token, unsigned int fromIndex, const char* delimiters, bool returnEmptyFields = false, bool useAsDelimiters = true);
+
+    /**
+         break into the SafeString into tokens using the delimiters, the end of the SafeString is always a delimiter
+         
+         Any leading delimiters are first stepped over and then the delimited token is return in the token argument (less the delimiter).<br>
+         The token argument is always cleared at the start of the stoken().<br>
+         if there are any argument errors or the token does not have the capacity to hold the substring, hasError() is set on both this SafeString and the token SafeString<br>
+
+         @param token - the SafeString to return the token in, it is cleared if no delimited token found or if there are errors<br>
+                 The found delimited token (less the delimiter) is returned in the token SafeString argument if there is capacity.<br>
+                 The token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.<br>
+                 If the token's capacity is < the next token, then token is returned empty and an error messages printed if debug is enabled.<br>
+                 in this case the return (nextIndex) is still updated.<br>
+         @param fromIndex - where to start the search from  0 to length() and -1 is valid for fromIndex,  -1 => length() for processing
+         @param delimiters - the SafeString containing the characters that any one of which can delimit a token. The end of the SafeString is always a delimiter.
+         @param returnEmptyFields - default false, if true only skip one leading delimiter after each call.<br>
+             If the fromIndex is 0 and there is a delimiter at the beginning of the SafeString, an empty token will be returned
+         @param useAsDelimiters - default true, if false then token will consists of only chars in the delimiters and any other char terminates the token
+
+         @return - nextIndex, the next index in this SafeString after the end of the token just found, -1 if this is the last token<br>
+                  Use this as the fromIndex for the next call<br>
+                  NOTE: if there are no delimiters then -1 is returned and the whole SafeString returned in token if the SafeString token argument is large enough<br>
+                  If the token's capacity is < the next token, the token returned is empty and an error messages printed if debug is enabled.<br>
+                  In this case the returned nextIndex is still updated to end of the token just found so that that the program will not be stuck in an infinite loop testing for nextIndex >=0<br>
+                  while being consistent with the SafeString's all or nothing insertion rule<br>
+                  Input argument errors return -1 and an empty token and hasError() is set on both this SafeString and the token SafeString.
+    **/
     int stoken(SafeString & token, unsigned int fromIndex, SafeString & delimiters, bool returnEmptyFields = false, bool useAsDelimiters = true);
 
-    /* firstToken, nextToken -- The token is removed from the SafeString ********************
-      firstToken -- No leading delimiters are removed, then the delimited token found is removed from the SafeString.
-                   See returnEmptyFields and returnLastNonDelimitedToken arguments below for controls on this.
-                   The following delimiters remain in the SafeString so you can test which delimiter terminated the token, provided this SafeString is not empty!
-      nextToken -- Any leading delimiters are first removed, then the delimited token found is removed from the SafeString.
-                   See returnEmptyFields and returnLastNonDelimitedToken arguments below for controls on this.
-                   The following delimiters remain in the SafeString so you can test which delimiter terminated the token, provided this SafeString is not empty!
-      The token argument is always cleared at the start of the firstToken() and nextToken().
-      IMPORTANT!! Changed V4.0.4 By default un-delimited tokens at the end of the SafeString are returned
-      To leave partial un-delimited tokens on the end of the SafeString, set returnLastNonDelimitedToken = false.
-      Setting returnLastNonDelimitedToken = false allows the SafeString to hold partial tokens when reading from an input stream one char at a time.
+    /**
+      returns true if a delimited token is found, removes the first delimited token from this SafeString and returns it in the token argument<br>
+      by default a leading delimiter is stepped over before scanning for a delimited token, the firstToken argument can override this<br>
+      setting the firstToken arguemnent = true, suppresses this so that an empty first token can be returned if the first char is a delimiter AND if returnEmptyFields is true
+       
+      The delimiter is not returned and remains in the SafeString so you can test which delimiter terminated the token, provided this SafeString is not empty!<br>
+      The token argument is always cleared at the start of the nexttToken().<br>
+      IMPORTANT!! Changed V4.0.4 Now by default un-delimited tokens at the end of the SafeString are returned<br>
+      To leave partial un-delimited tokens on the end of the SafeString, set returnLastNonDelimitedToken = false.<br>
+      Setting returnLastNonDelimitedToken = false allows the SafeString to hold partial tokens when reading from an input stream one char at a time.<br>
+      Setting firstToken = true suppressed skipping over a leading delimiter so that an empty first field can be returned if the first char is a delimiter
 
-      params
-      token - the SafeString to return the token in, it will be empty if no delimited token found or if there are errors
-              The token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.
-              If the token's capacity is < the next token, then nextToken() returns true, but the returned token argument is empty and an error messages printed if debug is enabled.
+      @param token - the SafeString to return the token in, it is always cleared first and will be empty if no delimited token is found or if there are errors<br>
+              The token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.<br>
+              If the token's capacity is < the next token, then nextToken() returns true, but the returned token argument is empty and an error messages printed if debug is enabled.<br>
               In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
-      delimiters - the delimiting characters, any one of which can delimit a token
-      returnEmptyFields -- default false, if true, for firstToken() will return false, and an empty token, if first char is a delimiter
-                                                   for nextToken() will return true, and an empty token for each consecuative delimiters.
-      returnLastNonDelimitedToken -- default true, will return last part of input even if not delimited. If set false, will keep it for further input to be added to this SafeString
+      @param delimiter - the char which can delimit a token
+      @param returnEmptyFields -- default false, if true, nextToken() will return true, and an empty token for each consecuative delimiters
+      @param returnLastNonDelimitedToken -- default true, will return last part of SafeString even if not delimited. If set false, will keep it for further input to be added to this SafeString
+      @param firstToken -- default false, a leading delimiter will be stepped over before looking for a delimited token<br>
+      if set to true, a leading delimiter will delimit an empty token which will be returned only if returnEmptyFields is true otherwise it is skipped over.<br>
+      NOTE: if returnEmptyFields == false this firstToken argument has no effect.<br>
+      NOTE: since the last delimiter is left in the SafeString, you must set firstToken to be false (or omit it) after the first call.
 
-      return -- true if firstToken()/nextToken() finds a token in this SafeString that is terminated by one of the delimiters, else false
-                nextToken() first removes any leading delimiters, 
-                returnEmptyFields controls removing multiple leading delimiters, returnLastNonDelimitedToken controls if last un-terminated token is returned.
-                If the return is true, but hasError() is true then the SafeString token argument did not have the capacity to hold the next token.
-                In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
-                while being consistent with the SafeString's all or nothing insertion rule
-         Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
+      @return -- true if nextToken() finds a token in this SafeString that is terminated by one of the delimiters, else false<br>
+                If the return is true, but hasError() is true then the SafeString token argument did not have the capacity to hold the next token.<br>
+                in this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()<br>
+                while being consistent with the SafeString's all or nothing insertion rule<br>
+               Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
     **/
-    unsigned char firstToken(SafeString & token, char delimiter, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true);
-    unsigned char firstToken(SafeString & token, SafeString & delimiters, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true);
-    unsigned char firstToken(SafeString & token, const char* delimiters, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true);
-    unsigned char nextToken(SafeString & token, char delimiter, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true);
-    unsigned char nextToken(SafeString & token, SafeString & delimiters, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true);
-    unsigned char nextToken(SafeString & token, const char* delimiters, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true);
+    unsigned char nextToken(SafeString & token, char delimiter, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true, bool firstToken = false);
+    
+    /**
+      returns true if a delimited token is found, removes the first delimited token from this SafeString and returns it in the token argument<br>
+      by default a leading delimiter is stepped over before scanning for a delimited token, the firstToken argument can override this<br>
+      setting the firstToken arguemnent = true, suppresses this so that an empty first token can be returned if the first char is a delimiter AND if returnEmptyFields is true
+       
+      The delimiter is not returned and remains in the SafeString so you can test which delimiter terminated the token, provided this SafeString is not empty!<br>
+      The token argument is always cleared at the start of the nexttToken().<br>
+      IMPORTANT!! Changed V4.0.4 Now by default un-delimited tokens at the end of the SafeString are returned<br>
+      To leave partial un-delimited tokens on the end of the SafeString, set returnLastNonDelimitedToken = false.<br>
+      Setting returnLastNonDelimitedToken = false allows the SafeString to hold partial tokens when reading from an input stream one char at a time.<br>
+      Setting firstToken = true suppressed skipping over a leading delimiter so that an empty first field can be returned if the first char is a delimiter
+
+      @param token - the SafeString to return the token in, it is always cleared first and will be empty if no delimited token is found or if there are errors<br>
+              The token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.<br>
+              If the token's capacity is < the next token, then nextToken() returns true, but the returned token argument is empty and an error messages printed if debug is enabled.<br>
+              In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
+      @param delimiters - the SafeString containing the delimiting characters, any one of which can delimit a token
+      @param returnEmptyFields -- default false, if true, nextToken() will return true, and an empty token for each consecuative delimiters
+      @param returnLastNonDelimitedToken -- default true, will return last part of SafeString even if not delimited. If set false, will keep it for further input to be added to this SafeString
+      @param firstToken -- default false, a leading delimiter will be stepped over before looking for a delimited token<br>
+      if set to true, a leading delimiter will delimit an empty token which will be returned only if returnEmptyFields is true otherwise it is skipped over.<br>
+      NOTE: if returnEmptyFields == false this firstToken argument has no effect.<br>
+      NOTE: since the last delimiter is left in the SafeString, you must set firstToken to be false (or omit it) after the first call.
+
+      @return -- true if nextToken() finds a token in this SafeString that is terminated by one of the delimiters, else false<br>
+                If the return is true, but hasError() is true then the SafeString token argument did not have the capacity to hold the next token.<br>
+                in this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()<br>
+                while being consistent with the SafeString's all or nothing insertion rule<br>
+               Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
+    **/
+    unsigned char nextToken(SafeString & token, SafeString & delimiters, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true, bool firstToken = false);
+    
+    /**
+      returns true if a delimited token is found, removes the first delimited token from this SafeString and returns it in the token argument<br>
+      by default a leading delimiter is stepped over before scanning for a delimited token, the firstToken argument can override this<br>
+      setting the firstToken arguemnent = true, suppresses this so that an empty first token can be returned if the first char is a delimiter AND if returnEmptyFields is true
+       
+      The delimiter is not returned and remains in the SafeString so you can test which delimiter terminated the token, provided this SafeString is not empty!<br>
+      The token argument is always cleared at the start of the nexttToken().<br>
+      IMPORTANT!! Changed V4.0.4 Now by default un-delimited tokens at the end of the SafeString are returned<br>
+      To leave partial un-delimited tokens on the end of the SafeString, set returnLastNonDelimitedToken = false.<br>
+      Setting returnLastNonDelimitedToken = false allows the SafeString to hold partial tokens when reading from an input stream one char at a time.<br>
+      Setting firstToken = true suppressed skipping over a leading delimiter so that an empty first field can be returned if the first char is a delimiter
+
+      @param token - the SafeString to return the token in, it is always cleared first and will be empty if no delimited token is found or if there are errors<br>
+              The token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.<br>
+              If the token's capacity is < the next token, then nextToken() returns true, but the returned token argument is empty and an error messages printed if debug is enabled.<br>
+              In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
+      @param delimiters - the string containing the delimiting characters, any one of which can delimit a token
+      @param returnEmptyFields -- default false, if true, nextToken() will return true, and an empty token for each consecuative delimiters
+      @param returnLastNonDelimitedToken -- default true, will return last part of SafeString even if not delimited. If set false, will keep it for further input to be added to this SafeString
+      @param firstToken -- default false, a leading delimiter will be stepped over before looking for a delimited token<br>
+      if set to true, a leading delimiter will delimit an empty token which will be returned only if returnEmptyFields is true otherwise it is skipped over.<br>
+      NOTE: if returnEmptyFields == false this firstToken argument has no effect.<br>
+      NOTE: since the last delimiter is left in the SafeString, you must set firstToken to be false (or omit it) after the first call.
+
+      @return -- true if nextToken() finds a token in this SafeString that is terminated by one of the delimiters, else false<br>
+                If the return is true, but hasError() is true then the SafeString token argument did not have the capacity to hold the next token.<br>
+                in this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()<br>
+                while being consistent with the SafeString's all or nothing insertion rule<br>
+               Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
+    **/
+    unsigned char nextToken(SafeString & token, const char* delimiters, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true, bool firstToken = false);
 
 
     /* *** ReadFrom from SafeString, writeTo SafeString ************************/
-    /*
-       readFrom(SafeString & sfInput, unsigned int startIdx = 0)  reads from the SafeString starting at startIdx into the SafeString calling this method
-       params
-         sfInput - the SafeString to read from
-         startIdx - where to start reading from, defaults to 0,
+    /**
+       reads from the SafeString argument, starting at startIdx, into this SafeString.
+       
+       The read stops when the end of the SafeString argument is reached or the calling SafeString is full
+       Note: if the SafeString is already full, then nothing will be read and startIdx will be returned unchanged
+       
+       @param  sfInput - the SafeString to read from
+       @param  startIdx - where to start reading from, defaults to 0,
                     if startIdx >= sfInput.length(), nothing read and sfInput.length() returned
 
-       returns new startIdx
-       read stops when the end of the sfInput is reached or the calling SafeString is full
-       Note: if the SafeString is already full, then nothing will be read and startIdx will be returned
+       @return - the new startIdx
     **/
     unsigned int readFrom(SafeString & input, unsigned int startIdx = 0);
 
-    /*
-       writeTo(SafeString & output, unsigned int startIdx = 0)  writes from SafeString, starting at startIdx to output
-       params
-         output - the SafeString to write to
-         startIdx - where to start writing from calling SafeString, defaults to 0,
+    /**
+       writes from this SafeString, starting from startIdx, into the SafeString output arguement.
+       
+       The write stops when the end if the calling SafeString is reached or the output is full
+       Note: if the output is already full, then nothing will be written and startIdx will be returned unchanged
+       
+       @param  output - the SafeString to write to
+       @param  startIdx - where to start writing from in the calling SafeString, defaults to 0,
                     if startIdx >= length(), nothing written and length() returned
 
-       returns new startIdx for next write
-       write stops when the end if the calling SafeString is reached or the output is full
-       Note: if the sfOutput is already full, then nothing will be written and startIdx will be returned
+       @return new startIdx for next write
     **/
     unsigned int writeTo(SafeString & output, unsigned int startIdx = 0);
 
     /* *** NON-blocking reads from Stream ************************/
-    /*
-      read(Stream& input)  reads from the Stream (if chars available) into the SafeString
+    
+    /**
+      reads from the Stream (if chars available) into the SafeString.
+      
       The is NON-BLOCKING and returns immediately if nothing available to be read
-
-      returns true if something added to string else false
       Note: if the SafeString is already full, then nothing will be read and false will be returned
+
+      @param - the Stream reference to read from
+      @return true if something added to this SafeString, else false
      **/
     unsigned char read(Stream & input);
 
-    /*
-      NON-blocking readUntil if chars available
-      returns true if delimiter found or string filled, found else false
-      if a delimiter is found it is included in the return
+    /**
+      reads chars into this SafeString until either it is full OR a delimiter is read OR there are no more chars available<br>
+      returns true if a delimiter found or SafeString is full, else false<br>
+      if a delimiter is found it is returned at the end of the SafeString<br>
+      Only at most one delimiter is added per call<br>
+      Multiple sucessive delimiters require multiple calls to read them
 
-      params
-        input - the Stream object to read from
-        delimiters - string of valid delimieters
-      return true if SaftString is full or a delimiter is read, else false
-      Any delimiter read is returned in input arg.  Only at most one delimiter is added per call
-       Multiple sucessive delimiters require multiple calls to read them
+      @param  input - the Stream reference to read from
+      @param  delimiter - the char which is the delimieter
+      @return true if SafeString is full or a delimiter is read, else false<br>
     **/
     unsigned char readUntil(Stream & input, const char delimiter);
+    /**
+      reads chars into this SafeString until either it is full OR a delimiter is read OR there are no more chars available<br>
+      returns true if a delimiter found or SafeString is full, else false<br>
+      if a delimiter is found it is returned at the end of the SafeString<br>
+      Only at most one delimiter is added per call<br>
+      Multiple sucessive delimiters require multiple calls to read them
+
+      @param  input - the Stream reference to read from
+      @param  delimiters - the string containing the characters any one of which can be a delimieter
+      @return true if SafeString is full or a delimiter is read, else false<br>
+    **/
     unsigned char readUntil(Stream & input, const char* delimiters);
+    /**
+      reads chars into this SafeString until either it is full OR a delimiter is read OR there are no more chars available<br>
+      returns true if a delimiter found or SafeString is full, else false<br>
+      if a delimiter is found it is returned at the end of the SafeString<br>
+      Only at most one delimiter is added per call<br>
+      Multiple sucessive delimiters require multiple calls to read them
+
+      @param  input - the Stream reference to read from
+      @param  delimiters - the SafeString containing the characters any one of which can be a delimieter
+      @return true if SafeString is full or a delimiter is read, else false<br>
+    **/
     unsigned char readUntil(Stream & input, SafeString & delimiters);
 
-    /*
-      NON-blocking readUntilToken
-      returns true if a delimited token is found, else false
-      ONLY delimited tokens of length less than this SafeString's capacity will return true with a non-empty token.
-      Streams of chars that overflow this SafeString's capacity are ignored and return an empty token on the next delimiter
-      That is this SafeString's capacity should be at least 1 more then the largest expected token.
-      If this SafeString OR the SaftString & token return argument is too small to hold the result, the token is returned empty and an error message output if debugging is enabled.
-      The delimiter is NOT included in the SaftString & token return.  It will the first char of the this SafeString when readUntilToken returns true
-      It is recommended that the capacity of the SafeString & token argument be >= this SaftString's capacity
+    /**
+      returns true if a delimited token is found, else false<br>
+      ONLY delimited tokens of length less than this SafeString's capacity will return true with a non-empty token.<br>
+      Streams of chars that overflow this SafeString's capacity are ignored and return an empty token on the next delimiter<br>
+      A timeout can be specified to return the last un-delimited token after chars stop arriving.<br>
+      The input read can be echoed back to the input Stream<br>
+      You can force a skip to the next delimiter to discard partial tokens<br>
+      
+      That is this SafeString's capacity should be at least 1 more then the largest expected token.<br>
+      If this SafeString OR the SafeString& token return argument is too small to hold the result, the token is returned empty and an error message output if debugging is enabled.<br>
+      The delimiter is NOT included in the SaftString& token return.  It will the first char of the this SafeString when readUntilToken returns true<br>
+      It is recommended that the capacity of the SafeString& token argument be >= this SafeString's capacity<br>
       Each call to this method removes any leading delimiters so if you need to check the delimiter do it BEFORE the next call to readUntilToken()
 
-      params
-        input - the Stream object to read from
-        token - the SafeString to return the token found if any, always cleared at the start of this method
-        delimiters - string of valid delimieters
-        skipToDelimiter - a bool variable to hold the skipToDelimiter state between calls
-        echoInput - defaults to false, pass non-zero (true) to echo the chars read
-        timeout_mS - defaults to never timeout, pass a non-zero mS to autoterminate the last token if no new chars received for that time.
+      @param input - the Stream reference to read from
+      @param token - the SafeString to return the token found if any, this always cleared at the start of this method
+      @param delimiter - the char which is the delimieter
+      @param skipToDelimiter - a bool reference variable to hold the skipToDelimiter state between calls<br>
+      If this is true all chars upto the next delimiter (or timeout) will be discarded and false returned with an empty token
+      @param echoInput - defaults to false, pass non-zero (true) to echo the chars read back to the input Stream
+      @param timeout_mS - defaults to never timeout, pass a non-zero mS to auto-terminate the last token if no new chars received for that time.
 
-      returns true if a delimited series of chars found that fit in this SafeString else false
-      If this SafeString OR the SaftString & token argument is too small to hold the result, the returned token is returned empty
-      The delimiter is NOT included in the SaftString & token return. It will the first char of the this SafeString when readUntilToken returns true
+      @return - true if a delimited series of chars found that fit in this SafeString else false<br>
+      If this SafeString OR the SafeString& token argument is too small to hold the result, the token is returned empty<br>
+      If a delimited token is found that fits in this SafeString but is too large for the token then true is returned and an empty token returned and an error raised on both this SafeString and the token<br>
+      The delimiter is NOT included in the SafeString& token return. It will the first char of the this SafeString when readUntilToken returns true
     **/
     unsigned char readUntilToken(Stream & input, SafeString & token, const char delimiter, bool & skipToDelimiter, uint8_t echoInput = false, unsigned long timeout_mS = 0);
+
+    /**
+      returns true if a delimited token is found, else false<br>
+      ONLY delimited tokens of length less than this SafeString's capacity will return true with a non-empty token.<br>
+      Streams of chars that overflow this SafeString's capacity are ignored and return an empty token on the next delimiter<br>
+      A timeout can be specified to return the last un-delimited token after chars stop arriving.<br>
+      The input read can be echoed back to the input Stream<br>
+      You can force a skip to the next delimiter to discard partial tokens<br>
+      
+      That is this SafeString's capacity should be at least 1 more then the largest expected token.<br>
+      If this SafeString OR the SafeString& token return argument is too small to hold the result, the token is returned empty and an error message output if debugging is enabled.<br>
+      The delimiter is NOT included in the SaftString& token return.  It will the first char of the this SafeString when readUntilToken returns true<br>
+      It is recommended that the capacity of the SafeString& token argument be >= this SafeString's capacity<br>
+      Each call to this method removes any leading delimiters so if you need to check the delimiter do it BEFORE the next call to readUntilToken()
+
+      @param input - the Stream reference to read from
+      @param token - the SafeString to return the token found if any, this always cleared at the start of this method
+      @param delimiters - the string containing the characters any one of which can be a delimieter
+      @param skipToDelimiter - a bool reference variable to hold the skipToDelimiter state between calls<br>
+      If this is true all chars upto the next delimiter (or timeout) will be discarded and false returned with an empty token
+      @param echoInput - defaults to false, pass non-zero (true) to echo the chars read back to the input Stream
+      @param timeout_mS - defaults to never timeout, pass a non-zero mS to auto-terminate the last token if no new chars received for that time.
+
+      @return - true if a delimited series of chars found that fit in this SafeString else false<br>
+      If this SafeString OR the SafeString& token argument is too small to hold the result, the token is returned empty<br>
+      If a delimited token is found that fits in this SafeString but is too large for the token then true is returned and an empty token returned and an error raised on both this SafeString and the token<br>
+      The delimiter is NOT included in the SafeString& token return. It will the first char of the this SafeString when readUntilToken returns true
+    **/
     unsigned char readUntilToken(Stream & input, SafeString & token, const char* delimiters, bool & skipToDelimiter, uint8_t echoInput = false, unsigned long timeout_mS = 0);
+
+    /**
+      returns true if a delimited token is found, else false<br>
+      ONLY delimited tokens of length less than this SafeString's capacity will return true with a non-empty token.<br>
+      Streams of chars that overflow this SafeString's capacity are ignored and return an empty token on the next delimiter<br>
+      A timeout can be specified to return the last un-delimited token after chars stop arriving.<br>
+      The input read can be echoed back to the input Stream<br>
+      You can force a skip to the next delimiter to discard partial tokens<br>
+      
+      That is this SafeString's capacity should be at least 1 more then the largest expected token.<br>
+      If this SafeString OR the SafeString& token return argument is too small to hold the result, the token is returned empty and an error message output if debugging is enabled.<br>
+      The delimiter is NOT included in the SaftString& token return.  It will the first char of the this SafeString when readUntilToken returns true<br>
+      It is recommended that the capacity of the SafeString& token argument be >= this SafeString's capacity<br>
+      Each call to this method removes any leading delimiters so if you need to check the delimiter do it BEFORE the next call to readUntilToken()
+
+      @param input - the Stream reference to read from
+      @param token - the SafeString to return the token found if any, this always cleared at the start of this method
+      @param delimiters - the SafeString containing the characters any one of which can be a delimieter
+      @param skipToDelimiter - a bool reference variable to hold the skipToDelimiter state between calls<br>
+      If this is true all chars upto the next delimiter (or timeout) will be discarded and false returned with an empty token
+      @param echoInput - defaults to false, pass non-zero (true) to echo the chars read back to the input Stream
+      @param timeout_mS - defaults to never timeout, pass a non-zero mS to auto-terminate the last token if no new chars received for that time.
+
+      @return - true if a delimited series of chars found that fit in this SafeString else false<br>
+      If this SafeString OR the SafeString& token argument is too small to hold the result, the token is returned empty<br>
+      If a delimited token is found that fits in this SafeString but is too large for the token then true is returned and an empty token returned and an error raised on both this SafeString and the token<br>
+      The delimiter is NOT included in the SafeString& token return. It will the first char of the this SafeString when readUntilToken returns true
+    **/
     unsigned char readUntilToken(Stream & input, SafeString & token, SafeString & delimiters, bool & skipToDelimiter, uint8_t echoInput = false, unsigned long timeout_mS = 0);
 
-    size_t getLastReadCount(); // number of chars read on previous call to read, readUntil or readUntilToken (includes '\0' read if any)  each call read, readUntil, readUntilToken first clears this count
+    /**
+      returns the number of chars read on previous calls to read, readUntil or readUntilToken (includes '\0' read if any).
+      
+      Each call read, readUntil, readUntilToken first clears this count
+      @returns - the char count read since the last call to this method.
+      */
+    size_t getLastReadCount(); 
+    
     /* *** END OF PUBLIC METHODS ************/
 
   protected:
