@@ -133,7 +133,7 @@ int SafeStringStream::read() {
     if (sfPtr->isEmpty()) {
       return -1;
     } // else
-    char c = sfPtr->charAt(0);
+    unsigned char c = (unsigned char)sfPtr->charAt(0);
     sfPtr->remove(0, 1);
     return c;
   } // else
@@ -148,7 +148,7 @@ int SafeStringStream::read() {
     sendTimerStart = micros() - excessTime; // allow for this processing time
     return -1;
   } // else
-  char c = rxBuf->charAt(0);
+  unsigned char c = (unsigned char)rxBuf->charAt(0);
   rxBuf->remove(0, 1);
   sendTimerStart = micros() - excessTime; // allow for this processing time
   return c;
@@ -162,7 +162,7 @@ int SafeStringStream::peek() {
     if (sfPtr->isEmpty()) {
       return -1;
     } // else
-    return sfPtr->charAt(0);
+    return (unsigned char)sfPtr->charAt(0);
   } // else
 
   unsigned long excessTime = releaseNextByte();
@@ -176,7 +176,7 @@ int SafeStringStream::peek() {
     return -1;
   } // else
   sendTimerStart = micros() - excessTime; // allow for this processing time
-  return  rxBuf->charAt(0);
+  return  (unsigned char)rxBuf->charAt(0);
 }
 
 void SafeStringStream::SafeStringStream::flush() {
