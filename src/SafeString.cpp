@@ -1619,7 +1619,7 @@ SafeString & SafeString::concat(const char *cstr) {
 }
 
 SafeString & SafeString::concat(const char *cstr, size_t length) {
-  return concatInternal(cstr, length); // calls cleanUp()
+  return concatInternal(cstr, length, false); // calls cleanUp()
 }
 
 // you can concat to yourself if there is enough room, i.e. str.concat(str);
@@ -1698,7 +1698,7 @@ SafeString & SafeString::concat(const __FlashStringHelper * pstr, size_t length)
 #endif // SSTRING_DEBUG
     return *this;
   }
-  return concatInternal(pstr, length);
+  return concatInternal(pstr, length, false);
 }
 
 // ============== internal concat methods

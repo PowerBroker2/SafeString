@@ -1820,8 +1820,8 @@ class SafeString : public Printable, public Print {
     SafeString & concatln(char c);
     SafeString & concatln(const char *cstr, size_t length);
     void outputName() const ;
-    SafeString & concatInternal(const char *cstr, size_t length, bool assignOp = false); // concat at most length chars from cstr
-    SafeString & concatInternal(const __FlashStringHelper * str, size_t length, bool assignOp = false); // concat at most length chars
+    SafeString & concatInternal(const char *cstr, size_t length, bool assignOp); // concat at most length chars from cstr
+    SafeString & concatInternal(const __FlashStringHelper * str, size_t length, bool assignOp); // concat at most length chars
 
     SafeString & concatInternal(const char *cstr, bool assignOp = false);
     SafeString & concatInternal(char c, bool assignOp = false);
