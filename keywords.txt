@@ -123,9 +123,13 @@ isConnected	KEYWORD2
 noCheckSum	KEYWORD2
 getTextReceived	KEYWORD2
 getTextToSend	KEYWORD2
-
-
-
+PinFlasher	KEYWORD1
+update	KEYWORD2
+setPin	KEYWORD2
+setOnOff	KEYWORD2
+invertOutput	KEYWORD2
+PIN_ON	LITERAL1
+PIN_OFF	LITERAL1 
 
 	
 

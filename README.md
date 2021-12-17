@@ -9,6 +9,7 @@ This library includes:-
 * **BufferedInput**, extra buffering for text input  
 * **loopTimer**, (loopTimerClass) to track of the maximum and average run times for the loop()  
 * **millisDelay**, a non-blocking delay replacement, with single-shot, repeating, restart and stop facilities.  
+* **PinFlasher**, a non-blocking flashing of an output pin.  
 * **SerialComs**, to send messages between Arduinos via Serial
 
 # How-To
@@ -25,7 +26,8 @@ See the top of each file for its license
 Note, this is NOT my work, I am simply hosting it for easy access. The original code belongs to [Forward Computing and Control Pty. Ltd](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
 
 # Revisions
-V4.1.11 addeds support for Ardafruit M4 and Moteino M4  
+V4.1.12 adds PinFlasher class
+V4.1.11 adds support for Ardafruit M4 and Moteino M4  
 V4.1.10 fixed SafeStringStream to handle data >= 0x80  
 V4.1.9 added toUnsignedLong coversions, removed firstToken()  
 V4.1.7-8 added MegaTinyCore support 
