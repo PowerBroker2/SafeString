@@ -100,7 +100,7 @@ void BufferedOutput::connect(HardwareSerial& _serial) { // the output to write t
       streamPtr->flush();
       delay(5000);
     }
-#else  // not ARDUINO_ARCH_ESP8266 etc
+#else  // not ARDUINO_SAM_DUE etc
   avail = serialPtr->availableForWrite();
 #endif
   if (txBufferSize < avail) {
