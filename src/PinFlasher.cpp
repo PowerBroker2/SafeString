@@ -52,8 +52,9 @@ void PinFlasher::update() {
 /**
    Set the output pin to flash.
    Call setOnOff( ) to start flashing, after calling setPin()<br>
-   If pinNo changes, stop any current flashing, else ignore this call<br>
-   @param pin -- the pin number to flash, default 0 (not set)<br>
+   If pinNo changes, stop any current flashing, set pin to output and OFF<br>
+   else ignore this call<br>
+   @param pin -- the pin number to flash
 */
 void PinFlasher::setPin(int pin) {
   if (io_pin == pin) {
@@ -74,13 +75,19 @@ void PinFlasher::setPin(int pin) {
 }
 
 /**
-    Set the On and Off length, period is twice this setting.
+    Set the On and Off length, the period is twice this setting.
+    This call does nothing is the on/off length is the same as the existing setting.<br>
+    This simplifies the calling logic.<br>
     @param onOff_ms -- ms for on and also for off, i.e. half the period, duty cycle 50%<br>
     PIN_OFF (0) turns off the output<br>
     PIN_ON (-1) turns the output on <br>
     other values turn the output on for that length of time and then off for the same time
     */
 void PinFlasher::setOnOff(unsigned long onOff_ms) {
+	if (half_period == onOff_ms) {
+      update(); // update if called with no change
+      return;
+	}
   half_period = onOff_ms;
   if (half_period == PIN_OFF) { // stay off
     io_pin_on = false;
