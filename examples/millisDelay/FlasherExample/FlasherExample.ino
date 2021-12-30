@@ -24,7 +24,7 @@ void setup() {
   }
   Serial.println();
   Serial.println("Led should be OFF");
-  Serial.println(" Enter 1 for 1sec flash, 2 for 2sec etc upto 9, enter o to keep on, enter s to turn off, i to invert output");
+  Serial.println(" Enter 1 for 1sec flash, 2 for 2sec etc upto 9, enter the letter N to keep on, enter o or digit 0 to turn off, i to invert output");
 }
 
 
@@ -39,10 +39,10 @@ void loop() {
     if (isDigit(c)) {
       Serial.print("Start flashing "); Serial.print(c); Serial.print("on, "); Serial.print(c); Serial.println("sec off");
       flasher.setOnOff((c - '0') * 1000);
-    } else if ((c == 's') || (c == 'S'))  {
+    } else if ((c == 'o') || (c == 'O'))  {
       Serial.print("Stop flashing, turn off ");  Serial.println();
       flasher.setOnOff(PIN_OFF); // stop
-    } else if ((c == 'o') || (c == 'O')) {
+    } else if ((c == 'n') || (c == 'N')) {
       Serial.print("Stop flashing, turn on ");  Serial.println();
       flasher.setOnOff(PIN_ON); // hard on
     } else if ((c == 'i') || (c == 'I')) {

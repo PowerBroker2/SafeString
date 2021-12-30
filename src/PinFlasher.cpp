@@ -17,12 +17,12 @@ const int PIN_ON = -1;
 const int PIN_OFF = 0; 
 /**
    Constructor.
-   if pin != 0 it is initally set to output and OFF<br>
-   @param pin -- the pin number to flash, default 0 (not set)<br>
+   if pin >=0 it is initally set to output and OFF<br>
+   @param pin -- the pin number to flash, default -1 (not set)<br>
    @param invert -- true to make pin LOW for on, false (default) to make pin HIGH for on.
 */
 PinFlasher::PinFlasher(int pin, bool invert) {
-  outputInverted = invert;
+  outputInverted = invert; // set this befor calling setPin( ) so off is correct logic level
   setPin(pin);
 }
 
@@ -45,38 +45,38 @@ void PinFlasher::update() {
       restart(); // slips time
       io_pin_on = !io_pin_on;
     }
-    setOutput(); // off does nothing if io_pin =0
+    setOutput(); // off does nothing if io_pin < 0
   }
 }
 
 /**
    Set the output pin to flash.
    Call setOnOff( ) to start flashing, after calling setPin()<br>
+   Multiple calls to this method with the same pinNo are ignored and do not interfere with flashing<br>
    If pinNo changes, stop any current flashing, set pin to output and OFF<br>
    else ignore this call<br>
    @param pin -- the pin number to flash
 */
 void PinFlasher::setPin(int pin) {
-  if (io_pin == pin) {
+  if (pin < 0) { //all -ve inputs forced to -1
+    pin = -1;
+  }
+  if (io_pin == pin) { // all -ve inputs will not match and return
     return;
   }
   // else pin changed re-init
   io_pin = pin;
-  if (io_pin < 0) {
-    io_pin = 0;
-  }
   stop(); // stop flash timer
   half_period = PIN_OFF; // off
   io_pin_on = false;
-  if (io_pin) {
-    pinMode(io_pin, OUTPUT);
-  }
+  pinMode(io_pin, OUTPUT); // io_pin >=0 here
   setOutput();
 }
 
 /**
     Set the On and Off length, the period is twice this setting.
     This call does nothing is the on/off length is the same as the existing setting.<br>
+    i.e. Multiple calls to this method with the same arguement are ignored and do not interfere with flashing<br>
     This simplifies the calling logic.<br>
     @param onOff_ms -- ms for on and also for off, i.e. half the period, duty cycle 50%<br>
     PIN_OFF (0) turns off the output<br>
@@ -97,8 +97,10 @@ void PinFlasher::setOnOff(unsigned long onOff_ms) {
     stop(); // stop flash timer
   } else { //restart flash
     io_pin_on = true;
-    if (io_pin) { // if have a pin
+    if (io_pin >=0 ) { // if have a pin
       start(half_period);  // restart
+    } else {
+      stop(); // no output so stop timer
     }
   }
   setOutput();
@@ -125,10 +127,11 @@ bool PinFlasher::invertOutput() {
 }
 
 /**
-   set the output based on io_pin, io_pin_on and outputInverted
+   set the output based on io_pin, io_pin_on and outputInverted.
+   This is a non-public helper method
 */
-void PinFlasher::setOutput() { // uses io_pin_on global
-  if (!io_pin) {
+void PinFlasher::setOutput() { // uses class vars io_pin and io_pin_on
+  if (io_pin < 0) {
     return;
   }
   if (io_pin_on) {

@@ -26,7 +26,8 @@ See the top of each file for its license
 Note, this is NOT my work, I am simply hosting it for easy access. The original code belongs to [Forward Computing and Control Pty. Ltd](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
 
 # Revisions
-V4.1.13 minor change PinFlasher to simplify loop logic  
+V4.1.14 minor fix PinFlasher  
+V4.1.13 minor change PinFlasher to simplify loop logic    
 V4.1.12 adds PinFlasher class  
 V4.1.11 adds support for Ardafruit M4 and Moteino M4  
 V4.1.10 fixed SafeStringStream to handle data >= 0x80  
