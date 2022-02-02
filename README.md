@@ -26,6 +26,7 @@ See the top of each file for its license
 Note, this is NOT my work, I am simply hosting it for easy access. The original code belongs to [Forward Computing and Control Pty. Ltd](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
 
 # Revisions
+V4.1.15 added support for ARDUINO_ARCH_NRF52 and ARDUINO_ARCH_NRF5    
 V4.1.14 minor fix PinFlasher  
 V4.1.13 minor change PinFlasher to simplify loop logic    
 V4.1.12 adds PinFlasher class  

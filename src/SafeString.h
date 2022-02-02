@@ -1804,7 +1804,7 @@ class SafeString : public Printable, public Print {
           return currentOutput->write(buffer, length);
         };
         void flush() {
-#if defined(ESP_PLATFORM) || defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4) || defined(ARDUINO_NRF52832_FEATHER) ||  defined(MEGATINYCORE_MAJOR)
+#if defined(ESP_PLATFORM) || defined(ARDUINO_ARCH_NRF52) || defined(ARDUINO_ARCH_NRF5) || defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4) || defined(ARDUINO_NRF52832_FEATHER) ||  defined(MEGATINYCORE_MAJOR)
           // ESP32 has no flush in Print!! but ESP8266 has
 #else
           currentOutput->flush();
