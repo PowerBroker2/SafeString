@@ -90,8 +90,7 @@ void BufferedOutput::connect(HardwareSerial& _serial) { // the output to write t
   serialPtr->flush(); // try and clear hardware buffer
   delay(10); // wait for a few ms for Tx buffer to clear if flush() does not do it
   int avail = 0;
-#if defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4) || defined(MEGATINYCORE_MAJOR) 
-    // ESP8266 HardwareSerial does not have availableForWrite()
+#if defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_NRF52) || defined(ARDUINO_ARCH_NRF5) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4) || defined(MEGATINYCORE_MAJOR) 
     while (1) {
       streamPtr->println("This board does not implement availableForWrite()");
       streamPtr->println("You need to use the  bufferedOutput.connect(stream, baudrate) to specify the baudrate");
@@ -151,7 +150,7 @@ void BufferedOutput::connect(Stream& _stream, const uint32_t _baudRate) {
   delay(10); // wait for a few ms for Tx buffer to clear if flush() does not do it
   baudRate = _baudRate;
   if (baudRate == 0) {  // no baudrate  use availableForWrite() if it is available
-#if defined(ESP_PLATFORM) || defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4) || defined(MEGATINYCORE_MAJOR)
+#if defined(ESP_PLATFORM) || defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_NRF52) || defined(ARDUINO_ARCH_NRF5) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4) || defined(MEGATINYCORE_MAJOR) 
     // ESP32 ESP8266 Stream does not have availableForWrite()
     while (1) {
       streamPtr->println("ESP32 and ESP8266 Print does not implement availableForWrite()");
@@ -293,13 +292,13 @@ int BufferedOutput::internalStreamAvailableForWrite() {
   int avail = 0;
   if (serialPtr) {
   	//  do not have availableForWrite
-#if defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4) || defined(MEGATINYCORE_MAJOR)
+#if defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_NRF52) || defined(ARDUINO_ARCH_NRF5) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4) || defined(MEGATINYCORE_MAJOR) 
   	// nothing
 #else
     avail = serialPtr->availableForWrite();
 #endif
   } else { // streamPtr should always be non-NULL
-#if defined(ESP_PLATFORM) || defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4) || defined(MEGATINYCORE_MAJOR)
+#if defined(ESP_PLATFORM) || defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_NRF52) || defined(ARDUINO_ARCH_NRF5) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4) || defined(MEGATINYCORE_MAJOR) 
     return 0;    // ESP stream does not have availableForWrite
 #else
     avail = streamPtr->availableForWrite();
