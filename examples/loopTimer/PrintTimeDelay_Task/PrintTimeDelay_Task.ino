@@ -14,7 +14,7 @@
 int led = 13;
 
 /*
-  print_mS() task 
+  print_ms() task 
   Prints the time every 5 seconds, repeatedly.
 */
 
@@ -30,13 +30,13 @@ void setup() {
 }
 
 // the task method
-void print_mS() {
-  Serial.println(millis());   // print the current mS
+void print_ms() {
+  Serial.println(millis());   // print the current ms
   delay(5000);              // wait for a 5 seconds
 }
 
 // the loop function runs over and over again forever
 void loop() {
   loopTimer.check(Serial);
-  print_mS(); // call the method to print the time
+  print_ms(); // call the method to print the time
 }

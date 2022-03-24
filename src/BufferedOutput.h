@@ -114,7 +114,7 @@ class BufferedOutput : public Stream {
     bool allOrNothing; // = true current setting reset to allOrNothingSetting after each write(buf,size)
     bool allOrNothingSetting; // = true as passed in to constructor
     uint8_t defaultBuffer[8]; // if buffer passed in too small or NULL
-    unsigned long uS_perByte; // == 1000000 / (baudRate/10) == 10000000 / baudRate
+    unsigned long us_perByte; // == 1000000 / (baudRate/10) == 10000000 / baudRate
     Stream* streamPtr;
     HardwareSerial* serialPtr; // non-null if HardwareSerial and availableForWrite returns non zero
     uint32_t baudRate;

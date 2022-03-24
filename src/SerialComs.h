@@ -148,7 +148,7 @@ class SerialComs : public SafeString {
     size_t _receiveSize;
     size_t _sendSize;
     Stream *stream_io_ptr;
-    unsigned long connectionTimeout_mS;// = 250; // 0.25 sec
+    unsigned long connectionTimeout_ms;// = 250; // 0.25 sec
     static char emptyCharArray[0];
 };
 

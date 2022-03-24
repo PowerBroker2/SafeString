@@ -26,12 +26,12 @@
     delimiters - either a char ('\n') or a string of delimiters ("\r\n,.")
     skipToDelimiterFlag - true if all data upto the first delimiter received should be ignored, default false
     echoInput - true if all chars read (including delimiters) are to be echoed back to the Stream being read from, default false
-    timeout_mS - the mS timeout, if no more chars read for this timeout, the current input is returned as the token. In this case getDelimiter() returns -1,  default 0 i.e. never times out must read a delimiter
+    timeout_ms - the ms timeout, if no more chars read for this timeout, the current input is returned as the token. In this case getDelimiter() returns -1,  default 0 i.e. never times out must read a delimiter
     
     example
     createSafeStringReader(sfReader,20,'\n',false,true,100);
-    This creates a SafeStringReader sfReader which can read delimited tokens upto 20 chars long (not including the delimiter), no initial skipToDelimiter, echo is ON, timeout is 100mS
-    If no '\n' is received and no new chars read for 100mS the currently read char will be returned as the token
+    This creates a SafeStringReader sfReader which can read delimited tokens upto 20 chars long (not including the delimiter), no initial skipToDelimiter, echo is ON, timeout is 100ms
+    If no '\n' is received and no new chars read for 100ms the currently read char will be returned as the token
   
 */
 #define createSafeStringReader(name, size, ...) \
@@ -46,8 +46,8 @@
 class SafeStringReader : public SafeString {
   public:
   	  // here buffSize is max size of the token + 1 for delimiter + 1 for terminating '\0;
-    explicit SafeStringReader(SafeString& _sfInput, size_t bufSize, char *tokenBuf, const char* _name, const char* delimiters, bool skipToDelimiterFlag = false, uint8_t echoInput = false, unsigned long timeout_mS = 0 );
-    explicit SafeStringReader(SafeString& _sfInput, size_t bufSize, char *tokenBuf, const char* _name, const char delimiter, bool skipToDelimiterFlag = false, uint8_t echoInput = false, unsigned long timeout_mS = 0 );
+    explicit SafeStringReader(SafeString& _sfInput, size_t bufSize, char *tokenBuf, const char* _name, const char* delimiters, bool skipToDelimiterFlag = false, uint8_t echoInput = false, unsigned long timeout_ms = 0 );
+    explicit SafeStringReader(SafeString& _sfInput, size_t bufSize, char *tokenBuf, const char* _name, const char delimiter, bool skipToDelimiterFlag = false, uint8_t echoInput = false, unsigned long timeout_ms = 0 );
 
     /**
           connect(Stream& stream)
@@ -60,12 +60,12 @@ class SafeStringReader : public SafeString {
     /**
       setTimeout
       sets the timeout to wait for more chars.
-      If no chars are received for the timeout_mS then a virtual delimiter (-1) is implied and the currently buffered text is returned as a token
-      getDelimiter() will return (char)-1 in this case and be used to detect a timeout.
+      If no chars are received for the timeout_ms then a virtual delimiter (-1) is implied and the currently buffered text is returned as a token
+      getDelimiter() will return -1 in this case and be used to detect a timeout.
 
       default is 0, i.e. no timeout set. Only a delimiter will trigger the return of a token
     */
-    void setTimeout(unsigned long mS);
+    void setTimeout(unsigned long ms);
 
 
     /**
@@ -82,9 +82,9 @@ class SafeStringReader : public SafeString {
       getDelimiter()
       returns the delimiter that terminated the last token
       only valid when read() returns true
-      will return ((char)-1) is there is none, e.g. timed out or argument error
+      will return -1 is there is none, e.g. timed out or argument error
     */
-    char getDelimiter();
+    int getDelimiter();
 
     /**
       echoOn(), echoOff() control echoing back to the input Stream all chars read
@@ -170,7 +170,7 @@ class SafeStringReader : public SafeString {
 
   private:
     SafeStringReader(const SafeStringReader& other);
-    void init(SafeString& _sfInput, const char* delimiters, bool skipToDelimiterFlag, uint8_t echoInput, unsigned long timeout_mS);
+    void init(SafeString& _sfInput, const char* delimiters, bool skipToDelimiterFlag, uint8_t echoInput, unsigned long timeout_ms);
     //  void bufferInput(); // get more input
     SafeString* sfInputPtr;
     const char* delimiters;
@@ -178,7 +178,7 @@ class SafeStringReader : public SafeString {
     bool echoInput;
     bool emptyTokensReturned; // default false
     bool flagFlushInput; // true if flushing
-    unsigned long timeout_mS;
+    unsigned long timeout_ms;
     bool haveToken; // true if have token but read() not called yet
     Stream *streamPtr;
     size_t charCounter; // counts bytes read, useful for http streams

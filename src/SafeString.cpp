@@ -4582,14 +4582,14 @@ bool SafeString::readUntilInternal(Stream& input, const char* delimitersIn, cons
         delimiters - string of valid delimieters
         skipToDelimiter - a bool variable to hold the skipToDelimiter state between calls
         echoInput - defaults to true to echo the chars read
-        timeout_mS - defaults to never timeout, pass a non-zero mS to autoterminate the last token if no new chars received for that time.
+        timeout_ms - defaults to never timeout, pass a non-zero ms to autoterminate the last token if no new chars received for that time.
 
       returns true if a delimited series of chars found that fit in this SafeString else false
       If this SafeString OR the SaftString & token argument is too small to hold the result, the returned token is returned empty
       The delimiter is NOT included in the SaftString & token return. It will the first char of the this SafeString when readUntilToken returns true
  **/
 
-unsigned char SafeString::readUntilToken(Stream & input, SafeString& token, const char delimiter, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_mS) {
+unsigned char SafeString::readUntilToken(Stream & input, SafeString& token, const char delimiter, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_ms) {
   if (!delimiter) {
     setError();
 #ifdef SSTRING_DEBUG
@@ -4601,15 +4601,15 @@ unsigned char SafeString::readUntilToken(Stream & input, SafeString& token, cons
 #endif // SSTRING_DEBUG
     return len + 1;
   }
-  return readUntilTokenInternal(input, token, NULL, delimiter, skipToDelimiter, echoInput, timeout_mS);
+  return readUntilTokenInternal(input, token, NULL, delimiter, skipToDelimiter, echoInput, timeout_ms);
 }
 
-unsigned char SafeString::readUntilToken(Stream & input, SafeString& token, SafeString& delimiters, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_mS) {
+unsigned char SafeString::readUntilToken(Stream & input, SafeString& token, SafeString& delimiters, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_ms) {
   delimiters.cleanUp();
-  return readUntilToken(input, token, delimiters.buffer, skipToDelimiter, echoInput, timeout_mS); // calls cleanUp()
+  return readUntilToken(input, token, delimiters.buffer, skipToDelimiter, echoInput, timeout_ms); // calls cleanUp()
 }
 
-unsigned char SafeString::readUntilToken(Stream & input, SafeString& token, const char* delimiters, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_mS) {
+unsigned char SafeString::readUntilToken(Stream & input, SafeString& token, const char* delimiters, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_ms) {
   if (!delimiters) {
     setError();
 #ifdef SSTRING_DEBUG
@@ -4632,22 +4632,22 @@ unsigned char SafeString::readUntilToken(Stream & input, SafeString& token, cons
 #endif // SSTRING_DEBUG
     return false; // no match
   }
-  return readUntilTokenInternal(input, token, delimiters, '\0', skipToDelimiter, echoInput, timeout_mS);
+  return readUntilTokenInternal(input, token, delimiters, '\0', skipToDelimiter, echoInput, timeout_ms);
 }
 
-bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const char* delimitersIn, const char delimiterIn, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_mS) {
+bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const char* delimitersIn, const char delimiterIn, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_ms) {
   token.clear(); // always
-  if ((echoInput != 0) && (echoInput != 1) && (timeout_mS == 0)) {
+  if ((echoInput != 0) && (echoInput != 1) && (timeout_ms == 0)) {
     setError();
     token.setError();
 #ifdef SSTRING_DEBUG
     if (debugPtr) {
       errorMethod(F("readUntilToken"));
       debugPtr->println(F(" was passed timeout for the echo setting, method format is:-"));
-      debugPtr->println(F("   readTokenUntil(stream,token,delimiters,skipToDelimiter,echoOn,timeout_mS)"));
+      debugPtr->println(F("   readTokenUntil(stream,token,delimiters,skipToDelimiter,echoOn,timeout_ms)"));
     }
 #endif // SSTRING_DEBUG
-    timeout_mS = echoInput; // swap to timeout
+    timeout_ms = echoInput; // swap to timeout
     echoInput = false; // use default
   }
 
@@ -4684,9 +4684,9 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
   // this prevent infinite loop if using SafeStringStream with echoOn and rx buffer overflow has dropped all the delimiters
   //size_t charRead = 0;
   noCharsRead = 0;
-  if ((timeout_mS > 0) && (!timeoutRunning) && skipToDelimiter) {
+  if ((timeout_ms > 0) && (!timeoutRunning) && skipToDelimiter) {
     timeoutRunning = true;
-    timeoutStart_mS = millis(); // start timer
+    timeoutStart_ms = millis(); // start timer
   }
   char haveReadDelimiter = '\0';
   while (input.available() && (len < capacity()) && (noCharsRead < capacity()) ) {
@@ -4707,10 +4707,10 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
     if (echoInput) {
       input.print((char) c);
     }
-    if (timeout_mS > 0) {
+    if (timeout_ms > 0) {
       // got new char reset timeout
       timeoutRunning = true;
-      timeoutStart_mS = millis(); // start timer
+      timeoutStart_ms = millis(); // start timer
     }
     if (!skipToDelimiter) {
       concat((char)c); // add char may be delimiter
@@ -4765,7 +4765,7 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
 
   // else no token found AND not full AND last char NOT a delimiter
   if (timeoutRunning) { // here not full because called nextToken OR checked for full
-    if ((millis() - timeoutStart_mS) > timeout_mS) {
+    if ((millis() - timeoutStart_ms) > timeout_ms) {
       // no new chars for timeout add terminator
       timeoutRunning = false;
       // put in delimiter

@@ -35,7 +35,7 @@ millisDelay printDelay;
 bool stopTempReadings = true;
 float tempReading = 0.0;
 millisDelay max31856Delay;
-const unsigned long MAX31856_DELAY_MS = 200; // max single shot conversion time is 185mS
+const unsigned long MAX31856_DELAY_MS = 200; // max single shot conversion time is 185ms
 bool readingStarted = false;
 
 
@@ -51,7 +51,7 @@ void setup() {
   bufferedOut.connect(Serial);  // connect bufferedOut to Serial
   sfReader.connect(bufferedOut);
   sfReader.echoOn(); // echo goes out via bufferedOut
-  sfReader.setTimeout(100); // set 100mS == 0.1sec non-blocking timeout
+  sfReader.setTimeout(100); // set 100ms == 0.1sec non-blocking timeout
 
   // initialize digital pin LED_BUILTIN as an output.
   pinMode(LED_BUILTIN, OUTPUT);
@@ -59,8 +59,8 @@ void setup() {
   maxthermo.begin();
   maxthermo.setThermocoupleType(MAX31856_TCTYPE_K);
 
-  ledDelay.start(1000); // start the ledDelay, toggle every 1000mS
-  printDelay.start(5000); // start the printDelay, print every 5000mS
+  ledDelay.start(1000); // start the ledDelay, toggle every 1000ms
+  printDelay.start(5000); // start the printDelay, print every 5000ms
   Serial.println(F("To control Temp readings use commands startTemp or stopTemp (other commands will be ignored)"));
   Serial.println(F("   Any line ending OR none can be used."));
   Serial.println(F("   You can enter multiple commands on the one line."));
@@ -102,7 +102,7 @@ void handleStopCmd() {
 // task to get the user's cmds, input commands terminated by space or , or \r or \n or no new characters for 2secs
 // set Global variable with input cmd
 void processUserInput() {
-  if (sfReader.read()) { // echo input and 100mS timeout, non-blocking!!
+  if (sfReader.read()) { // echo input and 100ms timeout, non-blocking!!
     sfReader.toLowerCase(); // ignore case
     if (sfReader == "starttemp") { // all lower case
       handleStartCmd();

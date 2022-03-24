@@ -40,12 +40,12 @@ void setup() {
   bufferedOut.connect(Serial);  // connect bufferedOut to Serial
   sfReader.connect(bufferedOut);
   sfReader.echoOn(); // echo goes out via bufferedOut
-  sfReader.setTimeout(100); // set 100mS == 0.1sec non-blocking timeout
+  sfReader.setTimeout(100); // set 100ms == 0.1sec non-blocking timeout
 
   // initialize digital pin led as an output.
   pinMode(led, OUTPUT);
-  ledDelay.start(1000); // start the ledDelay, toggle every 1000mS
-  printDelay.start(5000); // start the printDelay, print every 5000mS
+  ledDelay.start(1000); // start the ledDelay, toggle every 1000ms
+  printDelay.start(5000); // start the printDelay, print every 5000ms
   Serial.print(F("Led is currently "));  Serial.println(stopBlinking ? " OFF." : " blinking.");
   Serial.println(F("   Enter either start or stop to control the Blinking Led (other commands will be ignored)"));
   Serial.println(F("   Any line ending OR none can be used."));
@@ -67,10 +67,10 @@ void blinkLed13(bool stop) {
 }
 
 // the task method
-void print_mS() {
+void print_ms() {
   if (printDelay.justFinished()) {
     printDelay.repeat(); // start delay again without drift
-    bufferedOut.println(millis());   // print the current mS
+    bufferedOut.println(millis());   // print the current ms
   } // else nothing to do this call just return, quickly
 }
 
@@ -86,7 +86,7 @@ void handleStopCmd() {
 // task to get the user's cmds, input commands terminated by space or , or \r or \n or no new characters for 2secs
 // set Global variable with input cmd
 void processUserInput() {
-  if (sfReader.read()) { // echo input and 100mS timeout, non-blocking set in setup()
+  if (sfReader.read()) { // echo input and 100ms timeout, non-blocking set in setup()
     if (sfReader == "start") {
       handleStartCmd();
     } else if (sfReader == "stop") {
@@ -103,5 +103,5 @@ void loop() {
   loopTimer.check(bufferedOut);
   processUserInput();
   blinkLed13(stopBlinking); // call the method to blink the led
-  print_mS(); // print the time
+  print_ms(); // print the time
 }

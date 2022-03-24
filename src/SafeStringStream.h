@@ -108,7 +108,7 @@ class SafeStringStream : public Stream {
   private:
   	SafeStringStream(const SafeStringStream& other);
   	void init();
-    unsigned long uS_perByte; // == 1000000 / (baudRate/10) == 10000000 / baudRate
+    unsigned long us_perByte; // == 1000000 / (baudRate/10) == 10000000 / baudRate
     uint32_t baudRate;
     unsigned long releaseNextByte();
     unsigned long sendTimerStart;

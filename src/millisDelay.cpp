@@ -24,7 +24,7 @@ millisDelay::millisDelay() {
    @param delay in millisconds, 0 means justFinished() will return true on first call
 */
 void millisDelay::start(unsigned long delay) {
-  mS_delay = delay;
+  ms_delay = delay;
   startTime = millis();
   running = true;
   finishNow = false; // do not finish early
@@ -45,7 +45,7 @@ void millisDelay::stop() {
    Do same delay again but allow for a possible delay in calling justFinished()
 */
 void millisDelay::repeat() {
-  startTime = startTime + mS_delay;
+  startTime = startTime + ms_delay;
   running = true;
   finishNow = false; // do not finish early
 }
@@ -56,7 +56,7 @@ void millisDelay::repeat() {
    Note: use repeat() when justFinished() returns true, if you want a regular repeating delay
 */
 void millisDelay::restart() {
-  start(mS_delay);
+  start(ms_delay);
 }
 
 /**
@@ -71,7 +71,7 @@ void millisDelay::finish() {
   justFinished() returns true just once when delay first exceeded or the first time it is called after finish() called
 */
 bool millisDelay::justFinished() {
-  if (running && (finishNow || ((millis() - startTime) >= mS_delay))) {
+  if (running && (finishNow || ((millis() - startTime) >= ms_delay))) {
     stop();
     return true;
   } // else {
@@ -86,7 +86,7 @@ bool millisDelay::isRunning() {
 }
 
 /**
-  Returns the last time this delay was started, in mS, by calling start(), repeat() or restart()
+  Returns the last time this delay was started, in ms, by calling start(), repeat() or restart()
   Returns 0 if it has never been started
 */
 unsigned long millisDelay::getStartTime() {
@@ -94,16 +94,16 @@ unsigned long millisDelay::getStartTime() {
 }
 
 /**
-  How many mS remaining until delay finishes
+  How many ms remaining until delay finishes
   Returns 0 if justFinished() returned true or stop() called
 */
 unsigned long millisDelay::remaining() {
   if (running) {
-    unsigned long mS = millis(); // capture current millis() as it may tick over between uses below
-    if (finishNow || ((mS - startTime) >= mS_delay)) {  // check if delay exceeded already but justFinished() has not been called yet
+    unsigned long ms = millis(); // capture current millis() as it may tick over between uses below
+    if (finishNow || ((ms - startTime) >= ms_delay)) {  // check if delay exceeded already but justFinished() has not been called yet
       return 0;
     } else {
-      return (mS_delay - (mS - startTime));
+      return (ms_delay - (ms - startTime));
     }
   } else { // not running. stop() called or justFinished() returned true
     return 0;
@@ -111,8 +111,8 @@ unsigned long millisDelay::remaining() {
 }
 
 /**
-  The delay set in mS set in start
+  The delay set in ms set in start
 */
 unsigned long millisDelay::delay() {
-  return mS_delay;
+  return ms_delay;
 }

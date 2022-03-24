@@ -33,8 +33,8 @@ void blinkLed13() {
 }
 
 // the task method
-void print_mS() {
-  Serial.println(millis());   // print the current mS
+void print_ms() {
+  Serial.println(millis());   // print the current ms
   delay(5000);              // wait for a 5 seconds
 }
 
@@ -42,5 +42,5 @@ void print_mS() {
 void loop() {
   loopTimer.check(Serial);
   blinkLed13(); // call the method to blink the led
-  print_mS(); // print the time
+  print_ms(); // print the time
 }

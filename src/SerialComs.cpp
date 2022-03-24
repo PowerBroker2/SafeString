@@ -26,7 +26,7 @@
   either its response message OR just <XON> if there is nothing to send
   The controller then responds with its response message or just <XON> and so on.
   
-  If no chars are received for 250mS, the connection times out and isConnected() returns false.
+  If no chars are received for 250ms, the connection times out and isConnected() returns false.
   If the isConnected() is false on the controller side, it is waiting for the non-controller to send its response
   to the last message (or <XON>) the controller sent so the controller prompts the non-controller with <XON>
   If isConnected() is false on the non-controller side, it is waiting for the controller prompt it.
@@ -47,7 +47,7 @@ static const char XON = (char)0x11;
 SerialComs::SerialComs(size_t sendSize, size_t receiveSize) : SafeString(1, emptyCharArray, "") {
   _receiveSize = receiveSize;
   _sendSize = sendSize;
-  connectionTimeout_mS = 5000; // connection timeout
+  connectionTimeout_ms = 5000; // connection timeout
   outOfMemory = false;
   memoryLow = false;
   connected = false;
@@ -176,16 +176,16 @@ bool SerialComs::connect(Stream &io) {
     free(mem);
   }
 
-  if (connectionTimeout_mS > 0) {
-    connectionTimeout.start(connectionTimeout_mS);
+  if (connectionTimeout_ms > 0) {
+    connectionTimeout.start(connectionTimeout_ms);
   }
 
   // make sure the other side times out
-  unsigned long timeout = connectionTimeout_mS/2;
+  unsigned long timeout = connectionTimeout_ms/2;
   if (timeout < 1) {
   	  timeout = 1;
   }
-  textReceivedPtr->setTimeout(timeout); // set connectionTimeout_mS/2 sec timeout for flushInput and missing XON NOTE: needs to < timeout so prompt from other side does not prevent flush completing
+  textReceivedPtr->setTimeout(timeout); // set connectionTimeout_ms/2 sec timeout for flushInput and missing XON NOTE: needs to < timeout so prompt from other side does not prevent flush completing
   textReceivedPtr->returnEmptyTokens();
   textReceivedPtr->flushInput();
   textReceivedPtr->connect(*stream_io_ptr); // read from COMS_SERIAL
@@ -193,14 +193,14 @@ bool SerialComs::connect(Stream &io) {
   while(textReceivedPtr->isSkippingToDelimiter()) {
   	  textReceivedPtr->read();
   }
-  timeout = connectionTimeout_mS;
+  timeout = connectionTimeout_ms;
   if (timeout > 10) {
   	  timeout = 10;
   }
   if (timeout < 1) {
   	  timeout = 1;
   }
-  textReceivedPtr->setTimeout(timeout); // 10mS timeout 10 chars at 9600, 1 char at 960 baud timeout missing XON
+  textReceivedPtr->setTimeout(timeout); // 10ms timeout 10 chars at 9600, 1 char at 960 baud timeout missing XON
   DEBUG.println(F(" SerialComs -  started"));
   return true;
 }
@@ -253,7 +253,7 @@ void SerialComs::receiveNextMsg() {
   if (textReceivedPtr->hasError()) { // previous input length exceeded or read 0
     DEBUG.println(F(" textReceived hasError. Read '\\0' or Input overflowed."));
   }
-  if (textReceivedPtr->getDelimiter() == ((char) - 1)) { // no delimiter so timed out
+  if (textReceivedPtr->getDelimiter() == - 1) { // no delimiter so timed out
     DEBUG.println(F("textReceived timeout without receiving terminating XON (0x13)"));
     textReceivedPtr->debug(" ");
     textReceivedPtr->clear(); // skip the invalid line
@@ -312,7 +312,7 @@ void SerialComs::sendNextMsg() {
 }
 
 void SerialComs::resetConnectionTimer() {
-  if (connectionTimeout_mS > 0) {
+  if (connectionTimeout_ms > 0) {
     connectionTimeout.restart(); // we are talking
   }
 }
@@ -422,7 +422,7 @@ void SerialComs::checkConnectionTimeout() {
     connectionTimeout.restart();
     if ((!isConnected()) && (!clearToSendFlag) && isController && (!stream_io_ptr->available())) {
       // controller is waiting for other side to send and the other side has not started sending
-      // so prompt it every connectionTimeOut_mS
+      // so prompt it every connectionTimeOut_ms
       // after connectionTimeout, controller times out but skips this section since connected is still true
       // next time around i.e. 2*connectionTimeOut this section send a prompt.
       DEBUG.println(F("Prompt other side to connect"));

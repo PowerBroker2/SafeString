@@ -45,11 +45,11 @@ void SafeStringStream::init() {
 
 void SafeStringStream::begin(const uint32_t _baudRate) {
   baudRate = _baudRate;
-  uS_perByte = 0;
+  us_perByte = 0;
   if ((baudRate != 0) && (baudRate != ((uint32_t) - 1)) ) {
     // => ~13bits/byte, i.e. start+8+parity+2stop+1  may be less if no parity and only 1 stop bit
-    uS_perByte = ((unsigned long)(13000000.0 / (float)baudRate)); // 1sec / (baud/13) in uS  baud is in bits
-    if (uS_perByte == 0) {
+    us_perByte = ((unsigned long)(13000000.0 / (float)baudRate)); // 1sec / (baud/13) in us  baud is in bits
+    if (us_perByte == 0) {
 	  while(1) {
         SafeString::Output.println();
         SafeString::Output.println(F("SafeStringStream Error: baudRate must be a uint32_t variable < 13000000."));
@@ -58,7 +58,7 @@ void SafeStringStream::begin(const uint32_t _baudRate) {
         delay(5000);
       }
     }
-    uS_perByte += 1;	
+    us_perByte += 1;	
     sendTimerStart = micros();
   }
 }
@@ -186,7 +186,7 @@ void SafeStringStream::SafeStringStream::flush() {
 
 // note built in Rx buffer is only 8 chars
 unsigned long SafeStringStream::releaseNextByte() {
-  unsigned long uS = micros();
+  unsigned long us = micros();
   if ((sfPtr == NULL) || (baudRate == ((uint32_t) - 1)) ) {
     SafeString::Output.println();
     SafeString::Output.println(F("SafeStringStream Error: need to call begin(..) first in setup()"));
@@ -201,11 +201,11 @@ unsigned long SafeStringStream::releaseNextByte() {
   if (sfPtr->length() == 0) {
     return 0; // nothing connected or nothing to do
   }
-  // micros() has 8uS resolution on 8Mhz systems, 4uS on 16Mhz system
-  unsigned long excessTime = (uS - sendTimerStart);
-  unsigned long noOfCharToRelease = excessTime / uS_perByte;
+  // micros() has 8us resolution on 8Mhz systems, 4us on 16Mhz system
+  unsigned long excessTime = (us - sendTimerStart);
+  unsigned long noOfCharToRelease = excessTime / us_perByte;
   if (noOfCharToRelease > 0) {
-    excessTime -= (noOfCharToRelease * uS_perByte);
+    excessTime -= (noOfCharToRelease * us_perByte);
   } else {
     return excessTime; // nothing to do
   }

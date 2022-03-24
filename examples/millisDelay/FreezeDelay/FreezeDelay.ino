@@ -18,9 +18,9 @@ bool ledOn = false; // keep track of led On/Off
 // LED_BUILTIN  instead of 'led'
 //
 
-const unsigned long MAIN_TIME = 10000; // in mS
-const unsigned long FIRST_PART_DELAY = 4000; // in mS
-const unsigned long FREEZE_TIME = 2000; // in mS
+const unsigned long MAIN_TIME = 10000; // in ms
+const unsigned long FIRST_PART_DELAY = 4000; // in ms
+const unsigned long FREEZE_TIME = 2000; // in ms
 
 millisDelay mainDelay; // the delay object, the overall delay
 millisDelay firstPartDelay; // the delay object, the delay until we 'freeze' the main delay
@@ -47,7 +47,7 @@ void setup() {
   firstPartDelay.start(FIRST_PART_DELAY);
 #ifdef DEBUG
   // NOTE: prints take time so do them AFTER setting up the delays
-  Serial.print("start mainDelay at:"); Serial.print(currentMillis); Serial.print(" for "); Serial.print(MAIN_TIME); Serial.println("mS");
+  Serial.print("start mainDelay at:"); Serial.print(currentMillis); Serial.print(" for "); Serial.print(MAIN_TIME); Serial.println("ms");
 #endif
 }
 
@@ -76,8 +76,8 @@ void loop() {
       // NOTE: need to capture remaining() and start freeze delay BEFORE doing debug prints as the prints take noticeble time to output.
       digitalWrite(led, LOW); // turn the led off
 #ifdef DEBUG
-      Serial.print("'Freeze' mainDelay at:"); Serial.print(currentMillis); Serial.print(" for "); Serial.print(FREEZE_TIME); Serial.println("mS");
-      Serial.print(" mainDelay has "); Serial.print(mainRemainingTime); Serial.print("mS remaining"); Serial.println();
+      Serial.print("'Freeze' mainDelay at:"); Serial.print(currentMillis); Serial.print(" for "); Serial.print(FREEZE_TIME); Serial.println("ms");
+      Serial.print(" mainDelay has "); Serial.print(mainRemainingTime); Serial.print("ms remaining"); Serial.println();
 #endif
     }
   }

@@ -17,7 +17,7 @@ bool ledOn = false; // keep track of led On/Off
 //
 
 // have const here so it is easy to find and change 
-const unsigned long FLASH_TIME = 1500; // in mS 
+const unsigned long FLASH_TIME = 1500; // in ms 
 millisDelay ledDelay; // the delay object
 
 // the setup routine runs once when you press reset:

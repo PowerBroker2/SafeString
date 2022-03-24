@@ -14,23 +14,23 @@
 #include "SafeStringNameSpace.h"
 
 // here buffSize is max size of the token + 1 for delimiter + 1 for terminating '\0;
-SafeStringReader::SafeStringReader(SafeString &sfInput_, size_t bufSize, char* tokenBuffer, const char* _name, const char delimiter, bool skipToDelimiterFlag_, uint8_t echoInput_, unsigned long timeout_mS_) : SafeString(bufSize, tokenBuffer, "", _name) {
+SafeStringReader::SafeStringReader(SafeString &sfInput_, size_t bufSize, char* tokenBuffer, const char* _name, const char delimiter, bool skipToDelimiterFlag_, uint8_t echoInput_, unsigned long timeout_ms_) : SafeString(bufSize, tokenBuffer, "", _name) {
   internalCharDelimiter[0] = delimiter;
   internalCharDelimiter[1] = '\0';
-  init(sfInput_, internalCharDelimiter, skipToDelimiterFlag_, echoInput_, timeout_mS_);	
+  init(sfInput_, internalCharDelimiter, skipToDelimiterFlag_, echoInput_, timeout_ms_);	
 }	
 
-SafeStringReader::SafeStringReader(SafeString &sfInput_, size_t bufSize, char* tokenBuffer, const char* _name, const char* delimiters_, bool skipToDelimiterFlag_, uint8_t echoInput_, unsigned long timeout_mS_) : SafeString(bufSize, tokenBuffer, "", _name) {
-  init(sfInput_, delimiters_, skipToDelimiterFlag_, echoInput_, timeout_mS_);
+SafeStringReader::SafeStringReader(SafeString &sfInput_, size_t bufSize, char* tokenBuffer, const char* _name, const char* delimiters_, bool skipToDelimiterFlag_, uint8_t echoInput_, unsigned long timeout_ms_) : SafeString(bufSize, tokenBuffer, "", _name) {
+  init(sfInput_, delimiters_, skipToDelimiterFlag_, echoInput_, timeout_ms_);
 }
 	
-void SafeStringReader::init(SafeString& sfInput_,const char* delimiters_, bool skipToDelimiterFlag_, uint8_t echoInput_, unsigned long timeout_mS_) {
+void SafeStringReader::init(SafeString& sfInput_,const char* delimiters_, bool skipToDelimiterFlag_, uint8_t echoInput_, unsigned long timeout_ms_) {
   sfInputPtr = &sfInput_;
   delimiters = delimiters_;
   end();  // end needs delimiters set!!
   skipToDelimiterFlag = skipToDelimiterFlag_;
   echoInput = echoInput_;
-  timeout_mS = timeout_mS_;
+  timeout_ms = timeout_ms_;
   emptyTokensReturned = false;
 }
 
@@ -61,7 +61,7 @@ bool SafeStringReader::end() {
   skipToDelimiterFlag = false;
   flagFlushInput = false;
   //echoInput = false;
-  //timeout_mS = 0;
+  //timeout_ms = 0;
   streamPtr = NULL;
   charCounter = 0;
   return rtn;
@@ -79,8 +79,8 @@ void SafeStringReader::skipToDelimiter() {
   skipToDelimiterFlag = true; // sets skipToDelimiter to true
 }
 
-void SafeStringReader::setTimeout(unsigned long mS) {
-  timeout_mS = mS;
+void SafeStringReader::setTimeout(unsigned long ms) {
+  timeout_ms = ms;
 }
 
 void SafeStringReader::echoOn() {
@@ -90,17 +90,18 @@ void SafeStringReader::echoOff() {
   echoInput = false;
 }
 
-char SafeStringReader::getDelimiter() {
+int SafeStringReader::getDelimiter() {
   if ((!streamPtr) || (sfInputPtr->isEmpty())) {
-    return (char) - 1;
-  }
+    return - 1;
+  } 
   char c = sfInputPtr->charAt(0);
   if (strchr(delimiters, c) != NULL) {
     // found c in delimiters
-    return c;
+    int rtn = c; // may sign extend to -ve number if char is signed and delimiter is 0xf0 to 0xff
+    return (rtn & 255); // clear upper bits to clean up any sign extension
   }
   //else {
-  return (char) - 1;
+  return - 1;
 }
 
 
@@ -133,6 +134,7 @@ void SafeStringReader::flushInput() {
      }
   }
   skipToDelimiterFlag = true; // sets skipToDelimiter to true  
+  read(); // handle timeout if set
   // skip msg
   //skipToDelimiter(); // skip to next delimiter or time out if set
 }
@@ -151,7 +153,7 @@ bool SafeStringReader::read() {
   bool skipMsg = false;
   bool rtn = false;
   bool skipToDelimiterPrior = skipToDelimiterFlag;
-  rtn = sfInputPtr->readUntilToken(*streamPtr, *this, delimiters, skipToDelimiterFlag, echoInput, timeout_mS);
+  rtn = sfInputPtr->readUntilToken(*streamPtr, *this, delimiters, skipToDelimiterFlag, echoInput, timeout_ms);
   charCounter += sfInputPtr->getLastReadCount();
   if ((!skipToDelimiterPrior) && skipToDelimiterFlag) {
   	skipMsg = true;
@@ -159,7 +161,7 @@ bool SafeStringReader::read() {
   // if skipToDelimiterFlag true the rtn is always false and sfInput has been cleared
   // try to read some more may return true if delimiter found this time
   if ((!rtn) && (skipToDelimiterFlag)) {
-    rtn = sfInputPtr->readUntilToken(*streamPtr, *this, delimiters, skipToDelimiterFlag, echoInput, timeout_mS);
+    rtn = sfInputPtr->readUntilToken(*streamPtr, *this, delimiters, skipToDelimiterFlag, echoInput, timeout_ms);
     charCounter += sfInputPtr->getLastReadCount();
   }
   if (skipMsg) {
