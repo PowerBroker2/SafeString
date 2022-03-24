@@ -29,20 +29,20 @@ class loopTimerClass {
     void init();
     const char *name;
     bool initialized; // true after first call.
-    unsigned long maxLoop5sec_uS; // max in last 5 sec
-    unsigned long totalLoop5sec_uS; // total for last 5 sec
+    unsigned long maxLoop5sec_us; // max in last 5 sec
+    unsigned long totalLoop5sec_us; // total for last 5 sec
     unsigned long loopCount5sec;  // count in last 5 sec
-    unsigned long lastLoopRun_uS; // start uS last call
+    unsigned long lastLoopRun_us; // start us last call
 
     // print vars
-    unsigned long p_avgLoop5sec_uS; // last calculated 5 sec average latency
-    unsigned long p_maxLoop5sec_uS; // last max value in 5 sec
+    unsigned long p_avgLoop5sec_us; // last calculated 5 sec average latency
+    unsigned long p_maxLoop5sec_us; // last max value in 5 sec
 
-    unsigned long p_maxLoop_uS;  // max so far update every 5 sec
-    unsigned long p_maxAvgLoop_uS; // max avg so far , updated every 5
+    unsigned long p_maxLoop_us;  // max so far update every 5 sec
+    unsigned long p_maxAvgLoop_us; // max avg so far , updated every 5
 
-    unsigned long PRINT_US_DELAY = 5000; // mS calculate and print every 5 sec
-    millisDelay print_uS_Delay;
+    unsigned long PRINT_US_DELAY = 5000; // ms calculate and print every 5 sec
+    millisDelay print_us_Delay;
 };
 
 static loopTimerClass loopTimer;

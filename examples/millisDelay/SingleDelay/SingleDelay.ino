@@ -16,7 +16,7 @@ int led = 13;
 //
 
 // have const here so it is easy to find and change
-const unsigned long DELAY_TIME = 10000; // in mS (2sec)
+const unsigned long DELAY_TIME = 10000; // in ms (2sec)
 
 millisDelay ledDelay; // the delay object
 

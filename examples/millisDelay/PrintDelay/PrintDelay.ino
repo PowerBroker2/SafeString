@@ -16,10 +16,10 @@ int led = 13;
 //
 
 // have const here so it is easy to find and change
-const unsigned long LED_DELAY = 20000; // in mS (10sec)
+const unsigned long LED_DELAY = 20000; // in ms (10sec)
 millisDelay ledDelay; // the delay object
 
-const unsigned long PRINT_DELAY = 2000; // in mS (2sec)
+const unsigned long PRINT_DELAY = 2000; // in ms (2sec)
 millisDelay printDelay; // the delay object
 
 // the setup routine runs once when you press reset:

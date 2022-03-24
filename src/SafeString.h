@@ -1693,14 +1693,14 @@ class SafeString : public Printable, public Print {
       @param skipToDelimiter - a bool reference variable to hold the skipToDelimiter state between calls<br>
       If this is true all chars upto the next delimiter (or timeout) will be discarded and false returned with an empty token
       @param echoInput - defaults to false, pass non-zero (true) to echo the chars read back to the input Stream
-      @param timeout_mS - defaults to never timeout, pass a non-zero mS to auto-terminate the last token if no new chars received for that time.
+      @param timeout_ms - defaults to never timeout, pass a non-zero ms to auto-terminate the last token if no new chars received for that time.
 
       @return - true if a delimited series of chars found that fit in this SafeString else false<br>
       If this SafeString OR the SafeString& token argument is too small to hold the result, the token is returned empty<br>
       If a delimited token is found that fits in this SafeString but is too large for the token then true is returned and an empty token returned and an error raised on both this SafeString and the token<br>
       The delimiter is NOT included in the SafeString& token return. It will the first char of the this SafeString when readUntilToken returns true
     **/
-    unsigned char readUntilToken(Stream & input, SafeString & token, const char delimiter, bool & skipToDelimiter, uint8_t echoInput = false, unsigned long timeout_mS = 0);
+    unsigned char readUntilToken(Stream & input, SafeString & token, const char delimiter, bool & skipToDelimiter, uint8_t echoInput = false, unsigned long timeout_ms = 0);
 
     /**
       returns true if a delimited token is found, else false<br>
@@ -1722,14 +1722,14 @@ class SafeString : public Printable, public Print {
       @param skipToDelimiter - a bool reference variable to hold the skipToDelimiter state between calls<br>
       If this is true all chars upto the next delimiter (or timeout) will be discarded and false returned with an empty token
       @param echoInput - defaults to false, pass non-zero (true) to echo the chars read back to the input Stream
-      @param timeout_mS - defaults to never timeout, pass a non-zero mS to auto-terminate the last token if no new chars received for that time.
+      @param timeout_ms - defaults to never timeout, pass a non-zero ms to auto-terminate the last token if no new chars received for that time.
 
       @return - true if a delimited series of chars found that fit in this SafeString else false<br>
       If this SafeString OR the SafeString& token argument is too small to hold the result, the token is returned empty<br>
       If a delimited token is found that fits in this SafeString but is too large for the token then true is returned and an empty token returned and an error raised on both this SafeString and the token<br>
       The delimiter is NOT included in the SafeString& token return. It will the first char of the this SafeString when readUntilToken returns true
     **/
-    unsigned char readUntilToken(Stream & input, SafeString & token, const char* delimiters, bool & skipToDelimiter, uint8_t echoInput = false, unsigned long timeout_mS = 0);
+    unsigned char readUntilToken(Stream & input, SafeString & token, const char* delimiters, bool & skipToDelimiter, uint8_t echoInput = false, unsigned long timeout_ms = 0);
 
     /**
       returns true if a delimited token is found, else false<br>
@@ -1751,14 +1751,14 @@ class SafeString : public Printable, public Print {
       @param skipToDelimiter - a bool reference variable to hold the skipToDelimiter state between calls<br>
       If this is true all chars upto the next delimiter (or timeout) will be discarded and false returned with an empty token
       @param echoInput - defaults to false, pass non-zero (true) to echo the chars read back to the input Stream
-      @param timeout_mS - defaults to never timeout, pass a non-zero mS to auto-terminate the last token if no new chars received for that time.
+      @param timeout_ms - defaults to never timeout, pass a non-zero ms to auto-terminate the last token if no new chars received for that time.
 
       @return - true if a delimited series of chars found that fit in this SafeString else false<br>
       If this SafeString OR the SafeString& token argument is too small to hold the result, the token is returned empty<br>
       If a delimited token is found that fits in this SafeString but is too large for the token then true is returned and an empty token returned and an error raised on both this SafeString and the token<br>
       The delimiter is NOT included in the SafeString& token return. It will the first char of the this SafeString when readUntilToken returns true
     **/
-    unsigned char readUntilToken(Stream & input, SafeString & token, SafeString & delimiters, bool & skipToDelimiter, uint8_t echoInput = false, unsigned long timeout_mS = 0);
+    unsigned char readUntilToken(Stream & input, SafeString & token, SafeString & delimiters, bool & skipToDelimiter, uint8_t echoInput = false, unsigned long timeout_ms = 0);
 
     /**
       returns the number of chars read on previous calls to read, readUntil or readUntilToken (includes '\0' read if any).
@@ -1836,7 +1836,7 @@ class SafeString : public Printable, public Print {
     size_t printInt(double d, int decs, int width, bool forceSign, bool addNL);
 
   private:
-    bool readUntilTokenInternal(Stream & input, SafeString & token, const char* delimitersIn, char delimiterIn, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_mS);
+    bool readUntilTokenInternal(Stream & input, SafeString & token, const char* delimitersIn, char delimiterIn, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_ms);
     bool readUntilInternal(Stream & input, const char* delimitersIn, char delimiterIn);
     bool nextTokenInternal(SafeString & token, const char* delimitersIn, char delimiterIn, bool returnEmptyFields, bool returnLastNonDelimitedToken);
     int stokenInternal(SafeString &token, unsigned int fromIndex, const char* delimitersIn, char delimiterIn, bool returnEmptyFields, bool useAsDelimiters);
@@ -1845,7 +1845,7 @@ class SafeString : public Printable, public Print {
     static bool classErrorFlag; // set to true if any error detected in any SafeString, cleared on each call to SafeString::errorDetected()
     void cleanUp(); // reterminates buffer at capacity and resets len to current strlen
     const char *name;
-    unsigned long timeoutStart_mS;
+    unsigned long timeoutStart_ms;
     bool timeoutRunning;
     size_t noCharsRead; // number of char read on last call to readUntilToken
     static char nullBufferSafeStringBuffer[1];

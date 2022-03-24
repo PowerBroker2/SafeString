@@ -119,7 +119,7 @@ void BufferedOutput::connect(HardwareSerial& _serial) { // the output to write t
     }
   } // else use avaiableForWrite to throttle I/O
   txBufferSize -= 1; // subtract one to match internalStreamAvailableForWrite()
-  uS_perByte = 0;
+  us_perByte = 0;
 #ifdef DEBUG
   if (debugOut) {
     debugOut->print("BufferedOutput connected to a HardwareSerial  Combined buffer size:"); debugOut->print(getSize()); debugOut->println("");
@@ -145,7 +145,7 @@ void BufferedOutput::connect(Stream& _stream, const uint32_t _baudRate) {
   serialPtr = NULL;
   streamPtr = &_stream;
   debugOut = streamPtr;
-  uS_perByte = 0;
+  us_perByte = 0;
   streamPtr->flush(); // try and clear hardware buffer
   delay(10); // wait for a few ms for Tx buffer to clear if flush() does not do it
   baudRate = _baudRate;
@@ -194,8 +194,8 @@ void BufferedOutput::connect(Stream& _stream, const uint32_t _baudRate) {
 
   // else   // have a baudrate
   txBufferSize = 0; // ignore stream buffer
-  uS_perByte = ((unsigned long)(13000000.0 / (float)baudRate));
-  if (uS_perByte == 0) {
+  us_perByte = ((unsigned long)(13000000.0 / (float)baudRate));
+  if (us_perByte == 0) {
     while (1) {
       streamPtr->println();
       streamPtr->println("BufferedOutput Error: connect(stream,baudRate) needs a uint32_t baudRate variable < 13000000");
@@ -204,13 +204,13 @@ void BufferedOutput::connect(Stream& _stream, const uint32_t _baudRate) {
       delay(5000);
     }
   }
-  uS_perByte += 1; // 1sec / (baud/13) in uS  baud is in bits
+  us_perByte += 1; // 1sec / (baud/13) in us  baud is in bits
   // => ~13bits/byte, i.e. start+8+parity+2stop+1  may be less if no parity and only 1 stop bit
 #ifdef DEBUG
   if (debugOut) {
     debugOut->print("BufferedOutput connected with "); debugOut->print(getSize()); debugOut->println(" byte buffer.");
     debugOut->print(" BaudRate:");  debugOut->print(baudRate);
-    debugOut->print(" Send interval "); debugOut->print(uS_perByte); debugOut->print("uS");
+    debugOut->print(" Send interval "); debugOut->print(us_perByte); debugOut->print("us");
     debugOut->println();
   }
 #endif // DEBUG   
@@ -492,7 +492,7 @@ size_t BufferedOutput::write(uint8_t c) {
           }
         }
 #endif // DEBUG    
-        delay(1); // wait 1mS, expect this to call yield() for those boards that need it e.g. ESP8266 and ESP32
+        delay(1); // wait 1ms, expect this to call yield() for those boards that need it e.g. ESP8266 and ESP32
         nextByteOut(); // try sending first to free some buffer space
       }
       lastCharWritten = c;
@@ -586,15 +586,15 @@ void BufferedOutput::nextByteOut() {
   // txBufferSize == 0 so use timer to throttle output
   // sendTimerStart will have been set above
 
-  unsigned long uS = micros();
-  // micros() has 8uS resolution on 8Mhz systems, 4uS on 16Mhz system
-  // NOTE throw away any excess of (uS - sendTimerStart) > uS_perByte
+  unsigned long us = micros();
+  // micros() has 8us resolution on 8Mhz systems, 4us on 16Mhz system
+  // NOTE throw away any excess of (us - sendTimerStart) > us_perByte
   // output will be slower then specified
-  if ((uS - sendTimerStart) < uS_perByte) {
+  if ((us - sendTimerStart) < us_perByte) {
     return; // nothing to do not time to release next byte
   }
   // else send next byte
-  sendTimerStart = uS; //releasing next byte, restart timer
+  sendTimerStart = us; //releasing next byte, restart timer
   uint8_t b = (uint8_t)rb_read();
   if (b) {
     streamPtr->write(b);  // may block if set baudRate higher then actual I/O baud rate

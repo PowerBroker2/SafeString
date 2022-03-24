@@ -60,13 +60,13 @@ class millisDelay {
     bool isRunning();
 
     /**
-      Returns the last time this delay was started, in mS, by calling start(), repeat() or restart()
+      Returns the last time this delay was started, in ms, by calling start(), repeat() or restart()
       Returns 0 if it has never been started
     */
     unsigned long getStartTime();
 
     /**
-      How many mS remaining until delay finishes
+      How many ms remaining until delay finishes
       Returns 0 if finished or stopped
     */
     unsigned long remaining();
@@ -77,7 +77,7 @@ class millisDelay {
     unsigned long delay();
 
   private:
-    unsigned long mS_delay;
+    unsigned long ms_delay;
     unsigned long startTime;
     bool running; // true if delay running false when ended
     bool finishNow; // true if finish() called to finish delay early, false after justFinished() returns true

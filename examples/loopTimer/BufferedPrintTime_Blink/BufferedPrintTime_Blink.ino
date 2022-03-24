@@ -36,8 +36,8 @@ void setup() {
 
   // initialize digital pin led as an output.
   pinMode(led, OUTPUT);
-  ledDelay.start(1000); // start the ledDelay, toggle every 1000mS
-  printDelay.start(5000); // start the printDelay, print every 5000mS
+  ledDelay.start(1000); // start the ledDelay, toggle every 1000ms
+  printDelay.start(5000); // start the printDelay, print every 5000ms
 }
 
 // the task method
@@ -51,10 +51,10 @@ void blinkLed13() {
 }
 
 // the task method
-void print_mS() {
+void print_ms() {
   if (printDelay.justFinished()) {
     printDelay.repeat(); // start delay again without drift
-    bufferedOut.println(millis());   // print the current mS
+    bufferedOut.println(millis());   // print the current ms
   } // else nothing to do this call just return, quickly
 }
 
@@ -63,5 +63,5 @@ void loop() {
   bufferedOut.nextByteOut(); // call at least once per loop to release chars
   loopTimer.check(bufferedOut); // send loop timer output to the bufferedOut
   blinkLed13(); // call the method to blink the led
-  print_mS(); // print the time
+  print_ms(); // print the time
 }

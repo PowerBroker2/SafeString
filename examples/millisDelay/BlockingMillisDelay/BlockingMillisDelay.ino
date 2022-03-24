@@ -17,10 +17,10 @@ int led = 13;
 //
 
 // have const here so it is easy to find and change
-const unsigned long LED_ON_DELAY_TIME = 2000; // in mS (2sec)
+const unsigned long LED_ON_DELAY_TIME = 2000; // in ms (2sec)
 millisDelay ledOnDelay; // the delay object to keep led on for 1sec
 
-const unsigned long BLOCKING_DELAY_TIME = 10000; // in mS (10sec)
+const unsigned long BLOCKING_DELAY_TIME = 10000; // in ms (10sec)
 millisDelay ledBlockOnDelay; // the delay object to prevent turning led on again for 10sec after it goes off
 
 // the setup routine runs once when you press reset:
@@ -61,7 +61,7 @@ void loop() {
 
   if ((c == 'R') || (c == 'r')) {
     if (ledBlockOnDelay.isRunning()) {
-      Serial.print("LED blocked from turning on for next "); Serial.print(ledBlockOnDelay.remaining()); Serial.println("mS");
+      Serial.print("LED blocked from turning on for next "); Serial.print(ledBlockOnDelay.remaining()); Serial.println("ms");
     } else {
       // can turn led on again
       ledOnDelay.start(LED_ON_DELAY_TIME);
