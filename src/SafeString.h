@@ -1378,7 +1378,7 @@ class SafeString : public Printable, public Print {
 
     // float toFloat(); possible alternative
 
-    /* Tokenizeing methods,  stoken(), nextToken() ************************/
+    /* Tokenizeing methods,  stoken(), nextToken()/firstToken() ************************/
     /* Differences between stoken() and nextToken
        stoken() leaves the SafeString unchanged, nextToken() removes the token (and leading delimiters) from the SafeString giving space to add more input
        In stoken() the end of the SafeString is always treated as a delimiter, i.e. the last token is returned even if it is not followed by one of the delimiters
@@ -1499,8 +1499,8 @@ class SafeString : public Printable, public Print {
 
     /**
       returns true if a delimited token is found, removes the first delimited token from this SafeString and returns it in the token argument<br>
-      by default a leading delimiter is stepped over before scanning for a delimited token, the firstToken argument can override this<br>
-      setting the firstToken arguemnent = true, suppresses this so that an empty first token can be returned if the first char is a delimiter AND if returnEmptyFields is true
+      by default a leading delimiter is stepped over before scanning for a delimited token when nextToken() is called<br>
+      if returnEmptyFields = true, this firstToken() method overrides this and returns true and an empty token if the first char is a delimiter
        
       The delimiter is not returned and remains in the SafeString so you can test which delimiter terminated the token, provided this SafeString is not empty!<br>
       The token argument is always cleared at the start of the nexttToken().<br>
@@ -1514,7 +1514,38 @@ class SafeString : public Printable, public Print {
               If the token's capacity is < the next token, then nextToken() returns true, but the returned token argument is empty and an error messages printed if debug is enabled.<br>
               In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
       @param delimiter - the char which can delimit a token
-      @param returnEmptyFields -- default false, if true, nextToken() will return true, and an empty token for each consecuative delimiters
+      @param returnEmptyFields -- default false, if true, nextToken() will return true, and an empty token for each consecutive delimiters
+      @param returnLastNonDelimitedToken -- default true, will return last part of SafeString even if not delimited. If set false, will keep it for further input to be added to this SafeString
+      NOTE: since the last delimiter is left in the SafeString, you should only use firstToken() for the first call.
+
+      @return -- true if firstToken() finds a token in this SafeString that is terminated by one of the delimiters, else false<br>
+                If the return is true, but hasError() is true then the SafeString token argument did not have the capacity to hold the next token.<br>
+                in this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()<br>
+                while being consistent with the SafeString's all or nothing insertion rule<br>
+               Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
+    **/
+    inline unsigned char firstToken(SafeString & token, char delimiter, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true) {
+    	return nextToken(token,delimiter,returnEmptyFields,returnLastNonDelimitedToken,true);
+    }
+
+    /**
+      returns true if a delimited token is found, removes the first delimited token from this SafeString and returns it in the token argument<br>
+      by default a leading delimiter is stepped over before scanning for a delimited token, the firstToken argument can override this<br>
+      setting the firstToken arguemnent = true, suppresses this so that an empty first token can be returned if the first char is a delimiter AND if returnEmptyFields is true
+       
+      The delimiter is not returned and remains in the SafeString so you can test which delimiter terminated the token, provided this SafeString is not empty!<br>
+      The token argument is always cleared at the start of the nexttToken().<br>
+      IMPORTANT!! Changed V4.0.4 Now by default un-delimited tokens at the end of the SafeString are returned<br>
+      To leave partial un-delimited tokens on the end of the SafeString, set returnLastNonDelimitedToken = false.<br>
+      Setting returnLastNonDelimitedToken = false allows the SafeString to hold partial tokens when reading from an input stream one char at a time.<br>
+      Setting firstToken = true suppressed skipping over a leading delimiter so that an empty first field can be returned if the first char is a delimiter
+
+      @param token - the SafeString to return the token in, it is always cleared first and will be empty if no delimited token is found or if there are errors<br>
+              The token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.<br>
+              If the token's capacity is < the next token, then firstToken() returns true, but the returned token argument is empty and an error messages printed if debug is enabled.<br>
+              In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
+      @param delimiter - the char which can delimit a token
+      @param returnEmptyFields -- default false, if true, nextToken() will return true, and an empty token for each consecutive delimiters
       @param returnLastNonDelimitedToken -- default true, will return last part of SafeString even if not delimited. If set false, will keep it for further input to be added to this SafeString
       @param firstToken -- default false, a leading delimiter will be stepped over before looking for a delimited token<br>
       if set to true, a leading delimiter will delimit an empty token which will be returned only if returnEmptyFields is true otherwise it is skipped over.<br>
@@ -1528,6 +1559,37 @@ class SafeString : public Printable, public Print {
                Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
     **/
     unsigned char nextToken(SafeString & token, char delimiter, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true, bool firstToken = false);
+
+    /**
+      returns true if a delimited token is found, removes the first delimited token from this SafeString and returns it in the token argument<br>
+      by default a leading delimiter is stepped over before scanning for a delimited token when nextToken() is called<br>
+      if returnEmptyFields = true, this firstToken() method overrides this and returns true and an empty token if the first char is a delimiter
+       
+      The delimiter is not returned and remains in the SafeString so you can test which delimiter terminated the token, provided this SafeString is not empty!<br>
+      The token argument is always cleared at the start of the nexttToken().<br>
+      IMPORTANT!! Changed V4.0.4 Now by default un-delimited tokens at the end of the SafeString are returned<br>
+      To leave partial un-delimited tokens on the end of the SafeString, set returnLastNonDelimitedToken = false.<br>
+      Setting returnLastNonDelimitedToken = false allows the SafeString to hold partial tokens when reading from an input stream one char at a time.<br>
+      Setting firstToken = true suppressed skipping over a leading delimiter so that an empty first field can be returned if the first char is a delimiter
+
+      @param token - the SafeString to return the token in, it is always cleared first and will be empty if no delimited token is found or if there are errors<br>
+              The token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.<br>
+              If the token's capacity is < the next token, then nextToken() returns true, but the returned token argument is empty and an error messages printed if debug is enabled.<br>
+              In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
+      @param delimiters - the SafeString containing the delimiting characters, any one of which can delimit a token
+      @param returnEmptyFields -- default false, if true, nextToken() will return true, and an empty token for each consecutive delimiters
+      @param returnLastNonDelimitedToken -- default true, will return last part of SafeString even if not delimited. If set false, will keep it for further input to be added to this SafeString
+      NOTE: since the last delimiter is left in the SafeString, you should only use firstToken() for the first call.
+
+      @return -- true if firstToken() finds a token in this SafeString that is terminated by one of the delimiters, else false<br>
+                If the return is true, but hasError() is true then the SafeString token argument did not have the capacity to hold the next token.<br>
+                in this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()<br>
+                while being consistent with the SafeString's all or nothing insertion rule<br>
+               Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
+    **/
+    inline unsigned char firstToken(SafeString & token, SafeString delimiters, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true) {
+    	return nextToken(token,delimiters,returnEmptyFields,returnLastNonDelimitedToken,true);
+    }
     
     /**
       returns true if a delimited token is found, removes the first delimited token from this SafeString and returns it in the token argument<br>
@@ -1543,10 +1605,10 @@ class SafeString : public Printable, public Print {
 
       @param token - the SafeString to return the token in, it is always cleared first and will be empty if no delimited token is found or if there are errors<br>
               The token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.<br>
-              If the token's capacity is < the next token, then nextToken() returns true, but the returned token argument is empty and an error messages printed if debug is enabled.<br>
+              If the token's capacity is < the next token, then firstToken() returns true, but the returned token argument is empty and an error messages printed if debug is enabled.<br>
               In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
       @param delimiters - the SafeString containing the delimiting characters, any one of which can delimit a token
-      @param returnEmptyFields -- default false, if true, nextToken() will return true, and an empty token for each consecuative delimiters
+      @param returnEmptyFields -- default false, if true, nextToken() will return true, and an empty token for each consecutive delimiters
       @param returnLastNonDelimitedToken -- default true, will return last part of SafeString even if not delimited. If set false, will keep it for further input to be added to this SafeString
       @param firstToken -- default false, a leading delimiter will be stepped over before looking for a delimited token<br>
       if set to true, a leading delimiter will delimit an empty token which will be returned only if returnEmptyFields is true otherwise it is skipped over.<br>
@@ -1560,6 +1622,37 @@ class SafeString : public Printable, public Print {
                Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
     **/
     unsigned char nextToken(SafeString & token, SafeString & delimiters, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true, bool firstToken = false);
+
+    /**
+      returns true if a delimited token is found, removes the first delimited token from this SafeString and returns it in the token argument<br>
+      by default a leading delimiter is stepped over before scanning for a delimited token when nextToken() is called<br>
+      if returnEmptyFields = true, this firstToken() method overrides this and returns true and an empty token if the first char is a delimiter
+       
+      The delimiter is not returned and remains in the SafeString so you can test which delimiter terminated the token, provided this SafeString is not empty!<br>
+      The token argument is always cleared at the start of the nexttToken().<br>
+      IMPORTANT!! Changed V4.0.4 Now by default un-delimited tokens at the end of the SafeString are returned<br>
+      To leave partial un-delimited tokens on the end of the SafeString, set returnLastNonDelimitedToken = false.<br>
+      Setting returnLastNonDelimitedToken = false allows the SafeString to hold partial tokens when reading from an input stream one char at a time.<br>
+      Setting firstToken = true suppressed skipping over a leading delimiter so that an empty first field can be returned if the first char is a delimiter
+
+      @param token - the SafeString to return the token in, it is always cleared first and will be empty if no delimited token is found or if there are errors<br>
+              The token's capacity should be >= this SafeString's capacity incase the entire SafeString needs to be returned.<br>
+              If the token's capacity is < the next token, then firstToken() returns true, but the returned token argument is empty and an error messages printed if debug is enabled.<br>
+              In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
+      @param delimiters - the string containing the delimiting characters, any one of which can delimit a token
+      @param returnEmptyFields -- default false, if true, nextToken() will return true, and an empty token for each consecutive delimiters
+      @param returnLastNonDelimitedToken -- default true, will return last part of SafeString even if not delimited. If set false, will keep it for further input to be added to this SafeString
+      NOTE: since the last delimiter is left in the SafeString, you should only use firstToken() for the first call.
+
+      @return -- true if firstToken() finds a token in this SafeString that is terminated by one of the delimiters, else false<br>
+                If the return is true, but hasError() is true then the SafeString token argument did not have the capacity to hold the next token.<br>
+                in this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()<br>
+                while being consistent with the SafeString's all or nothing insertion rule<br>
+               Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
+    **/
+    inline unsigned char firstToken(SafeString & token, const char* delimiters, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true) {
+    	return nextToken(token,delimiters,returnEmptyFields,returnLastNonDelimitedToken,true);
+    }
     
     /**
       returns true if a delimited token is found, removes the first delimited token from this SafeString and returns it in the token argument<br>
@@ -1578,7 +1671,7 @@ class SafeString : public Printable, public Print {
               If the token's capacity is < the next token, then nextToken() returns true, but the returned token argument is empty and an error messages printed if debug is enabled.<br>
               In this case to next token is still removed from the SafeString so that the program will not be stuck in an infinite loop calling nextToken()
       @param delimiters - the string containing the delimiting characters, any one of which can delimit a token
-      @param returnEmptyFields -- default false, if true, nextToken() will return true, and an empty token for each consecuative delimiters
+      @param returnEmptyFields -- default false, if true, nextToken() will return true, and an empty token for each consecutive delimiters
       @param returnLastNonDelimitedToken -- default true, will return last part of SafeString even if not delimited. If set false, will keep it for further input to be added to this SafeString
       @param firstToken -- default false, a leading delimiter will be stepped over before looking for a delimited token<br>
       if set to true, a leading delimiter will delimit an empty token which will be returned only if returnEmptyFields is true otherwise it is skipped over.<br>
