@@ -34,7 +34,7 @@ void setup() {
   createSafeString(field, 10); // for the field strings. Should have capacity > largest field length
   Serial.println();
   Serial.println(F("Fields with numbers are:-  (returning empty fields, last field and an empty first field if first char is a delimiter)"));
-  bool haveToken = sfLine.firstToken(field, delimiters, true, true); // will return true and empty field if first char is ,
+  bool haveToken = sfLine.firstToken(field, delimiters); // will return true and empty field if first char is ,
   // bool haveToken = sfLine.nextToken(field, delimiters, true, true, true); // firstToken === nextToken with the last (optional) arg true
   while (haveToken) {
     double d;
