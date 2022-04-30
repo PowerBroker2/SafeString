@@ -22,6 +22,30 @@ extern const int PIN_ON;
 */
 extern const int PIN_OFF;
 
+/**************
+
+ The **PinFlasher** class inherits from **millisDelay** to provide non-blocking repeating on/off toggle of the specified pin, see the detailed description. 
+    
+  To use **PinFlasher**, create a global instance for each pin you want to flash e.g.<br>
+  <code>PinFlasher ledFlasher(13);</code><br>
+  if the led is turned ON with a HIGH output or set the optional <b><i>invert</i></b> argument true i.e. <br>
+  <code>PinFlasher ledFlasher(13,true);</code><br>
+  if the led is turned ON with a LOW output<br>
+  
+  Then add to the loop() code the statement<br>
+  <code>ledFlasher.update();</code><br>
+  
+  You can then control the led state and flash rate with<br>
+  <code>ledFlasher.setOnOff(1000);</code><br>
+  to flash the led on for 1sec (1000ms) and off for 1sec (1000ms) or<br>
+  <code>ledFlasher.setOnOff(PIN_ON);</code><br>
+  turn the led hard ON or<br>
+  <code>ledFlasher.setOnOff(PIN_OFF);</code><br>
+  to turn the led hard OFF<br>
+  
+  When you created the pinFlasher you specified the output level for logical ON so PIN_ON will turn the led on and PIN_OFF will turn it off.<br>
+  
+****************************************************************************************/
 class PinFlasher: protected millisDelay {
   public:
     /**
@@ -31,7 +55,9 @@ class PinFlasher: protected millisDelay {
        @param invert -- true to make pin LOW for on, false (default) to make pin HIGH for on.
     */
     PinFlasher(int pin = -1, bool invert = false);
-
+    
+    ~PinFlasher(); // sets pin back to input
+    
     /**
        check if output should be changed.
        update() should be called often, atleast every loop()
@@ -73,18 +99,18 @@ class PinFlasher: protected millisDelay {
         f.setOnOff(PIN_OFF);  // set output OFF, i.e. HIGH because of invertOutput above
     */
     bool invertOutput();
-
+    
   protected:
     /**
        set the output based on io_pin, io_pin_on and outputInverted
     */
-    void setOutput() ;
-
-  private:
+    virtual void setOutput();
     int io_pin; // initially -1, not set
     bool io_pin_on;//initially false/ off;
-    unsigned long half_period; // initially 0, off
     bool outputInverted; // initially false, not inverted, i.e. off is LOW, on is HIGH
+
+  private:
+    unsigned long half_period; // initially 0, off
 };
 
 #endif

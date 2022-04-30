@@ -297,8 +297,11 @@ expands in the pre-processor to<br>
 <code>SafeString str(15,charBuffer, charBuffer, "str", true);</code><br>
   The capacity of the SafeString is set to 14 from **size-1** to allow for the terminating '\0'.
 
-<H3>For example sketches see<br>
-SafeString_ConstructorAndDebugging.ino, SafeStringFromCharArray.ino, SafeStringFromCharPtr.ino and SafeStringFromCharPtrWithSize.ino</H3>
+See [The SafeString alternative to Arduino Strings for Beginners](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html) for a tutorial.<br>
+
+Also see the example sketches included with the library<br>
+SafeString_ConstructorAndDebugging.ino, SafeStringFromCharArray.ino, SafeStringFromCharPtr.ino and SafeStringFromCharPtrWithSize.ino
+
   
 ****************************************************************************************/
 class SafeString : public Printable, public Print {

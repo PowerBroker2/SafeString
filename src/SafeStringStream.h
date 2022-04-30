@@ -16,11 +16,14 @@
 #include "SafeStringNameSpaceStart.h"
 
 /*****************
-  The SafeStringStream class allows you to test your code with data read from a given SafeString as though it was a serial stream with a given baud rate.
+  The SafeStringStream class allows you to test your code with data read from a given SafeString as though it was a serial stream with a given baud rate, see the detailed description. 
   The data is released at the baud rate specified in the begin( ) to the RX buffer.<br>
   The default RX buffer size is 8 chars. A SafeString can be specified in the constructor to use as the RX buffer.<br> 
-  The data to be read can be written to the SafeStringStream.
-  Any char written to the stream is appended to the back of the current data, if there is room in the SafeString the data is being read from.
+  The data to be read can be written to the SafeStringStream, if the the SafeStringReader has echoON()<br>
+  Any char written to the stream is appended to the back of the current data, if there is room in the SafeString the data is being read from.<br>
+  
+  See [SafeStringStream, Automated Text Input Testing](https://www.forward.com.au/pfod/ArduinoProgramming/Serial_IO/index.html#SafeStringStream) for an example of its use.<br>
+  
 ***************/    
 class SafeStringStream : public Stream {
   public:

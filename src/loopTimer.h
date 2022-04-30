@@ -15,7 +15,38 @@
 // download millisDelay from https://www.forward.com.au/pfod/ArduinoProgramming/TimingDelaysInArduino.html
 #include <millisDelay.h>
 
+/**************
+  There is a predefined **loopTimer** object that is ready to use, see the detailed description. 
+    
+  To use the predefined **loopTimer** to measure your loop processing time, insert this code in loop()<br>
+  <code>loopTimer.check(Serial);</code><br>
+  
+  That will print to Serial the accumulated loop times every 5seconds. Sample output is:-<br>
+  <code>loop us Latency<br>
+ 5sec max:7276 avg:12<br>
+ sofar max:7276 avg:12 max - prt:15512</code><br>
+  
+ The prt:15512 is an estimate of the time taken (15512us or 15.5ms) by loopTimer itself to format and print this output.<br>
+ 
+ To time the delay between calls to particular method you can either just move the loopTimer.check(Serial); statement from loop() to that method or
+ create an new instance of the **loopTimerClass** with its own name e.g. <br>
+ <code>loopTimerClass stepTimer("step");</code><br>
+ Then in the step() method insert<br>
+ <code>stepTimer.check(Serial);</code><br>
+ which will print<br>
+  <code>step us Latency<br>
+ 5sec max:727 avg:23<br>
+ sofar max:727 avg:32 max - prt:15612</code><br>
+ 
+ You can also use <br>
+ <code>loopTimer.check();</code><br>
+ to just accumulate the measurements but not print them and then call<br>
+ <code>loopTimer.print(Serial)</code><br>
+ when you want to print them.<br>
+ 
+ See [Simple Multitasking Arduino on any board without using an RTOS](https://www.forward.com.au/pfod/ArduinoProgramming/RealTimeArduino/index.html) for examples of using loopTimer.
 
+****************************************************************************************/
 class loopTimerClass {
   public:
     loopTimerClass(const char *_name = NULL); // name of this timer, if NULL then "loop" is used as the name
