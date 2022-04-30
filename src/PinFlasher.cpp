@@ -23,7 +23,17 @@ const int PIN_OFF = 0;
 */
 PinFlasher::PinFlasher(int pin, bool invert) {
   outputInverted = invert; // set this befor calling setPin( ) so off is correct logic level
-  setPin(pin);
+  half_period = PIN_OFF; // off
+  io_pin_on = false;
+  io_pin = pin; // don't call setPin() here as that enables setOutput before all the globals have finished construction
+  // causes problems for ESP32C etc using ws2812
+  if(io_pin >=0) {
+    pinMode(io_pin, OUTPUT); // io_pin >=0 here
+  }
+}
+
+PinFlasher::~PinFlasher() {
+	setPin(-1); // set pin back to input
 }
 
 /**
@@ -61,16 +71,24 @@ void PinFlasher::setPin(int pin) {
   if (pin < 0) { //all -ve inputs forced to -1
     pin = -1;
   }
-  if (io_pin == pin) { // all -ve inputs will not match and return
+  if (io_pin == pin) { // all -ve inputs will match and return
+  	update();
     return;
   }
   // else pin changed re-init
+  // set existing pin back to input
+  int prev_pin = io_pin;
   io_pin = pin;
   stop(); // stop flash timer
   half_period = PIN_OFF; // off
   io_pin_on = false;
-  pinMode(io_pin, OUTPUT); // io_pin >=0 here
-  setOutput();
+  if(io_pin >= 0) {
+    pinMode(io_pin, OUTPUT); // io_pin >=0 here
+    setOutput();
+  }
+  if(prev_pin >=0) {
+    pinMode(prev_pin, INPUT); // reset previous output
+  }
 }
 
 /**
@@ -148,3 +166,4 @@ void PinFlasher::setOutput() { // uses class vars io_pin and io_pin_on
     }
   }
 }
+

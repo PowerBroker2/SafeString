@@ -43,6 +43,33 @@
 
 // size + 1 for delimiter, + 1 for '\0'  actually token only ever size+1 for '\0' as delimiter not returned
 // size is the maximum size of the token to be read ignoring the delimiter
+/**************
+  To create a SafeStringReader use the macro **createSafeStringReader**  see the detailed description. 
+  
+  The createSafeStringReader macro takes 3 or more arguments.<br> 
+  createSafeStringReader(name, size, delimiters); creates a SafeStringReader called <i>name</i> which can read tokens upto <i>size</i> chars and will return tokens delimited by <i>delimiters</i>.<br>
+  e.g. to create a SafeStringReader called sfReader to handle tokens upto 80char long and return tokens delimited by comma or newline or carriageReturn use<br>
+ <code>createSafeStringReader(sfReader, 80, ",\n\r")</code><br>
+ 
+  Other optional arguments for createSafeStringReader are better set via method calls.  The examples below use the created SafeStringReader called, <i><b>sfReader</b></i> from above<br>
+  To control echoing the input back to the input stream ( default echoOff() ) use<br>
+    <code>sfReader.echoOn();</code><br>
+    and<br>
+    <code>sfReader.echoOff();</code><br>
+    
+  To set the read timeout, in ms, after which the current input will be returned as a token even if no delimiter has been found (default 0, never timeout) use<br>
+  <code>sfReader.setTimeout(ms);</code><br>
+  
+  To clear/flush all the pending input upto the next delimiter or timeout, use<br>
+  <code>sfReader.setTimeout(1000);<br>
+  sfReader.flush();<br>
+  sfReader.setTimeout(0);</code><br>
+  
+  While flushing, **isSkipToDelimiter()** will return true until a delimiter is found or the read times out, either of which terminated the **flush()**.<br>
+  
+  See [SafeStringReader for Text Input](https://www.forward.com.au/pfod/ArduinoProgramming/Serial_IO/index.html#SafeStringReader) for examples
+  
+****************************************************************************************/
 class SafeStringReader : public SafeString {
   public:
   	  // here buffSize is max size of the token + 1 for delimiter + 1 for terminating '\0;

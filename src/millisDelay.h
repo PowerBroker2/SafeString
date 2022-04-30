@@ -12,6 +12,26 @@
  * provided this copyright is maintained.
  */
  
+/**************
+  **millisDelay** implements a non-blocking, repeatable delay, see the detailed description. 
+    
+  To use **millisDelay**, create a global instance for each delay you need e.g.<br>
+  <code>millisDelay ledDelay;</code><br>
+  Then start the delay running with with say a 1sec (1000ms) delay i.e. <br>
+  <code>ledDelay.start(1000);</code><br>
+  This is often done in setup()<br>
+  Then in loop() check if the delay has timed out with<br>
+  <code>if (ledDelay.justFinished()) {<br>
+   . . .  do stuff here when delay has timed out<br>
+   }</code><br>
+   
+   The **justFinished()** method only returns true once the first time it is check after the delay has timeout.<br>
+   <b>NOTE:</b> It is very important that <code>if (ledDelay.justFinished()) {</code> is called every loop and that it is at the outer most level of the loop() method.<br>
+   That is must not be inside another if() while() case() etc statement.  It can be inside a method call as long as that method is called every loop.<br>
+   
+  See [How to code Timers and Delays in Arduino](https://www.forward.com.au/pfod/ArduinoProgramming/TimingDelaysInArduino.html) for more examples
+  
+****************************************************************************************/
 class millisDelay {
   public:
 

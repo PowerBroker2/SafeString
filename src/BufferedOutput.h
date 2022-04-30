@@ -43,20 +43,40 @@
 #define createBufferedOutput(name, size, ...) uint8_t name ## _OUTPUT_BUFFER[(size)+4]; BufferedOutput name(sizeof(name ## _OUTPUT_BUFFER),name ## _OUTPUT_BUFFER,  __VA_ARGS__ ); // add 4 for dropMark
 
 typedef enum {BLOCK_IF_FULL, DROP_UNTIL_EMPTY, DROP_IF_FULL } BufferedOutputMode;
+/**************
+  To create a BufferedOutput use the macro **createBufferedOutput**  see the detailed description. 
+    
+  The createBufferedOutput macro takes 2, 3 or 4 arguments.<br>
+  
+  createBufferedOutput(name, size); creates a BufferedOutput called <i>name</i> which can buffer upto <i>size</i> chars without blocking and then will block once the buffer fills up.<br>
+  This default blocking when the buffer is full is not recommended.<br>
 
+  Add a call to <br> 
+  <code>bufferedOutput.nextByteOut();</code><br>
+  at the top of the loop() to release the buffered chars.  You can add more of these calls through out the loop() code if needed.<br>
+  Most BufferedOutput methods also release the buffered chars.<br>
+
+  createBufferedOutput(name, size, mode ); creates a BufferedOutput called <i>name</i> which can buffer upto <i>size</i> chars without blocking and mode determines what to do when the buffer is full.<br>
+  <b>mode</b> can be one of **BLOCK_IF_FULL**, **DROP_UNTIL_EMPTY** or **DROP_IF_FULL**<br>
+  <b>BLOCK_IF_FULL</b> just blocks until some chars can be sent to the output stream, so freeing up space in the buffer to accept more output. This mode is not recommended, but can be used for testing to force ALL output to be sent.<br>
+  <b>DROP_UNTIL_EMPTY</b> will drop further output until all the output currently in the full buffer is sent to the output stream.<br> 
+  <b>DROP_IF_FULL</b> will drop further output until enough chars have been sent to the output stream to free up space for the output printed to the buffer.<br>
+  
+  If any chars are dropped then <b>~~</b> is added to the output sent so you can see where there is missing output.
+  
+  This 3 argument version uses the default AllOrNothing == true setting.  If the whole print(..) cannot fit in the buffer none of it is sent. 
+  
+  createBufferedOutput(name, size, mode, allOrNothing ); creates a BufferedOutput called <i>name</i> which can buffer upto <i>size</i> chars without blocking
+  and mode determines what to do when the buffer is full and how to handle prints that do not entirely fit in the buffer.<br>
+  AllOrNothing true will drop the entire print( ) if it will not completely fit in the buffer.<br>
+  AllOrNothing false will only drop the part of the print( ) that will not fit in the buffer.<br>
+  
+  See [Arduino Serial I/O for the Real World - BufferedOutput](https://www.forward.com.au/pfod/ArduinoProgramming/Serial_IO/index.html#bufferedOutput) for an example of its use.
+  
+****************************************************************************************/
 
 class BufferedOutput : public Stream {
   public:
-    /**
-        use
-        createBufferedOutput(name, size, mode);
-        instead of calling the constructor
-        add a call to 
-        bufferedOutput.nextByteOut();
-        at the top of the loop() to release the buffered chars.  You can add more of these calls through out the loop() code if needed
-        Most BufferedOutput methods also release the buffered chars
-    **/
-    
     /**
          use createBufferedOutput(name, size, mode); instead
          BufferedOutput(size_t _bufferSize, uint8_t *_buf, BufferedOutputMode = BLOCK_IF_FULL, bool allOrNothing = true);

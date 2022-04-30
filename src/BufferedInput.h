@@ -43,19 +43,25 @@
 
 #define createBufferedInput(name, size) uint8_t name ## _INPUT_BUFFER[(size)]; BufferedInput name(sizeof(name ## _INPUT_BUFFER),name ## _INPUT_BUFFER);
 
+/**************
+  To create a BufferedInput use the macro **createBufferedInput**  see the detailed description. 
+  
+  The createBufferedInput macro takes 2 arguments.<br> 
+  createBufferedInput(name, bufferSize); creates a BufferedInput called <i>name</i> with a buffer size of <i>bufferSize</i>.<br>
+  e.g. to create a BufferedInput called bufferedInput with a buffer size of 128 use<br>
+ <code>createBufferedInput(bufferedInput, 128)</code><br>
+ 
+  Add a call to <br>
+  <code>bufferedInput.nextByteIn();</code><br>
+  at the top of the loop() to read more chars from the input.  You can add more of these calls through out the loop() code if needed.<br>
+  Most BufferedInput methods also read more chars from the input<br> 
+  
+  See [Arduino Serial I/O for the Real World - BufferedInput](https://www.forward.com.au/pfod/ArduinoProgramming/Serial_IO/index.html#BufferedInput) for an example of its use.
+***************************************************************************************/
 class BufferedInput : public Stream {
   public:
     /**
-        use
-        createBufferedInput(name, size);
-        instead of calling the constructor
-        add a call to
-        bufferedInput.nextByteIn();
-        at the top of the loop() to read more chars from the input.  You can add more of these calls through out the loop() code if needed.
-        Most BufferedInput methods also read more chars from the input
-    **/
-    /**
-         use createBufferedOutput(name, size, mode); instead
+         use createBufferedOutput(name, size); instead
          BufferedInput(size_t _bufferSize, uint8_t *_buf);
 
          buf -- the user allocated buffer to store the bytes, must be at least bufferSize long.  Defaults to an internal 8 char buffer if buf is omitted or NULL

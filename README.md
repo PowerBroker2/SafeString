@@ -26,6 +26,10 @@ See the top of each file for its license
 Note, this is NOT my work, I am simply hosting it for easy access. The original code belongs to [Forward Computing and Control Pty. Ltd](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
 
 # Revisions
+V4.1.19 minor change to PinFlasher to support ESP32_WS2812Flasher extension     
+V4.1.18 changed firstToken() arguments now defaults to returning empty tokens     
+V4.1.17 restored firstToken() method     
+V4.1.16 minor text corrections, SafeStringReader.getDelimiter() now returns int, fix for SafeStringReader.flushInput()     
 V4.1.15 added support for ARDUINO_ARCH_NRF52 and ARDUINO_ARCH_NRF5    
 V4.1.14 minor fix PinFlasher  
 V4.1.13 minor change PinFlasher to simplify loop logic    
