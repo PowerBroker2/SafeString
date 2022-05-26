@@ -108,9 +108,12 @@
 extern "C" {
 #endif
 #if defined(ARDUINO_TEENSY41) || defined(ARDUINO_TEENSY40) ||defined(ARDUINO_TEENSY36) ||defined(ARDUINO_TEENSY35) ||defined(ARDUINO_TEENSY32) ||defined(ARDUINO_TEENSY30) ||defined(ARDUINO_TEENSYLC) || defined(ARDUINO_TEENSY2PP) ||defined(ARDUINO_TEENSY2)
-char *dtostrf(float val, int width, unsigned int precision, char *buf);
+char* dtostrf(float val, int width, unsigned int precision, char *buf);
+#elif defined(ESP32) || defined(ESP8266)
+#include <stdlib_noniso.h>
+//for char* dtostrf( ...);
 #else
-char *dtostrf(double val, signed char width, unsigned char prec, char *sout);
+char* dtostrf(double val, signed char width, unsigned char prec, char *sout);
 #endif
 #ifdef __cplusplus
 }
@@ -858,6 +861,7 @@ size_t SafeString::println(double d, int decs, int width, bool forceSign) {
   return printInt(d, decs, width, forceSign, true);
 }
 
+// internal print method called by other print methods
 size_t SafeString::printInt(double d, int decs, int width, bool forceSign, bool addNL) {
   // if addNL need to allow 2 for nl in SafeString, width does not change
   size_t nlExtra = addNL ? 2 : 0;
