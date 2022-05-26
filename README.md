@@ -26,6 +26,7 @@ See the top of each file for its license
 Note, this is NOT my work, I am simply hosting it for easy access. The original code belongs to [Forward Computing and Control Pty. Ltd](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
 
 # Revisions
+V4.1.20 fixed for ESP32 V2.0.3 dtostrf    
 V4.1.19 minor change to PinFlasher to support ESP32_WS2812Flasher extension     
 V4.1.18 changed firstToken() arguments now defaults to returning empty tokens     
 V4.1.17 restored firstToken() method     
