@@ -570,7 +570,7 @@ void SafeString::setVerbose(bool verbose) {
 /**  debug methods                           */
 /*********************************************/
 
-// debug() -- these debug( ) methods print out info on this SafeString object, iff SaftString::setOutput( ) has been called
+// debug() -- these debug( ) methods print out info on this SafeString object, iff SafeString::setOutput( ) has been called
 // setVerbose( ) does NOT effect these methods which have their own verbose argument
 // Each of these debug( ) methods defaults to outputting the string contents.
 // Set the optional verbose argument to false to suppress outputting string contents
@@ -4478,7 +4478,7 @@ unsigned char SafeString::read(Stream& input) {
       params
         input - the Stream object to read from
         delimiters - string of valid delimieters
-      return true if SaftString is full or a delimiter is read, else false
+      return true if SafeString is full or a delimiter is read, else false
       Any delimiter read is returned.  Only at most one delimiter is added per call
      Multiple sucessive delimiters require multiple calls to read them
 **/
@@ -4570,9 +4570,9 @@ bool SafeString::readUntilInternal(Stream& input, const char* delimitersIn, cons
       ONLY delimited tokens of length less than this SafeString's capacity will return true with a non-empty token.
       Streams of chars that overflow this SafeString's capacity are ignored and return an empty token on the next delimiter or timeout
       That is this SafeString's capacity should be at least 1 more then the largest expected token.
-      If this SafeString OR the SaftString & token return argument is too small to hold the result, the token is returned empty and an error message output if debugging is enabled.
-      The delimiter is NOT included in the SaftString & token return.  It will the first char of the this SafeString when readUntilToken returns true
-      It is recommended that the capacity of the SafeString & token argument be >= this SaftString's capacity
+      If this SafeString OR the SafeString & token return argument is too small to hold the result, the token is returned empty and an error message output if debugging is enabled.
+      The delimiter is NOT included in the SafeString & token return.  It will the first char of the this SafeString when readUntilToken returns true
+      It is recommended that the capacity of the SafeString & token argument be >= this SafeString's capacity
       Each call to this method removes any leading delimiters so if you need to check the delimiter do it BEFORE the next call to readUntilToken()
       if token does not have the capacity to hold the substring, hasError() is set on both this SafeString and the token SafeString
       If this SafeString is empty and received just a delimiter, then return an empty token and leave delimiter in the SafeString
@@ -4589,8 +4589,8 @@ bool SafeString::readUntilInternal(Stream& input, const char* delimitersIn, cons
         timeout_ms - defaults to never timeout, pass a non-zero ms to autoterminate the last token if no new chars received for that time.
 
       returns true if a delimited series of chars found that fit in this SafeString else false
-      If this SafeString OR the SaftString & token argument is too small to hold the result, the returned token is returned empty
-      The delimiter is NOT included in the SaftString & token return. It will the first char of the this SafeString when readUntilToken returns true
+      If this SafeString OR the SafeString & token argument is too small to hold the result, the returned token is returned empty
+      The delimiter is NOT included in the SafeString & token return. It will the first char of the this SafeString when readUntilToken returns true
  **/
 
 unsigned char SafeString::readUntilToken(Stream & input, SafeString& token, const char delimiter, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_ms) {

@@ -1103,7 +1103,7 @@ class SafeString : public Printable, public Print {
       if beginIdx > length(), the result is empty and an error is raised.<br>
       if beginIdx == (unsigned int)(-1),the result is empty (no error).
       
-      @return this SaftString
+      @return result
       
       The result SafeString is ALWAYS cleares to start with and so will be empty if there are any errors.<br>
       If the result SafeString does not have the capacity to hold the substring, an empty result is returned and an error raised on both this SafeString and the result.<br>
@@ -1133,7 +1133,7 @@ class SafeString : public Printable, public Print {
       if endIdx > length(), endIdx is set to length(); and the error flag is set on both this SafeString and the result SafeString<br>
       if endIdx == (unsigned int)(-1) is treated as endIdx == length() returns a result without an error
       
-      @return this SaftString
+      @return result
       
       The result SafeString is ALWAYS cleares to start with and so will be empty if there are any errors.<br>
       If the result SafeString does not have the capacity to hold the substring, an empty result is returned and an error raised on both this SafeString and the result.<br>
@@ -1773,7 +1773,7 @@ class SafeString : public Printable, public Print {
       
       That is this SafeString's capacity should be at least 1 more then the largest expected token.<br>
       If this SafeString OR the SafeString& token return argument is too small to hold the result, the token is returned empty and an error message output if debugging is enabled.<br>
-      The delimiter is NOT included in the SaftString& token return.  It will the first char of the this SafeString when readUntilToken returns true<br>
+      The delimiter is NOT included in the SafeString& token return.  It will the first char of the this SafeString when readUntilToken returns true<br>
       It is recommended that the capacity of the SafeString& token argument be >= this SafeString's capacity<br>
       Each call to this method removes any leading delimiters so if you need to check the delimiter do it BEFORE the next call to readUntilToken()
 
@@ -1802,7 +1802,7 @@ class SafeString : public Printable, public Print {
       
       That is this SafeString's capacity should be at least 1 more then the largest expected token.<br>
       If this SafeString OR the SafeString& token return argument is too small to hold the result, the token is returned empty and an error message output if debugging is enabled.<br>
-      The delimiter is NOT included in the SaftString& token return.  It will the first char of the this SafeString when readUntilToken returns true<br>
+      The delimiter is NOT included in the SafeString& token return.  It will the first char of the this SafeString when readUntilToken returns true<br>
       It is recommended that the capacity of the SafeString& token argument be >= this SafeString's capacity<br>
       Each call to this method removes any leading delimiters so if you need to check the delimiter do it BEFORE the next call to readUntilToken()
 
@@ -1831,7 +1831,7 @@ class SafeString : public Printable, public Print {
       
       That is this SafeString's capacity should be at least 1 more then the largest expected token.<br>
       If this SafeString OR the SafeString& token return argument is too small to hold the result, the token is returned empty and an error message output if debugging is enabled.<br>
-      The delimiter is NOT included in the SaftString& token return.  It will the first char of the this SafeString when readUntilToken returns true<br>
+      The delimiter is NOT included in the SafeString& token return.  It will the first char of the this SafeString when readUntilToken returns true<br>
       It is recommended that the capacity of the SafeString& token argument be >= this SafeString's capacity<br>
       Each call to this method removes any leading delimiters so if you need to check the delimiter do it BEFORE the next call to readUntilToken()
 
