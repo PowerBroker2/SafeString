@@ -13,6 +13,7 @@ This library includes:-
 * **SerialComs**, to send messages between Arduinos via Serial
 
 # How-To
+See [SafeString Documentation](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/docs/html/index.html)  
 See [SafeString Tutorial](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html)  
 See [Arduino to Arduino/PC via Serial](https://www.forward.com.au/pfod/ArduinoProgramming/SoftwareSolutions/ComsPair.html)  
 See [Arduino Text I/O for the Real World](https://www.forward.com.au/pfod/ArduinoProgramming/Serial_IO/index.html)  
@@ -26,6 +27,7 @@ See the top of each file for its license
 Note, this is NOT my work, I am simply hosting it for easy access. The original code belongs to [Forward Computing and Control Pty. Ltd](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
 
 # Revisions
+V4.1.22 added link to docs in README.md     
 V4.1.21 minor change document correction     
 V4.1.20 fixed for ESP32 V2.0.3 dtostrf     
 V4.1.19 minor change to PinFlasher to support ESP32_WS2812Flasher extension     
