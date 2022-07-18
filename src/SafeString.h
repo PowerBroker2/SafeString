@@ -410,7 +410,7 @@ class SafeString : public Printable, public Print {
     const char* debug(SafeString &stitle, bool verbose = true);
 
     /*****************
-     Write (i.e. concatinate) a byte to this SafeString, from Print class.
+     Write (concatinate) a byte to this SafeString, from Print class.
      
      '\0' bytes are not allowed and will not be added to the SafeString and will raise an error.
      
@@ -421,7 +421,7 @@ class SafeString : public Printable, public Print {
     // NOTE: write(cstr,length) will set hasError and optionally output errorMsg, if strlen(cstr) < length and nothing will be added to the SafeString
     
     /*****************
-     Write (i.e. concatinate) bytes to this SafeString, from Print class.
+     Write (concatinate) bytes to this SafeString, from Print class.
      
      '\0' bytes are not allowed and will be skipped over and will raise an error.
      
@@ -869,21 +869,21 @@ class SafeString : public Printable, public Print {
       returns non-zero of this SafeString starts this argument looking from fromIndex onwards.
       
       @param c -- char to check for
-      @param fromIndex -- where in the SafeString to start looking, default 0 i.e. start from beginning
+      @param fromIndex -- where in the SafeString to start looking, default 0, that is start from beginning
     **/
     unsigned char startsWith(const char c, unsigned int fromIndex = 0);
     /** 
       returns non-zero of this SafeString starts this argument looking from fromIndex onwards.
       
       @param str -- string to check for
-      @param fromIndex -- where in the SafeString to start looking, default 0 i.e. start from beginning
+      @param fromIndex -- where in the SafeString to start looking, default 0, that is start from beginning
     **/
     unsigned char startsWith( const char *str2, unsigned int fromIndex = 0) ;
     /** 
       returns non-zero of this SafeString starts this argument looking from fromIndex onwards.
       
       @param s -- the SafeString to check for
-      @param fromIndex -- where in the SafeString to start looking, default 0 i.e. start from beginning
+      @param fromIndex -- where in the SafeString to start looking, default 0, that is start from beginning
     **/
     unsigned char startsWith(SafeString &s2, unsigned int fromIndex = 0) ;
     
@@ -891,21 +891,21 @@ class SafeString : public Printable, public Print {
       returns non-zero of this SafeString starts this argument, ignoring case, looking from fromIndex onwards.
       
       @param c -- char to check for, ignoring case
-      @param fromIndex -- where in the SafeString to start looking, default 0 i.e. start from beginning
+      @param fromIndex -- where in the SafeString to start looking, default 0, that is start from beginning
     **/
     unsigned char startsWithIgnoreCase(const char c, unsigned int fromIndex = 0);
     /** 
       returns non-zero of this SafeString starts this argument, ignoring case, looking from fromIndex onwards.
       
       @param str -- string to check for, ignoring case
-      @param fromIndex -- where in the SafeString to start looking, default 0 i.e. start from beginning
+      @param fromIndex -- where in the SafeString to start looking, default 0, that is start from beginning
     **/
     unsigned char startsWithIgnoreCase( const char *str2, unsigned int fromIndex = 0) ;
     /** 
       returns non-zero of this SafeString starts this argument, ignoring case, looking from fromIndex onwards.
       
       @param s -- SafeString to check for, ignoring case
-      @param fromIndex -- where in the SafeString to start looking, default 0 i.e. start from beginning
+      @param fromIndex -- where in the SafeString to start looking, default 0, that is start from beginning
     **/
     unsigned char startsWithIgnoreCase( SafeString &s2, unsigned int fromIndex = 0) ;
     
@@ -999,7 +999,7 @@ class SafeString : public Printable, public Print {
     /**
       returns the index of the char, searching from fromIndex.
       @param ch - the char to search for
-      @param fromIndex - where to start the search from, default 0 i.e. from begining<br> if fromIndex > length() raise an error<br> if fromIndex == -1 OR fromIndex == length(), return -1 without error
+      @param fromIndex - where to start the search from, default 0, that is from begining<br> if fromIndex > length() raise an error<br> if fromIndex == -1 OR fromIndex == length(), return -1 without error
         
       @return -1 if not found, else the index in the range 0 to length()-1
       */
@@ -1009,14 +1009,14 @@ class SafeString : public Printable, public Print {
     /**
       returns the index of the string, searching from fromIndex.
       @param str - the string to search for
-      @param fromIndex - where to start the search from, default 0 i.e. from begining<br> if fromIndex > length() raise an error<br> if fromIndex == -1 OR fromIndex == length(), return -1 without error
+      @param fromIndex - where to start the search from, default 0, that is from begining<br> if fromIndex > length() raise an error<br> if fromIndex == -1 OR fromIndex == length(), return -1 without error
       @return -1 if not found, else the index in the range 0 to length()-1
       */
     int indexOf(const char* str , unsigned int fromIndex = 0) ;
     /**
       returns the index of the SafeString, searching from fromIndex.
       @param str - the SafeString to search for
-      @param fromIndex - where to start the search from, default 0 i.e. from begining<br> if fromIndex > length() raise an error<br> if fromIndex == -1 OR fromIndex == length(), return -1 without error
+      @param fromIndex - where to start the search from, default 0, that is from begining<br> if fromIndex > length() raise an error<br> if fromIndex == -1 OR fromIndex == length(), return -1 without error
       @return -1 if not found, else the index in the range 0 to length()-1
       */
     int indexOf( SafeString & str, unsigned int fromIndex = 0 ) ;
@@ -1123,13 +1123,13 @@ class SafeString : public Printable, public Print {
     // You can take substring of yourself  e.g. str.substring(str,3,6);
     // if result does not have the capacity to hold the substring, and empty result is returned and hasError() is set on both this SafeString and the result SafeString
     /**
-      The result is the substring from the beginIdx to endIdx (exclusive), i.e. the endIdx is NOT included
+      The result is the substring from the beginIdx to endIdx (exclusive), that is the endIdx is NOT included
       @param result - the substring
       @param beginIdx - the index of the start of the substring, <br> if beginIdx == length(), the result is empty (no error)<br>
       if beginIdx > length(), the result is empty and an error is raised.<br>
       if beginIdx == (unsigned int)(-1),the result is empty (no error).<br>
       if beginIdx > endIdx, beginIdx and endIdx will be swapped so that beginIdx <= endIdx and the error flag is set on both this SafeString and the result SafeString
-      @param endIdx - the index after the end of the substring, i.e. endIdx is NOT included<br>
+      @param endIdx - the index after the end of the substring, that is endIdx is NOT included<br>
       if endIdx > length(), endIdx is set to length(); and the error flag is set on both this SafeString and the result SafeString<br>
       if endIdx == (unsigned int)(-1) is treated as endIdx == length() returns a result without an error
       
@@ -1196,7 +1196,7 @@ class SafeString : public Printable, public Print {
     // 0 to length() and (unsigned int)(-1) are valid for index,
     // -1 => length() for processing
     /**
-      remove all chars from 0 to startIndex (exclusive), i.e. the char at startIndex is NOT removed
+      remove all chars from 0 to startIndex (exclusive), that is the char at startIndex is NOT removed
       @param startIndex - the index of the first char NOT to be removed<br>
       Valid startIndex is 0 to length(), and -1 which is treated as length()<br>
       Other startIndex raise an error.
@@ -1699,6 +1699,20 @@ class SafeString : public Printable, public Print {
     **/
     unsigned int readFrom(SafeString & input, unsigned int startIdx = 0);
 
+    /**
+       reads from the const char* argument, starting at 0, into this SafeString.
+       
+       This lets you read from a char* into a SafeString without errors if the strlen(char*) is larger than the SafeString capacity
+       Use sfResult.clear(); to empty the SafeString first and then sfResult.readFrom(strPtr); to read a much as you can
+       The read stops at first '\0' or the calling SafeString is full
+       Note: if the SafeString is already full, then nothing will be read
+       
+       @param  strPtr - pointer char array to read from
+	   
+       @return - the number of chars read
+    **/
+    unsigned int readFrom(const char* strPtr);
+    
     /**
        writes from this SafeString, starting from startIdx, into the SafeString output arguement.
        

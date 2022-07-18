@@ -163,7 +163,7 @@ bool SafeString::classErrorFlag = false; // set true if any SafeString object ha
 // _fromPtr is not checked unless _fromBuffer is true
 // _fromPtr true allows for any array size, if false it warns when passing char* by checking sizeof(charArray) != sizeof(char*)
 /**
-  if _fromBuffer false (i.e. cSF(sfStr,20); ) then maxLen is the capacity and the macro allocates an char[20+1], i.e. maxLen+1 (_fromPtr ignored)
+  if _fromBuffer false (i.e cSF(sfStr,20); ) then maxLen is the capacity and the macro allocates an char[20+1], i.e. maxLen+1 (_fromPtr ignored)
   if _fromBuffer true and _fromPtr false (i.e. cSFA(sfStr, strArray); ) then maxLen is the sizeof the strArray and the capacity is maxLen-1, _fromPtr is false
   if _fromBuffer true and _fromPtr true, then from char*, (i.e. cSFP(sfStr,strPtr) or cSFPS(sfStr,strPtr, maxLen) and maxLen is either -1 cSFP( ) the size of the char Array pointed cSFPS
     if maxLen == -1 then capacity == strlen(char*)  i.e. cSFP( )
@@ -4387,6 +4387,35 @@ unsigned int SafeString::readFrom(SafeString & input, unsigned int startIdx) {
     return newStartIdx;
   }
 }
+
+/*
+     reads from the const char* argument, starting at 0, into this SafeString.
+     
+     This lets you read from a char* into a SafeString without errors if the strlen(char*) is larger than the SafeString capacity
+     Use sfResult.clear(); to empty the SafeString first and then sfResult.readFrom(strPtr); to read a much as you can
+     The read stops at first '\0' or the calling SafeString is full
+     Note: if the SafeString is already full, then nothing will be read
+     
+     @param  strPtr - pointer char array to read from
+	 
+     @return - the number of chars read
+*/
+unsigned int SafeString::readFrom(const char* strPtr) {
+	  cleanUp();
+	  // check reading from ourselves
+	  if (strPtr == buffer) {
+	  	return 0; // nothing new read
+	  }
+    // else
+    unsigned int i = 0;
+    while((len < _capacity) && (*strPtr)){
+    	// have space and not end of input
+    	buffer[len++] = *strPtr++;
+    	i++;
+    }
+    buffer[len] = '\0'; // terminate 
+    return i;
+}	
 
 /*
    writeTo(SafeString & output, unsigned int startIdx = 0)  writes from SafeString, starting at startIdx to output
