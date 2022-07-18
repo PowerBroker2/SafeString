@@ -12,6 +12,10 @@ This library includes:-
 * **PinFlasher**, a non-blocking flashing of an output pin.  
 * **SerialComs**, to send messages between Arduinos via Serial
 
+  To create SafeStrings use one of the four (4) macros **createSafeString** or **cSF**, **createSafeStringFromCharArray** or **cSFA**, **createSafeStringFromCharPtr** or **cSFP**, **createSafeStringFromCharPtrWithSize** or **cSFPS**<br> 
+  For example sketches see SafeString_ConstructorAndDebugging.ino, SafeStringFromCharArray.ino, SafeStringFromCharPtr.ino and SafeStringFromCharPtrWithSize.ino<br>
+  and the [SafeString Tutorial](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html)
+    
 # How-To
 See [SafeString Documentation](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/docs/html/index.html)  
 See [SafeString Tutorial](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html)  
@@ -27,6 +31,7 @@ See the top of each file for its license
 Note, this is NOT my work, I am simply hosting it for easy access. The original code belongs to [Forward Computing and Control Pty. Ltd](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
 
 # Revisions
+V4.1.23 added readFrom(const char*)     
 V4.1.22 added link to docs in README.md     
 V4.1.21 minor change document correction     
 V4.1.20 fixed for ESP32 V2.0.3 dtostrf     
