@@ -304,7 +304,7 @@ SafeString_ConstructorAndDebugging.ino, SafeStringFromCharArray.ino, SafeStringF
 
   
 ****************************************************************************************/
-class SafeString : public Printable, public Print {
+class SafeString : public arduino::Printable, public Print {
 
   public:
 /*********************************************
