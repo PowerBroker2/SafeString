@@ -304,8 +304,12 @@ SafeString_ConstructorAndDebugging.ino, SafeStringFromCharArray.ino, SafeStringF
 
   
 ****************************************************************************************/
+#ifdef PLATFORMIO
 class SafeString : public arduino::Printable, public Print {
-
+#else
+class SafeString : public Printable, public Print {
+#endif
+	
   public:
 /*********************************************
   SafeString Constructor called from <a href="#details">the four (4) macros</a> **createSafeString** or **cSF**, **createSafeStringFromCharArray** or **cSFA**, **createSafeStringFromCharPtr** or **cSFP**, **createSafeStringFromCharPtrWithSize** or **cSFPS**.
