@@ -4402,6 +4402,11 @@ unsigned int SafeString::readFrom(SafeString & input, unsigned int startIdx) {
 */
 unsigned int SafeString::readFrom(const char* strPtr) {
 	  cleanUp();
+	  if ((!strPtr) || (!(*strPtr))) {
+	  	len = 0;
+        buffer[len] = '\0'; // terminate
+        return 0;
+	  }	  
 	  // check reading from ourselves
 	  if (strPtr == buffer) {
 	  	return 0; // nothing new read

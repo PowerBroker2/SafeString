@@ -31,6 +31,7 @@ See the top of each file for its license
 Note, this is NOT my work, I am simply hosting it for easy access. The original code belongs to [Forward Computing and Control Pty. Ltd](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
 
 # Revisions
+V4.1.24 added NULL detection to readFrom(const char*)     
 V4.1.23 added readFrom(const char*)     
 V4.1.22 added link to docs in README.md     
 V4.1.21 minor change document correction     
