@@ -4340,15 +4340,18 @@ bool SafeString::nextTokenInternal(SafeString& token, const char* delimitersIn, 
 /**  ReadFrom from SafeString, writeTo SafeString               */
 /****************************************************************/
 /*
-   readFrom(SafeString & sfInput, unsigned int startIdx = 0)  reads from the SafeString starting at startIdx into the SafeString calling this method
-   params
-     sfInput - the SafeString to read from
-     startIdx - where to start reading from, defaults to 0,
-                if startIdx >= sfInput.length(), nothing read and sfInput.length() returned
-
-   returns new startIdx
-   read stops when the end of the sfInput is reached or the calling SafeString is full
-   Note: if the SafeString is already full, then nothing will be read and startIdx will be returned
+   reads from the SafeString argument, starting at startIdx, into this SafeString.
+   
+   The read stops when the end of the SafeString argument is reached or the calling SafeString is full
+   Note: if the SafeString is already full, then nothing will be read and startIdx will be returned<br>
+   <br>
+   Note: to limit the number of chars read in from sfInput (starting at 0), use<br>
+   <code>sfStr.readFrom(sfInput.c_str(),maxCharsToRead);</code>
+   
+   @param  sfInput - the SafeString to read from
+   @param  startIdx - where to start reading from, defaults to 0,
+              if startIdx >= sfInput.length(), nothing read and sfInput.length() returned
+   @return - the new startIdx
 **/
 unsigned int SafeString::readFrom(SafeString & input, unsigned int startIdx) {
   input.cleanUp();
@@ -4389,18 +4392,19 @@ unsigned int SafeString::readFrom(SafeString & input, unsigned int startIdx) {
 }
 
 /*
-     reads from the const char* argument, starting at 0, into this SafeString.
+     reads from the const char* argument, starting at 0 and read up to maxCharToRead, into this SafeString.
      
-     This lets you read from a char* into a SafeString without errors if the strlen(char*) is larger than the SafeString capacity
+     This lets you read from a char* into a SafeString without errors if the strlen(char*) or maxCharsToRead are larger than the SafeString capacity
      Use sfResult.clear(); to empty the SafeString first and then sfResult.readFrom(strPtr); to read a much as you can
-     The read stops at first '\0' or the calling SafeString is full
+     The read stops at first '\0' or the calling SafeString is full or when maxCharsToRead have been read.
      Note: if the SafeString is already full, then nothing will be read
      
      @param  strPtr - pointer char array to read from
+     @param  maxCharsToRead -- the maximum chars to read into the SafeString, defaults to ((unsigned int)-1) i.e. max unsigned int.
 	 
      @return - the number of chars read
 */
-unsigned int SafeString::readFrom(const char* strPtr) {
+unsigned int SafeString::readFrom(const char* strPtr, unsigned int maxCharsToRead) {
 	  cleanUp();
 	  if ((!strPtr) || (!(*strPtr))) {
 	  	len = 0;
@@ -4413,7 +4417,7 @@ unsigned int SafeString::readFrom(const char* strPtr) {
 	  }
     // else
     unsigned int i = 0;
-    while((len < _capacity) && (*strPtr)){
+    while((len < _capacity) && (*strPtr) && (i < maxCharsToRead)){
     	// have space and not end of input
     	buffer[len++] = *strPtr++;
     	i++;
@@ -4431,7 +4435,7 @@ unsigned int SafeString::readFrom(const char* strPtr) {
 
    returns new startIdx for next write
    write stops when the end if the calling SafeString is reached or the output is full
-   Note: if the sfOutput is already full, then nothing will be written and startIdx will be returned
+   Note: if the sfOutput is already full, then nothing will be written and startIdx will be returned    
 **/
 unsigned int SafeString::writeTo(SafeString & output, unsigned int startIdx) {
   output.cleanUp();

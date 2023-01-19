@@ -1689,7 +1689,10 @@ class SafeString : public Printable, public Print {
        reads from the SafeString argument, starting at startIdx, into this SafeString.
        
        The read stops when the end of the SafeString argument is reached or the calling SafeString is full
-       Note: if the SafeString is already full, then nothing will be read and startIdx will be returned unchanged
+       Note: if the SafeString is already full, then nothing will be read and startIdx will be returned<br>
+       <br>
+       Note: to limit the number of chars read in from sfInput (starting at 0), use<br>
+       <code>sfStr.readFrom(sfInput.c_str(),maxCharsToRead);</code>
        
        @param  sfInput - the SafeString to read from
        @param  startIdx - where to start reading from, defaults to 0,
@@ -1697,21 +1700,22 @@ class SafeString : public Printable, public Print {
 
        @return - the new startIdx
     **/
-    unsigned int readFrom(SafeString & input, unsigned int startIdx = 0);
+    unsigned int readFrom(SafeString & sfInput, unsigned int startIdx = 0);
 
     /**
-       reads from the const char* argument, starting at 0, into this SafeString.
+       reads from the const char* argument, starting at 0 and read up to maxCharToRead, into this SafeString.
        
-       This lets you read from a char* into a SafeString without errors if the strlen(char*) is larger than the SafeString capacity
+       This lets you read from a char* into a SafeString without errors if the strlen(char*) or maxCharsToRead are larger than the SafeString capacity
        Use sfResult.clear(); to empty the SafeString first and then sfResult.readFrom(strPtr); to read a much as you can
-       The read stops at first '\0' or the calling SafeString is full
+       The read stops at first '\0' or the calling SafeString is full or when maxCharsToRead have been read.
        Note: if the SafeString is already full, then nothing will be read
        
        @param  strPtr - pointer char array to read from
+       @param  maxCharsToRead -- the maximum chars to read into the SafeString, defaults to ((unsigned int)-1) i.e. max unsigned int.
 	   
        @return - the number of chars read
     **/
-    unsigned int readFrom(const char* strPtr);
+    unsigned int readFrom(const char* strPtr, unsigned int maxCharsToRead = ((unsigned int)-1));
     
     /**
        writes from this SafeString, starting from startIdx, into the SafeString output arguement.
