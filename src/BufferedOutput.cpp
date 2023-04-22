@@ -20,9 +20,9 @@
 // If the mode is BLOCK_IF_FULL then -1- will be output each time the output blocks a write, so delaying the loop()
 
 // 2023/01/19 ESP32 V2.0.6 now implements availableForWrite and returns non-zero values
-// For ESP8266 serialPtr->availableForWrite() does not seem to return the 'correct' value, i.e. serialPtr->availableForWrite() == 1 still blocks on write()
+// 2023/01/19 ESP8266 V3.0.2 now implement availableForWrite and returns non-zero values for hardwareSerial
+// For ESP32 and ESP8266 serialPtr->availableForWrite() does not seem to return the 'correct' value, i.e. serialPtr->availableForWrite() == 1 still blocks on write()
 // so for ALL boards require serialPtr->availableForWrite() > 1 before writing to serialPtr
-// Also ESP32 and ESP8266 do not have availableForWrite() in Print.h  (Arduino does!!)
 // MegaTinyCore does not have availableForWrite() in Stream or HardwareSerial
 
 /**
@@ -103,6 +103,7 @@ void BufferedOutput::connect(HardwareSerial& _serial) { // the output to write t
 #else  // not ARDUINO_SAM_DUE etc
   avail = serialPtr->availableForWrite();
 #endif
+
   if (txBufferSize < avail) {
     txBufferSize = avail;
   }
@@ -160,7 +161,7 @@ void BufferedOutput::connect(Stream& _stream, const uint32_t _baudRate) {
       streamPtr->flush();
       delay(5000);
     }
-#else  // not ESP_PLATFORM || ARDUINO_ARCH_ESP8266 etc
+#else  // not ARDUINO_SAM_DUE etc
     int avail = streamPtr->availableForWrite();
     if (txBufferSize < avail) {
       txBufferSize = avail;
@@ -189,7 +190,7 @@ void BufferedOutput::connect(Stream& _stream, const uint32_t _baudRate) {
 #endif // DEBUG 
     clear();
     return;
-#endif //  ESP_PLATFORM || ARDUINO_ARCH_ESP8266
+#endif //  ARDUINO_SAM_DUE
   }
 
   // else   // have a baudrate
@@ -275,9 +276,7 @@ void BufferedOutput::clear() {
   allOrNothing = false; // force something next write
 }
 
-// this method handles the problems caused by ESP32 and ESP8266 not
-// implementing availableForWrite() in Print.h
-// it is implemented in HardwareSerial though in ESP32 and ESP8266
+// availableForWrite is implemented in HardwareSerial though in  ESP8266
 // returns 0 if no availableForWrite() implemented
 // else returns stream.availableForWrite()-1 to compensate for ESP32 returning 1 when blocking
 //
@@ -299,7 +298,7 @@ int BufferedOutput::internalStreamAvailableForWrite() {
 #endif
   } else { // streamPtr should always be non-NULL
 #if defined(ARDUINO_SAM_DUE) || defined(ARDUINO_ARCH_NRF52) || defined(ARDUINO_ARCH_NRF5) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4) || defined(MEGATINYCORE_MAJOR) 
-    return 0;    // ESP stream does not have availableForWrite
+    return 0;    // ARDUINO_SAM_DUE stream does not have availableForWrite
 #else
     avail = streamPtr->availableForWrite();
 #endif
