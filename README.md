@@ -31,7 +31,8 @@ See the top of each file for its license
 Note, this is NOT my work, I am simply hosting it for easy access. The original code belongs to [Forward Computing and Control Pty. Ltd](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
 
 # Revisions
-V4.1.25 added NULL detection to readFrom(const char*, unsigned int maxCharsToRead), updated BufferedOutput for ESP32 V2.0.6 and ESP8266 V3.0.2     
+V4.1.26 fixed F()for Arduino IDE 2 and ESP32     
+V4.1.25 added NULL detection to readFrom(const char*, unsigned int maxCharsToRead)     
 V4.1.24 added NULL detection to readFrom(const char*)     
 V4.1.23 added readFrom(const char*)     
 V4.1.22 added link to docs in README.md     
