@@ -24,6 +24,16 @@ See [Arduino Text I/O for the Real World](https://www.forward.com.au/pfod/Arduin
 See [Simple Multitasking Arduino](https://www.forward.com.au/pfod/ArduinoProgramming/RealTimeArduino/index.html)  
 See [How to code Timers and Delays in Arduino](https://www.forward.com.au/pfod/ArduinoProgramming/TimingDelaysInArduino.html)  
 
+# PlatformIO support
+This library is primarily an Arduino IDE library, but users have had success using it with PlatformIO.  
+See the PlatformIO subdirectory for the two PlatformIO versions.  One for boards that use the arduino namespace, e.g. Arduino Zero, and one for boards that don't, e.g. UNO.
+To see which board yours is, check the Print.h file and see if it includes the lines   
+
+    namespace arduino {  
+    class Print    
+
+If it does, then unzip the SafeStringIO_namespace.zip and use that library.  If it does not, then unzip the SafeStringIO.zip and use that library.
+
 # Software License
 See the top of each file for its license
 
@@ -31,6 +41,7 @@ See the top of each file for its license
 Note, this is NOT my work, I am simply hosting it for easy access. The original code belongs to [Forward Computing and Control Pty. Ltd](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
 
 # Revisions
+V4.1.27 revised defines for Arduino Zero   
 V4.1.26 fixed F()for Arduino IDE 2 and ESP32     
 V4.1.25 added NULL detection to readFrom(const char*, unsigned int maxCharsToRead)     
 V4.1.24 added NULL detection to readFrom(const char*)     
