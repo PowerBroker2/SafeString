@@ -41,6 +41,7 @@ See the top of each file for its license
 Note, this is NOT my work, I am simply hosting it for easy access. The original code belongs to [Forward Computing and Control Pty. Ltd](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
 
 # Revisions
+V4.1.28 fixes for Arduino UNO R4 and R4 WiFi   
 V4.1.27 revised defines for Arduino Zero   
 V4.1.26 fixed F()for Arduino IDE 2 and ESP32     
 V4.1.25 added NULL detection to readFrom(const char*, unsigned int maxCharsToRead)     
