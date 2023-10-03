@@ -1,7 +1,7 @@
 // !!!!!!!!! WARNING in V2 substring endIdx is EXCLUSIVE !!!!!!!!!! change from V1 inclusive
 /*
-   The SafeString class V4.1.26
-   Note: ESP32 gives warning: "F" redefined which can be ignored
+   The SafeString class V4.1.29
+
 
   -----------------  creating SafeStrings ---------------------------------
   See the example sketches SafeString_ConstructorAndDebugging.ino and SafeStringFromCharArray.ino
@@ -132,12 +132,9 @@
 // handle namespace arduino
 #include "SafeStringNameSpaceStart.h"
 
-class __FlashStringHelper;
-//#ifndef F  // Arduino IDE 2+ adds namespace around this macro so need to define it here also
-// ESP32 defines a macro F(s) (s), so will get a redefinition warning which can be ignored
-#define F(string_literal) (reinterpret_cast<const __FlashStringHelper *>(PSTR(string_literal)))
-//#endif
-
+// removed V4.1.29 -- Add these lines back in if your board does not define the F() macro and the class __FlashStringHelper;
+//class __FlashStringHelper;
+//#define F(string_literal) (reinterpret_cast<const __FlashStringHelper *>(PSTR(string_literal)))
 
 // to remove all the error messages, comment out
 #define SSTRING_DEBUG
