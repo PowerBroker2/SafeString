@@ -41,6 +41,7 @@ See the top of each file for its license
 Note, this is NOT my work, I am simply hosting it for easy access. The original code belongs to [Forward Computing and Control Pty. Ltd](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
 
 # Revisions
+V4.1.29 removed F() macro and FlashStringHelper class from SafeString.h.  SafeString now depends of the board's core to define these.   
 V4.1.28 fixes for Arduino UNO R4 and R4 WiFi   
 V4.1.27 revised defines for Arduino Zero   
 V4.1.26 fixed F()for Arduino IDE 2 and ESP32     
