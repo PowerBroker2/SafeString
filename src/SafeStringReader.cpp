@@ -32,6 +32,10 @@ void SafeStringReader::init(SafeString& sfInput_,const char* delimiters_, bool s
   echoInput = echoInput_;
   timeout_ms = timeout_ms_;
   emptyTokensReturned = false;
+  flagFlushInput = false;
+  haveToken = false;
+  streamPtr = NULL;
+  charCounter = 0;
 }
 
 bool SafeStringReader::isSkippingToDelimiter() {

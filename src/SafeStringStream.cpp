@@ -40,6 +40,9 @@ void SafeStringStream::init() {
   baudRate = (uint32_t) - 1; // not started yet
   sfRxBufferPtr = NULL;
   missedCharsCount = 0;
+  sendTimerStart = 0;
+  us_perByte = 0;
+  Rx_BUFFER[0] = '\0';
 }
 
 
