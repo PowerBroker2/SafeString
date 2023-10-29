@@ -17,6 +17,7 @@ millisDelay::millisDelay() {
   running = false; // not running on start
   startTime = 0; // not started yet
   finishNow = false; // do not finish early
+  ms_delay = 0;
 }
 
 /**

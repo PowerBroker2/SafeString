@@ -170,11 +170,16 @@ bool SafeString::classErrorFlag = false; // set true if any SafeString object ha
     else capacity == maxLen-1;   i.e. cSFPS( )
 */
 SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _name, bool _fromBuffer, bool _fromPtr) {
-  errorFlag = false;
+   errorFlag = false; // set to true if error detected, cleared on each call to hasError()
+  timeoutStart_ms = 0;
+  noCharsRead = 0; // number of char read on last call to readUntilToken
+  buffer = NULL;          // the actual char array
+  _capacity = 0; // the array length minus one (for the '\0')
+  len = 0;       // the SafeString length (not counting the '\0')
   name = _name; // save name
   fromBuffer = _fromBuffer;
   timeoutRunning = false;
-  bool keepBufferContents = false;
+  bool keepBufferContents = false;  
   if ((buf != NULL) && (cstr != NULL) && (buf == cstr)) {
     keepBufferContents = true;
   }

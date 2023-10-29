@@ -30,6 +30,7 @@
      buf -- the user allocated buffer to store the bytes, must be at least bufferSize long.  Defaults to an internal 8 char buffer if buf is omitted or NULL
      bufferSize -- number of bytes to buffer,max bufferSize is limited to 32766. Defaults to an internal 8 char buffer if bufferSize is < 8 or is omitted
 */
+
 BufferedInput::BufferedInput( size_t _bufferSize, uint8_t _buf[]) {
   rb_buf = NULL;
   rb_bufSize = 0; // prevents access to a NULL buf
@@ -42,7 +43,7 @@ BufferedInput::BufferedInput( size_t _bufferSize, uint8_t _buf[]) {
     rb_init(defaultBuffer, sizeof(defaultBuffer));
   } else {
     rb_init(_buf, _bufferSize);
-  }
+  }  
 }
 
 

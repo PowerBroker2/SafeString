@@ -73,6 +73,8 @@ BufferedOutput::BufferedOutput( size_t _bufferSize, uint8_t _buf[],  BufferedOut
   } else {
     rb_init(_buf, _bufferSize);
   }
+  us_perByte = 0;
+  sendTimerStart = 0;
 }
 
 /**

@@ -12,6 +12,7 @@
 loopTimerClass::loopTimerClass(const char * _name) {
   initialized = false;
   name = _name;
+  init();
 }
 
 void loopTimerClass::check(Print &out) {
@@ -92,6 +93,7 @@ void loopTimerClass::init() {
   p_maxLoop5sec_us = 0; // last max value in 5 sec
   p_maxLoop_us = 0;  // max so far update every 5 sec
   p_maxAvgLoop_us = 0; // max avg so far , updated every 5
+  PRINT_US_DELAY = 5000;
   print_us_Delay.start(PRINT_US_DELAY);
   initialized = true;
 }
