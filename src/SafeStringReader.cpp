@@ -14,17 +14,17 @@
 #include "SafeStringNameSpace.h"
 
 // here buffSize is max size of the token + 1 for delimiter + 1 for terminating '\0;
-SafeStringReader::SafeStringReader(SafeString &sfInput_, size_t bufSize, char* tokenBuffer, const char* _name, const char delimiter, bool skipToDelimiterFlag_, uint8_t echoInput_, unsigned long timeout_ms_) : SafeString(bufSize, tokenBuffer, "", _name) {
+SafeStringReader::SafeStringReader(SafeString &sfInput_, size_t bufSize, char* tokenBuffer, const char* _name, const char delimiter, safebool skipToDelimiterFlag_, uint8_t echoInput_, unsigned long timeout_ms_) : SafeString(bufSize, tokenBuffer, "", _name) {
   internalCharDelimiter[0] = delimiter;
   internalCharDelimiter[1] = '\0';
   init(sfInput_, internalCharDelimiter, skipToDelimiterFlag_, echoInput_, timeout_ms_);	
 }	
 
-SafeStringReader::SafeStringReader(SafeString &sfInput_, size_t bufSize, char* tokenBuffer, const char* _name, const char* delimiters_, bool skipToDelimiterFlag_, uint8_t echoInput_, unsigned long timeout_ms_) : SafeString(bufSize, tokenBuffer, "", _name) {
+SafeStringReader::SafeStringReader(SafeString &sfInput_, size_t bufSize, char* tokenBuffer, const char* _name, const char* delimiters_, safebool skipToDelimiterFlag_, uint8_t echoInput_, unsigned long timeout_ms_) : SafeString(bufSize, tokenBuffer, "", _name) {
   init(sfInput_, delimiters_, skipToDelimiterFlag_, echoInput_, timeout_ms_);
 }
 	
-void SafeStringReader::init(SafeString& sfInput_,const char* delimiters_, bool skipToDelimiterFlag_, uint8_t echoInput_, unsigned long timeout_ms_) {
+void SafeStringReader::init(SafeString& sfInput_,const char* delimiters_, safebool skipToDelimiterFlag_, uint8_t echoInput_, unsigned long timeout_ms_) {
   sfInputPtr = &sfInput_;
   delimiters = delimiters_;
   end();  // end needs delimiters set!!
@@ -38,7 +38,7 @@ void SafeStringReader::init(SafeString& sfInput_,const char* delimiters_, bool s
   charCounter = 0;
 }
 
-bool SafeStringReader::isSkippingToDelimiter() {
+safebool SafeStringReader::isSkippingToDelimiter() {
 	return (flagFlushInput || skipToDelimiterFlag);
 }
 
@@ -50,13 +50,13 @@ void SafeStringReader::connect(Stream& stream) {
   }
 }
 
-void SafeStringReader::returnEmptyTokens(bool flag) {
+void SafeStringReader::returnEmptyTokens(safebool flag) {
 	emptyTokensReturned = flag;
 }
 	
-bool SafeStringReader::end() {
+safebool SafeStringReader::end() {
 	// skip multiple delimiters and return last one
-  bool rtn = sfInputPtr->nextToken(*this, delimiters, false, true);
+  safebool rtn = sfInputPtr->nextToken(*this, delimiters, false, true);
 //  if (!rtn && (!sfInputPtr->isEmpty())) {
 //	sfInputPtr->concat(delimiters[0]);
 //	rtn =sfInputPtr->nextToken(*this, delimiters);
@@ -145,7 +145,7 @@ void SafeStringReader::flushInput() {
 
 // Each call to this method removes the lead delimiter so if you need to check the delimiter do it BEFORE the next call to read()
 // NOTE: this call always clears the SafeStringReader so no need to call clear() on sfReader at end of processing.
-bool SafeStringReader::read() {
+safebool SafeStringReader::read() {
   if (!streamPtr) {
     SafeString::Output.println();
     SafeString::Output.println(F("SafeStringReader Error: need to call connect(...); first in setup()"));
@@ -154,9 +154,9 @@ bool SafeStringReader::read() {
     delay(5000);
     return false;
   }
-  bool skipMsg = false;
-  bool rtn = false;
-  bool skipToDelimiterPrior = skipToDelimiterFlag;
+  safebool skipMsg = false;
+  safebool rtn = false;
+  safebool skipToDelimiterPrior = skipToDelimiterFlag;
   rtn = sfInputPtr->readUntilToken(*streamPtr, *this, delimiters, skipToDelimiterFlag, echoInput, timeout_ms);
   charCounter += sfInputPtr->getLastReadCount();
   if ((!skipToDelimiterPrior) && skipToDelimiterFlag) {
@@ -193,20 +193,20 @@ bool SafeStringReader::read() {
 // This is so that if you add .debugInputBuffer() to Serial.println(sfReader);  i.e.
 //    Serial.println(sfReader.debugInputBuffer());
 // will work as expected
-const char* SafeStringReader::debugInputBuffer(bool verbose) { // verbose optional defaults to true
+const char* SafeStringReader::debugInputBuffer(safebool verbose) { // verbose optional defaults to true
   return sfInputPtr->debug(verbose);
 }
 
 // These three versions print leading text before the debug output.
-const char* SafeStringReader::debugInputBuffer(const __FlashStringHelper * pstr, bool verbose) { // verbose optional defaults to true
+const char* SafeStringReader::debugInputBuffer(const __FlashStringHelper * pstr, safebool verbose) { // verbose optional defaults to true
   return sfInputPtr->debug(pstr, verbose);
 }
 
-const char* SafeStringReader::debugInputBuffer(const char *title, bool verbose) { // verbose optional defaults to true
+const char* SafeStringReader::debugInputBuffer(const char *title, safebool verbose) { // verbose optional defaults to true
   return sfInputPtr->debug(title, verbose);
 }
 
-const char* SafeStringReader::debugInputBuffer(SafeString &stitle, bool verbose) { // verbose optional defaults to true
+const char* SafeStringReader::debugInputBuffer(SafeString &stitle, safebool verbose) { // verbose optional defaults to true
   return sfInputPtr->debug(stitle, verbose);
 }
 

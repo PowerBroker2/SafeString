@@ -73,8 +73,8 @@
 class SafeStringReader : public SafeString {
   public:
   	  // here buffSize is max size of the token + 1 for delimiter + 1 for terminating '\0;
-    explicit SafeStringReader(SafeString& _sfInput, size_t bufSize, char *tokenBuf, const char* _name, const char* delimiters, bool skipToDelimiterFlag = false, uint8_t echoInput = false, unsigned long timeout_ms = 0 );
-    explicit SafeStringReader(SafeString& _sfInput, size_t bufSize, char *tokenBuf, const char* _name, const char delimiter, bool skipToDelimiterFlag = false, uint8_t echoInput = false, unsigned long timeout_ms = 0 );
+    explicit SafeStringReader(SafeString& _sfInput, size_t bufSize, char *tokenBuf, const char* _name, const char* delimiters, safebool skipToDelimiterFlag = false, uint8_t echoInput = false, unsigned long timeout_ms = 0 );
+    explicit SafeStringReader(SafeString& _sfInput, size_t bufSize, char *tokenBuf, const char* _name, const char delimiter, safebool skipToDelimiterFlag = false, uint8_t echoInput = false, unsigned long timeout_ms = 0 );
 
     /**
           connect(Stream& stream)
@@ -103,7 +103,7 @@ class SafeStringReader : public SafeString {
       returnEmptyTokens() controls if empty tokens are returned. Default is to not return empty tokens, i.e. skip multiple consecutive delimiters.
       NOTE: this call always clears the SafeStringReader so no need to call clear() on sfReader at end of processing.
     */
-    bool read();
+    safebool read();
 
     /**
       getDelimiter()
@@ -136,7 +136,7 @@ class SafeStringReader : public SafeString {
          returnEmptyTokens() or returnEmptyTokens(true) will return a token for every delimiter found (and every timeout)
          returnEmptyTokens(false) restores the default
     */
-    void returnEmptyTokens(bool flag = true);
+    void returnEmptyTokens(safebool flag = true);
 
     /**
         end()
@@ -144,7 +144,7 @@ class SafeStringReader : public SafeString {
         disconnect from stream, turn echo off, set timeout to 0 and clear skipToDelimiter,
         clears getReadCount()
     */
-    bool end();
+    safebool end();
 
     /**
       getReadCount()
@@ -164,7 +164,7 @@ class SafeStringReader : public SafeString {
     /**
       isSkippingToDelimiter returns true if currently skipping to next delimiter
       */
-    bool isSkippingToDelimiter();
+    safebool isSkippingToDelimiter();
 
     /* Assignment operators **********************************
       Set the SafeString to a char version of the assigned value.
@@ -190,23 +190,23 @@ class SafeStringReader : public SafeString {
       These methods let you print out the current contents of the input buffer that the Stream is read into while
       waiting to read a delimiter to terminate the current token.
     */
-    const char* debugInputBuffer(bool verbose = true);
-    const char* debugInputBuffer(const char* title, bool verbose = true);
-    const char* debugInputBuffer(const __FlashStringHelper *title, bool verbose = true);
-    const char* debugInputBuffer(SafeString &stitle, bool verbose = true);
+    const char* debugInputBuffer(safebool verbose = true);
+    const char* debugInputBuffer(const char* title, safebool verbose = true);
+    const char* debugInputBuffer(const __FlashStringHelper *title, safebool verbose = true);
+    const char* debugInputBuffer(SafeString &stitle, safebool verbose = true);
 
   private:
     SafeStringReader(const SafeStringReader& other);
-    void init(SafeString& _sfInput, const char* delimiters, bool skipToDelimiterFlag, uint8_t echoInput, unsigned long timeout_ms);
+    void init(SafeString& _sfInput, const char* delimiters, safebool skipToDelimiterFlag, uint8_t echoInput, unsigned long timeout_ms);
     //  void bufferInput(); // get more input
     SafeString* sfInputPtr;
     const char* delimiters;
-    bool skipToDelimiterFlag;
-    bool echoInput;
-    bool emptyTokensReturned; // default false
-    bool flagFlushInput; // true if flushing
+    safebool skipToDelimiterFlag;
+    safebool echoInput;
+    safebool emptyTokensReturned; // default false
+    safebool flagFlushInput; // true if flushing
     unsigned long timeout_ms;
-    bool haveToken; // true if have token but read() not called yet
+    safebool haveToken; // true if have token but read() not called yet
     Stream *streamPtr;
     size_t charCounter; // counts bytes read, useful for http streams
     char internalCharDelimiter[2]; // used if char delimiter passed

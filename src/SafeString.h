@@ -96,7 +96,9 @@
 #define SafeString_class_h
 
 #if defined(ARDUINO_ARCH_SAM)
-#define bool int
+#define safebool int
+#else
+#define safebool bool
 #endif
 
 #ifdef __cplusplus
@@ -321,7 +323,7 @@ class SafeString : public Printable, public Print {
 // if _fromBuffer true and _fromPtr true, then from char*, (i.e. cSFP(sfStr,strPtr) or cSFPS(sfStr,strPtr, maxLen) and maxLen is either -1 cSFP( ) the size of the char Array pointed cSFPS 
 //    if maxLen == -1 then capacity == strlen(char*)  i.e. cSFP( )
 //    else capacity == maxLen-1;   i.e. cSFPS( )
-    explicit SafeString(unsigned int maxLen, char *buf, const char* cstr, const char* _name = NULL, bool _fromBuffer = false, bool _fromPtr = true);
+    explicit SafeString(unsigned int maxLen, char *buf, const char* cstr, const char* _name = NULL, safebool _fromBuffer = false, safebool _fromPtr = true);
     // _fromBuffer true does extra checking before each method execution for SafeStrings created from existing char[] buffers
     // _fromPtr is not checked unless _fromBuffer is true
     // _fromPtr true allows for any array size, if false prevents passing char* by checking sizeof(charArray) != sizeof(char*)
@@ -338,7 +340,7 @@ class SafeString : public Printable, public Print {
      @param debugOut - where to send the messages to, usually Serial, e.g. SafeString::setOutput(Serial);
      @param verbose - optional, if missing defaults to true, use false for compact error messages or call setVerbose(false)
     ***************/    
-    static void setOutput(Print& debugOut, bool verbose = true);
+    static void setOutput(Print& debugOut, safebool verbose = true);
     // static SafeString::DebugPrint Output;  // a Print object controlled by setOutput() / turnOutputOff() is defined at the bottom
 
     /*****************
@@ -354,7 +356,7 @@ class SafeString : public Printable, public Print {
      
      @param verbose - true for detailed error messages, else short error messages.
     ***************/    
-    static void setVerbose(bool verbose); // turn verbose error msgs on/off.  setOutput( ) sets verbose to true
+    static void setVerbose(safebool verbose); // turn verbose error msgs on/off.  setOutput( ) sets verbose to true
 
     // returns true if error detected, errors are detected even is setOutput has not been called
     // each call to hasError() clears the errorFlag
@@ -380,7 +382,7 @@ class SafeString : public Printable, public Print {
      
      @param verbose - true for detailed output including current contents
     ***************/    
-    const char* debug(bool verbose = true);
+    const char* debug(safebool verbose = true);
     
     /*****************
      Output the details about the this SafeString to the output specified by setOutput().
@@ -388,7 +390,7 @@ class SafeString : public Printable, public Print {
      @param title - the title to preceed the debug output, a space between this and the debug output
      @param verbose - true for detailed output including current contents
     ***************/    
-    const char* debug(const char* title, bool verbose = true);
+    const char* debug(const char* title, safebool verbose = true);
 
     /*****************
      Output the details about the this SafeString to the output specified by setOutput().
@@ -396,7 +398,7 @@ class SafeString : public Printable, public Print {
      @param title - the title to preceed the debug output, a space between this and the debug output
      @param verbose - true for detailed output including current contents
     ***************/    
-    const char* debug(const __FlashStringHelper *title, bool verbose = true);
+    const char* debug(const __FlashStringHelper *title, safebool verbose = true);
 
     /*****************
      Output the details about the this SafeString to the output specified by setOutput().
@@ -404,7 +406,7 @@ class SafeString : public Printable, public Print {
      @param title - the title to preceed the debug output, a space between this and the debug output
      @param verbose - true for detailed output including current contents
     ***************/    
-    const char* debug(SafeString &stitle, bool verbose = true);
+    const char* debug(SafeString &stitle, safebool verbose = true);
 
     /*****************
      Write (concatinate) a byte to this SafeString, from Print class.
@@ -520,7 +522,7 @@ class SafeString : public Printable, public Print {
     @param width - fixed width the output is to padded/limited to
     @param forceSign - optional, defaults to false, if true the + sign is added for +ve numbers
     ****************************************************************************/
-    size_t println(double d, int decs, int width, bool forceSign = false);
+    size_t println(double d, int decs, int width, safebool forceSign = false);
     
     /*************************************************************
     Prints a double (or long/int) to this SafeString padded with spaces (left or right) and limited to the specified width.
@@ -532,7 +534,7 @@ class SafeString : public Printable, public Print {
     @param width - fixed width the output is to padded/limited to
     @param forceSign - optional, defaults to false, if true the + sign is added for +ve numbers
     ****************************************************************************/
-    size_t print(double d, int decs, int width, bool forceSign = false);
+    size_t print(double d, int decs, int width, safebool forceSign = false);
 
 
 
@@ -1439,7 +1441,7 @@ class SafeString : public Printable, public Print {
                   while being consistent with the SafeString's all or nothing insertion rule<br>
                   Input argument errors return -1 and an empty token and hasError() is set on both this SafeString and the token SafeString.
     **/
-    int stoken(SafeString & token, unsigned int fromIndex, const char delimiter, bool returnEmptyFields = false, bool useAsDelimiters = true);
+    int stoken(SafeString & token, unsigned int fromIndex, const char delimiter, safebool returnEmptyFields = false, safebool useAsDelimiters = true);
 
     /**
          break into the SafeString into tokens using the delimiters, the end of the SafeString is always a delimiter
@@ -1467,7 +1469,7 @@ class SafeString : public Printable, public Print {
                   while being consistent with the SafeString's all or nothing insertion rule<br>
                   Input argument errors return -1 and an empty token and hasError() is set on both this SafeString and the token SafeString.
     **/
-    int stoken(SafeString & token, unsigned int fromIndex, const char* delimiters, bool returnEmptyFields = false, bool useAsDelimiters = true);
+    int stoken(SafeString & token, unsigned int fromIndex, const char* delimiters, safebool returnEmptyFields = false, safebool useAsDelimiters = true);
 
     /**
          break into the SafeString into tokens using the delimiters, the end of the SafeString is always a delimiter
@@ -1495,7 +1497,7 @@ class SafeString : public Printable, public Print {
                   while being consistent with the SafeString's all or nothing insertion rule<br>
                   Input argument errors return -1 and an empty token and hasError() is set on both this SafeString and the token SafeString.
     **/
-    int stoken(SafeString & token, unsigned int fromIndex, SafeString & delimiters, bool returnEmptyFields = false, bool useAsDelimiters = true);
+    int stoken(SafeString & token, unsigned int fromIndex, SafeString & delimiters, safebool returnEmptyFields = false, safebool useAsDelimiters = true);
 
     /**
       returns true if a delimited token is found, removes the first delimited token from this SafeString and returns it in the token argument<br>
@@ -1522,7 +1524,7 @@ class SafeString : public Printable, public Print {
                 while being consistent with the SafeString's all or nothing insertion rule<br>
                Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
     **/
-    inline unsigned char firstToken(SafeString & token, char delimiter, bool returnLastNonDelimitedToken = true) {
+    inline unsigned char firstToken(SafeString & token, char delimiter, safebool returnLastNonDelimitedToken = true) {
     	return nextToken(token,delimiter,true,returnLastNonDelimitedToken,true);
     }
 
@@ -1556,7 +1558,7 @@ class SafeString : public Printable, public Print {
                 while being consistent with the SafeString's all or nothing insertion rule<br>
                Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
     **/
-    unsigned char nextToken(SafeString & token, char delimiter, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true, bool firstToken = false);
+    unsigned char nextToken(SafeString & token, char delimiter, safebool returnEmptyFields = false, safebool returnLastNonDelimitedToken = true, safebool firstToken = false);
 
     /**
       returns true if a delimited token is found, removes the first delimited token from this SafeString and returns it in the token argument<br>
@@ -1583,7 +1585,7 @@ class SafeString : public Printable, public Print {
                 while being consistent with the SafeString's all or nothing insertion rule<br>
                Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
     **/
-    inline unsigned char firstToken(SafeString & token, SafeString delimiters, bool returnLastNonDelimitedToken = true) {
+    inline unsigned char firstToken(SafeString & token, SafeString delimiters, safebool returnLastNonDelimitedToken = true) {
     	return nextToken(token,delimiters,true,returnLastNonDelimitedToken,true);
     }
     
@@ -1617,7 +1619,7 @@ class SafeString : public Printable, public Print {
                 while being consistent with the SafeString's all or nothing insertion rule<br>
                Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
     **/
-    unsigned char nextToken(SafeString & token, SafeString & delimiters, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true, bool firstToken = false);
+    unsigned char nextToken(SafeString & token, SafeString & delimiters, safebool returnEmptyFields = false, safebool returnLastNonDelimitedToken = true, safebool firstToken = false);
 
     /**
       returns true if a delimited token is found, removes the first delimited token from this SafeString and returns it in the token argument<br>
@@ -1644,7 +1646,7 @@ class SafeString : public Printable, public Print {
                 while being consistent with the SafeString's all or nothing insertion rule<br>
                Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
     **/
-    inline unsigned char firstToken(SafeString & token, const char* delimiters, bool returnLastNonDelimitedToken = true) {
+    inline unsigned char firstToken(SafeString & token, const char* delimiters, safebool returnLastNonDelimitedToken = true) {
     	return nextToken(token,delimiters,true,returnLastNonDelimitedToken,true);
     }
     
@@ -1678,7 +1680,7 @@ class SafeString : public Printable, public Print {
                 while being consistent with the SafeString's all or nothing insertion rule<br>
                Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
     **/
-    unsigned char nextToken(SafeString & token, const char* delimiters, bool returnEmptyFields = false, bool returnLastNonDelimitedToken = true, bool firstToken = false);
+    unsigned char nextToken(SafeString & token, const char* delimiters, safebool returnEmptyFields = false, safebool returnLastNonDelimitedToken = true, safebool firstToken = false);
 
 
     /* *** ReadFrom from SafeString, writeTo SafeString ************************/
@@ -1805,7 +1807,7 @@ class SafeString : public Printable, public Print {
       If a delimited token is found that fits in this SafeString but is too large for the token then true is returned and an empty token returned and an error raised on both this SafeString and the token<br>
       The delimiter is NOT included in the SafeString& token return. It will the first char of the this SafeString when readUntilToken returns true
     **/
-    unsigned char readUntilToken(Stream & input, SafeString & token, const char delimiter, bool & skipToDelimiter, uint8_t echoInput = false, unsigned long timeout_ms = 0);
+    unsigned char readUntilToken(Stream & input, SafeString & token, const char delimiter, safebool & skipToDelimiter, uint8_t echoInput = false, unsigned long timeout_ms = 0);
 
     /**
       returns true if a delimited token is found, else false<br>
@@ -1834,7 +1836,7 @@ class SafeString : public Printable, public Print {
       If a delimited token is found that fits in this SafeString but is too large for the token then true is returned and an empty token returned and an error raised on both this SafeString and the token<br>
       The delimiter is NOT included in the SafeString& token return. It will the first char of the this SafeString when readUntilToken returns true
     **/
-    unsigned char readUntilToken(Stream & input, SafeString & token, const char* delimiters, bool & skipToDelimiter, uint8_t echoInput = false, unsigned long timeout_ms = 0);
+    unsigned char readUntilToken(Stream & input, SafeString & token, const char* delimiters, safebool & skipToDelimiter, uint8_t echoInput = false, unsigned long timeout_ms = 0);
 
     /**
       returns true if a delimited token is found, else false<br>
@@ -1863,7 +1865,7 @@ class SafeString : public Printable, public Print {
       If a delimited token is found that fits in this SafeString but is too large for the token then true is returned and an empty token returned and an error raised on both this SafeString and the token<br>
       The delimiter is NOT included in the SafeString& token return. It will the first char of the this SafeString when readUntilToken returns true
     **/
-    unsigned char readUntilToken(Stream & input, SafeString & token, SafeString & delimiters, bool & skipToDelimiter, uint8_t echoInput = false, unsigned long timeout_ms = 0);
+    unsigned char readUntilToken(Stream & input, SafeString & token, SafeString & delimiters, safebool & skipToDelimiter, uint8_t echoInput = false, unsigned long timeout_ms = 0);
 
     /**
       returns the number of chars read on previous calls to read, readUntil or readUntilToken (includes '\0' read if any).
@@ -1877,7 +1879,7 @@ class SafeString : public Printable, public Print {
 
   protected:
     static Print* debugPtr;
-    static bool fullDebug;
+    static safebool fullDebug;
     char *buffer;          // the actual char array
     size_t _capacity; // the array length minus one (for the '\0')
     size_t len;       // the SafeString length (not counting the '\0')
@@ -1925,43 +1927,43 @@ class SafeString : public Printable, public Print {
     SafeString & concatln(char c);
     SafeString & concatln(const char *cstr, size_t length);
     void outputName() const ;
-    SafeString & concatInternal(const char *cstr, size_t length, bool assignOp = false); // concat at most length chars from cstr
-    SafeString & concatInternal(const __FlashStringHelper * str, size_t length, bool assignOp = false); // concat at most length chars
+    SafeString & concatInternal(const char *cstr, size_t length, safebool assignOp = false); // concat at most length chars from cstr
+    SafeString & concatInternal(const __FlashStringHelper * str, size_t length, safebool assignOp = false); // concat at most length chars
 
-    SafeString & concatInternal(const char *cstr, bool assignOp = false);
-    SafeString & concatInternal(char c, bool assignOp = false);
-    SafeString & concatInternal(const __FlashStringHelper * str, bool assignOp = false);
-    size_t printInternal(long, int = DEC, bool assignOp = false);
-    size_t printInternal(unsigned long, int = DEC, bool assignOp = false);
-    size_t printInternal(double, int = 2, bool assignOp = false);
+    SafeString & concatInternal(const char *cstr, safebool assignOp = false);
+    SafeString & concatInternal(char c, safebool assignOp = false);
+    SafeString & concatInternal(const __FlashStringHelper * str, safebool assignOp = false);
+    size_t printInternal(long, int = DEC, safebool assignOp = false);
+    size_t printInternal(unsigned long, int = DEC, safebool assignOp = false);
+    size_t printInternal(double, int = 2, safebool assignOp = false);
     void setError();
     void printlnErr()const ;
-    void debugInternalMsg(bool _fullDebug) const ;
+    void debugInternalMsg(safebool _fullDebug) const ;
     size_t limitedStrLen(const char* p, size_t limit);
-    size_t printInt(double d, int decs, int width, bool forceSign, bool addNL);
+    size_t printInt(double d, int decs, int width, safebool forceSign, safebool addNL);
 
   private:
-    bool readUntilTokenInternal(Stream & input, SafeString & token, const char* delimitersIn, char delimiterIn, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_ms);
-    bool readUntilInternal(Stream & input, const char* delimitersIn, char delimiterIn);
-    bool nextTokenInternal(SafeString & token, const char* delimitersIn, char delimiterIn, bool returnEmptyFields, bool returnLastNonDelimitedToken);
-    int stokenInternal(SafeString &token, unsigned int fromIndex, const char* delimitersIn, char delimiterIn, bool returnEmptyFields, bool useAsDelimiters);
-    bool fromBuffer; // true if createSafeStringFromBuffer created this object
-    bool errorFlag; // set to true if error detected, cleared on each call to hasError()
-    static bool classErrorFlag; // set to true if any error detected in any SafeString, cleared on each call to SafeString::errorDetected()
+    safebool readUntilTokenInternal(Stream & input, SafeString & token, const char* delimitersIn, char delimiterIn, safebool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_ms);
+    safebool readUntilInternal(Stream & input, const char* delimitersIn, char delimiterIn);
+    safebool nextTokenInternal(SafeString & token, const char* delimitersIn, char delimiterIn, safebool returnEmptyFields, safebool returnLastNonDelimitedToken);
+    int stokenInternal(SafeString &token, unsigned int fromIndex, const char* delimitersIn, char delimiterIn, safebool returnEmptyFields, safebool useAsDelimiters);
+    safebool fromBuffer; // true if createSafeStringFromBuffer created this object
+    safebool errorFlag; // set to true if error detected, cleared on each call to hasError()
+    static safebool classErrorFlag; // set to true if any error detected in any SafeString, cleared on each call to SafeString::errorDetected()
     void cleanUp(); // reterminates buffer at capacity and resets len to current strlen
     const char *name;
     unsigned long timeoutStart_ms;
-    bool timeoutRunning;
+    safebool timeoutRunning;
     size_t noCharsRead; // number of char read on last call to readUntilToken
     static char nullBufferSafeStringBuffer[1];
     static char emptyDebugRtnBuffer[1];
-    void debugInternal(bool _fullDebug) const ;
-    void debugInternalResultMsg(bool _fullDebug) const ;
+    void debugInternal(safebool _fullDebug) const ;
+    void debugInternalResultMsg(safebool _fullDebug) const ;
     void concatErr()const ;
     void concatAssignError() const;
     void prefixErr()const ;
     void capError(const __FlashStringHelper * methodName, size_t neededCap, const char* cstr, const __FlashStringHelper *pstr = NULL, char c = '\0', size_t length = 0)const ;
-    void assignError(size_t neededCap, const char* cstr, const __FlashStringHelper *pstr = NULL, char c = '\0', bool numberFlag = false) const;
+    void assignError(size_t neededCap, const char* cstr, const __FlashStringHelper *pstr = NULL, char c = '\0', safebool numberFlag = false) const;
     void errorMethod(const __FlashStringHelper * methodName) const ;
     void warningMethod(const __FlashStringHelper * methodName) const ;
     void assignErrorMethod() const ;

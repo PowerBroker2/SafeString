@@ -151,8 +151,8 @@ Print* SafeString::debugPtr = NULL; // nowhere to send the debug output yet
 Print* SafeString::currentOutput = &SafeString::emptyPrint; // nowhere to send Output to yet
 SafeString::noDebugPrint SafeString::emptyPrint;
 SafeString::DebugPrint SafeString::Output;
-bool SafeString::fullDebug = true; // output current contents of SafeString and input arg
-bool SafeString::classErrorFlag = false; // set true if any SafeString object has an error.
+safebool SafeString::fullDebug = true; // output current contents of SafeString and input arg
+safebool SafeString::classErrorFlag = false; // set true if any SafeString object has an error.
 
 /*  ********************************************/
 /**  Constructor                             */
@@ -169,7 +169,7 @@ bool SafeString::classErrorFlag = false; // set true if any SafeString object ha
     if maxLen == -1 then capacity == strlen(char*)  i.e. cSFP( )
     else capacity == maxLen-1;   i.e. cSFPS( )
 */
-SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _name, bool _fromBuffer, bool _fromPtr) {
+SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _name, safebool _fromBuffer, safebool _fromPtr) {
    errorFlag = false; // set to true if error detected, cleared on each call to hasError()
   timeoutStart_ms = 0;
   noCharsRead = 0; // number of char read on last call to readUntilToken
@@ -179,7 +179,7 @@ SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _
   name = _name; // save name
   fromBuffer = _fromBuffer;
   timeoutRunning = false;
-  bool keepBufferContents = false;  
+  safebool keepBufferContents = false;  
   if ((buf != NULL) && (cstr != NULL) && (buf == cstr)) {
     keepBufferContents = true;
   }
@@ -313,7 +313,7 @@ SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _
 
   // _capacity is set here
   // check available memory
-  bool memFail = false;
+  safebool memFail = false;
 #if defined(ARDUINO_ARCH_AVR)
   void *mem = malloc(_capacity); // will leave 128 for stack use
 #else
@@ -411,7 +411,7 @@ SafeString::SafeString(const SafeString& other ) {
 /**  end of Constructor methods ***********/
 
 unsigned char SafeString::errorDetected() {
-  bool rtn = classErrorFlag;
+  safebool rtn = classErrorFlag;
   classErrorFlag = false;
   return rtn;
 }
@@ -422,7 +422,7 @@ void SafeString::setError() {
 }
 
 unsigned char SafeString::hasError() {
-  bool rtn = errorFlag;
+  safebool rtn = errorFlag;
   errorFlag = false;
   return rtn;
 }
@@ -508,7 +508,7 @@ void SafeString::cleanUp() {
   if (!fromBuffer) {
     return; // skip scanning for length changes in the buffer in normal SafeString
   }
-  bool bufferOverrun = false;
+  safebool bufferOverrun = false;
   if ((_capacity > 0) && (buffer[_capacity] != '\0')) {
     setError(); // buffer overrun
     bufferOverrun = true;
@@ -541,7 +541,7 @@ void SafeString::cleanUp() {
 //   SafeString::turnOutputOff();
 // to stop all Error msgs and debug output (sets debugPtr to NULL)
 // verbose is an optional argument, if missing defaults to true, use false for compact error messages or call setVerbose(false)
-void SafeString::setOutput(Print& debugOut, bool verbose) {
+void SafeString::setOutput(Print& debugOut, safebool verbose) {
   debugPtr = &debugOut;
   fullDebug = verbose;  // the verbose argument is optional, if missing fullDebug is true
   currentOutput = debugPtr;
@@ -566,7 +566,7 @@ void SafeString::turnOutputOff() {
 //   SafeString::setVerbose(false);
 // for minimal error msgs
 // setVerbose( ) does not effect debug() methods which have their own optional verbose argument
-void SafeString::setVerbose(bool verbose) {
+void SafeString::setVerbose(safebool verbose) {
   fullDebug = verbose;
 }
 /** end of Output and debug control methods ***********/
@@ -584,14 +584,14 @@ void SafeString::setVerbose(bool verbose) {
 // This is so that if you add .debug() to Serial.println(str);  i.e.
 //    Serial.println(str.debug());
 // will work as expected
-const char* SafeString::debug(bool verbose) { // verbose optional defaults to true
+const char* SafeString::debug(safebool verbose) { // verbose optional defaults to true
   debug((const char*) NULL, verbose); // calls cleanUp();
   emptyDebugRtnBuffer[0] = '\0'; // if the last return was changed
   return emptyDebugRtnBuffer;
 }
 
 // These three versions print leading text before the debug output.
-const char* SafeString::debug(const __FlashStringHelper * pstr, bool verbose) { // verbose optional defaults to true
+const char* SafeString::debug(const __FlashStringHelper * pstr, safebool verbose) { // verbose optional defaults to true
   cleanUp();
   if (debugPtr) {
     if (pstr) {
@@ -605,7 +605,7 @@ const char* SafeString::debug(const __FlashStringHelper * pstr, bool verbose) { 
   return emptyDebugRtnBuffer;
 }
 
-const char* SafeString::debug(const char *title, bool verbose) { // verbose optional defaults to true
+const char* SafeString::debug(const char *title, safebool verbose) { // verbose optional defaults to true
   cleanUp();
   if (debugPtr) {
     if (title) {
@@ -619,7 +619,7 @@ const char* SafeString::debug(const char *title, bool verbose) { // verbose opti
   return emptyDebugRtnBuffer;
 }
 
-const char* SafeString::debug(SafeString &stitle, bool verbose) { // verbose optional defaults to true
+const char* SafeString::debug(SafeString &stitle, safebool verbose) { // verbose optional defaults to true
   cleanUp();
   stitle.cleanUp();
   if (debugPtr) {
@@ -859,15 +859,15 @@ size_t SafeString::print(double d, int decs) {
 
   Note decs is quietly limited in this method to < 7
 */
-size_t SafeString::print(double d, int decs, int width, bool forceSign) {
+size_t SafeString::print(double d, int decs, int width, safebool forceSign) {
   return printInt(d, decs, width, forceSign, false);
 }
-size_t SafeString::println(double d, int decs, int width, bool forceSign) {
+size_t SafeString::println(double d, int decs, int width, safebool forceSign) {
   return printInt(d, decs, width, forceSign, true);
 }
 
 // internal print method called by other print methods
-size_t SafeString::printInt(double d, int decs, int width, bool forceSign, bool addNL) {
+size_t SafeString::printInt(double d, int decs, int width, safebool forceSign, safebool addNL) {
   // if addNL need to allow 2 for nl in SafeString, width does not change
   size_t nlExtra = addNL ? 2 : 0;
 
@@ -1120,7 +1120,7 @@ size_t SafeString::print(const __FlashStringHelper *pstr) {
 
 // ============ protected internal print methods =============
 
-size_t SafeString::printInternal(long num, int base, bool assignOp) {
+size_t SafeString::printInternal(long num, int base, safebool assignOp) {
   cleanUp();
   createSafeString(temp, 8 * sizeof(long) + 4); // null + sign + nl
   size_t n = temp.Print::print(num, base);
@@ -1146,7 +1146,7 @@ size_t SafeString::printInternal(long num, int base, bool assignOp) {
   return n;
 }
 
-size_t SafeString::printInternal(unsigned long num, int base, bool assignOp) {
+size_t SafeString::printInternal(unsigned long num, int base, safebool assignOp) {
   cleanUp();
   createSafeString(temp, 8 * sizeof(long) + 4); // null + sign + nl
   size_t n = temp.Print::print(num, base);
@@ -1172,7 +1172,7 @@ size_t SafeString::printInternal(unsigned long num, int base, bool assignOp) {
   return n;
 }
 
-size_t SafeString::printInternal(double num, int digits, bool assignOp) {
+size_t SafeString::printInternal(double num, int digits, safebool assignOp) {
   cleanUp();
   createSafeString(temp, 8 * sizeof(long) + 4); // null + sign + nl
   if (digits > 7) {
@@ -1713,7 +1713,7 @@ SafeString & SafeString::concat(const __FlashStringHelper * pstr, size_t length)
 // ============== internal concat methods
 // concat at most length chars from cstr
 // this method applies assignOp
-SafeString & SafeString::concatInternal(const char *cstr, size_t length, bool assignOp) {
+SafeString & SafeString::concatInternal(const char *cstr, size_t length, safebool assignOp) {
 
   cleanUp();
   size_t newlen = len + length;
@@ -1791,7 +1791,7 @@ SafeString & SafeString::concatInternal(const char *cstr, size_t length, bool as
 
 // concat at most length chars
 // this method applies assignOp
-SafeString & SafeString::concatInternal(const __FlashStringHelper * pstr, size_t length, bool assignOp) {
+SafeString & SafeString::concatInternal(const __FlashStringHelper * pstr, size_t length, safebool assignOp) {
   cleanUp();
   if (!pstr) {
     setError();
@@ -1867,7 +1867,7 @@ SafeString & SafeString::concatInternal(const __FlashStringHelper * pstr, size_t
   return *this;
 }
 
-SafeString & SafeString::concatInternal(char c, bool assignOp) {
+SafeString & SafeString::concatInternal(char c, safebool assignOp) {
   cleanUp();
   if (c == '\0') {
     setError();
@@ -1904,7 +1904,7 @@ SafeString & SafeString::concatInternal(char c, bool assignOp) {
 }
 
 
-SafeString & SafeString::concatInternal(const char *cstr, bool assignOp) {
+SafeString & SafeString::concatInternal(const char *cstr, safebool assignOp) {
   cleanUp();
 
   if (!cstr) {
@@ -1928,7 +1928,7 @@ SafeString & SafeString::concatInternal(const char *cstr, bool assignOp) {
   return concatInternal(cstr, strlen(cstr), assignOp);
 }
 
-SafeString & SafeString::concatInternal(const __FlashStringHelper * pstr, bool assignOp) {
+SafeString & SafeString::concatInternal(const __FlashStringHelper * pstr, safebool assignOp) {
   cleanUp();
   if (!pstr) {
     setError();
@@ -2123,8 +2123,8 @@ unsigned char SafeString::equalsConstantTime(SafeString &s2) {
     ++p2;
   }
   //the following should force a constant time eval of the condition without a compiler "logical shortcut"
-  bool equalcond = (equalchars == len);
-  bool diffcond = (diffchars == 0);
+  safebool equalcond = (equalchars == len);
+  safebool diffcond = (diffchars == 0);
   return (unsigned char)(equalcond & diffcond); //bitwise AND
 }
 /******** end of comparison methods **************************/
@@ -4049,7 +4049,7 @@ unsigned char SafeString::toDouble(double  &d) {
 **/
 
 
-int SafeString::stoken(SafeString & token, unsigned int fromIndex, const char delimiter, bool returnEmptyFields, bool useAsDelimiters) {
+int SafeString::stoken(SafeString & token, unsigned int fromIndex, const char delimiter, safebool returnEmptyFields, safebool useAsDelimiters) {
   token.clear(); // no need to clean up token
   if (!delimiter) {
     setError();
@@ -4066,13 +4066,13 @@ int SafeString::stoken(SafeString & token, unsigned int fromIndex, const char de
   return stokenInternal(token, fromIndex, NULL, delimiter, returnEmptyFields,  useAsDelimiters);
 }
 
-int SafeString::stoken(SafeString &token, unsigned int fromIndex, SafeString &delimiters, bool returnEmptyFields, bool useAsDelimiters) {
+int SafeString::stoken(SafeString &token, unsigned int fromIndex, SafeString &delimiters, safebool returnEmptyFields, safebool useAsDelimiters) {
   token.clear(); // no need to clean up token
   delimiters.cleanUp();
   return stoken(token, fromIndex, delimiters.buffer, returnEmptyFields, useAsDelimiters); // calls cleanUp()
 }
 
-int SafeString::stoken(SafeString &token, unsigned int fromIndex, const char* delimiters, bool returnEmptyFields, bool useAsDelimiters) {
+int SafeString::stoken(SafeString &token, unsigned int fromIndex, const char* delimiters, safebool returnEmptyFields, safebool useAsDelimiters) {
   token.clear(); // no need to clean up token
   if (!delimiters) {
     setError();
@@ -4101,7 +4101,7 @@ int SafeString::stoken(SafeString &token, unsigned int fromIndex, const char* de
   return stokenInternal(token, fromIndex, delimiters, '\0', returnEmptyFields,  useAsDelimiters);
 }
 
-int SafeString::stokenInternal(SafeString &token, unsigned int fromIndex, const char* delimitersIn, char delimiterIn, bool returnEmptyFields, bool useAsDelimiters) {
+int SafeString::stokenInternal(SafeString &token, unsigned int fromIndex, const char* delimitersIn, char delimiterIn, safebool returnEmptyFields, safebool useAsDelimiters) {
   cleanUp();
   token.clear(); // no need to clean up token
   char charDelim[2];
@@ -4212,7 +4212,7 @@ int SafeString::stokenInternal(SafeString &token, unsigned int fromIndex, const 
                Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
     **/
 
-unsigned char SafeString::nextToken(SafeString& token, const char delimiter, bool returnEmptyFields, bool returnLastNonDelimitedToken, bool firstToken) {
+unsigned char SafeString::nextToken(SafeString& token, const char delimiter, safebool returnEmptyFields, safebool returnLastNonDelimitedToken, safebool firstToken) {
   cleanUp();
   token.clear();
   if (!delimiter) {
@@ -4238,12 +4238,12 @@ unsigned char SafeString::nextToken(SafeString& token, const char delimiter, boo
   return nextTokenInternal(token, NULL, delimiter, returnEmptyFields, returnLastNonDelimitedToken);
 }
 
-unsigned char SafeString::nextToken(SafeString& token, SafeString &delimiters, bool returnEmptyFields, bool returnLastNonDelimitedToken, bool firstToken) {
+unsigned char SafeString::nextToken(SafeString& token, SafeString &delimiters, safebool returnEmptyFields, safebool returnLastNonDelimitedToken, safebool firstToken) {
   delimiters.cleanUp();
   return nextToken(token, delimiters.buffer, returnEmptyFields, returnLastNonDelimitedToken, firstToken); // calls cleanUp()
 }
 
-unsigned char SafeString::nextToken(SafeString& token, const char* delimiters, bool returnEmptyFields, bool returnLastNonDelimitedToken, bool firstToken) {
+unsigned char SafeString::nextToken(SafeString& token, const char* delimiters, safebool returnEmptyFields, safebool returnLastNonDelimitedToken, safebool firstToken) {
   cleanUp();
   token.clear();
   if (!delimiters) {
@@ -4281,7 +4281,7 @@ unsigned char SafeString::nextToken(SafeString& token, const char* delimiters, b
   return nextTokenInternal(token, delimiters, '\0', returnEmptyFields, returnLastNonDelimitedToken);
 }
 
-bool SafeString::nextTokenInternal(SafeString& token, const char* delimitersIn, const char delimiterIn, bool returnEmptyFields, bool returnLastNonDelimitedToken) {
+safebool SafeString::nextTokenInternal(SafeString& token, const char* delimitersIn, const char delimiterIn, safebool returnEmptyFields, safebool returnLastNonDelimitedToken) {
   cleanUp();
   token.clear();
   if (isEmpty()) {
@@ -4493,7 +4493,7 @@ unsigned int SafeString::writeTo(SafeString & output, unsigned int startIdx) {
 */
 unsigned char SafeString::read(Stream& input) {
   cleanUp();
-  bool rtn = false;
+  safebool rtn = false;
   noCharsRead = 0;
   while (input.available() && (len < _capacity)) {
     int c = input.read();
@@ -4572,7 +4572,7 @@ unsigned char SafeString::readUntil(Stream& input, const char* delimiters) {
 }
 
 
-bool SafeString::readUntilInternal(Stream& input, const char* delimitersIn, const char delimiterIn) {
+safebool SafeString::readUntilInternal(Stream& input, const char* delimitersIn, const char delimiterIn) {
   cleanUp();
   char charDelim[2];
   charDelim[0] = delimiterIn;
@@ -4627,7 +4627,7 @@ bool SafeString::readUntilInternal(Stream& input, const char* delimitersIn, cons
         input - the Stream object to read from
         token - the SafeString to return the token found if any, always cleared at the start of this method
         delimiters - string of valid delimieters
-        skipToDelimiter - a bool variable to hold the skipToDelimiter state between calls
+        skipToDelimiter - a safebool variable to hold the skipToDelimiter state between calls
         echoInput - defaults to true to echo the chars read
         timeout_ms - defaults to never timeout, pass a non-zero ms to autoterminate the last token if no new chars received for that time.
 
@@ -4636,7 +4636,7 @@ bool SafeString::readUntilInternal(Stream& input, const char* delimitersIn, cons
       The delimiter is NOT included in the SafeString & token return. It will the first char of the this SafeString when readUntilToken returns true
  **/
 
-unsigned char SafeString::readUntilToken(Stream & input, SafeString& token, const char delimiter, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_ms) {
+unsigned char SafeString::readUntilToken(Stream & input, SafeString& token, const char delimiter, safebool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_ms) {
   if (!delimiter) {
     setError();
 #ifdef SSTRING_DEBUG
@@ -4651,12 +4651,12 @@ unsigned char SafeString::readUntilToken(Stream & input, SafeString& token, cons
   return readUntilTokenInternal(input, token, NULL, delimiter, skipToDelimiter, echoInput, timeout_ms);
 }
 
-unsigned char SafeString::readUntilToken(Stream & input, SafeString& token, SafeString& delimiters, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_ms) {
+unsigned char SafeString::readUntilToken(Stream & input, SafeString& token, SafeString& delimiters, safebool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_ms) {
   delimiters.cleanUp();
   return readUntilToken(input, token, delimiters.buffer, skipToDelimiter, echoInput, timeout_ms); // calls cleanUp()
 }
 
-unsigned char SafeString::readUntilToken(Stream & input, SafeString& token, const char* delimiters, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_ms) {
+unsigned char SafeString::readUntilToken(Stream & input, SafeString& token, const char* delimiters, safebool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_ms) {
   if (!delimiters) {
     setError();
 #ifdef SSTRING_DEBUG
@@ -4682,7 +4682,7 @@ unsigned char SafeString::readUntilToken(Stream & input, SafeString& token, cons
   return readUntilTokenInternal(input, token, delimiters, '\0', skipToDelimiter, echoInput, timeout_ms);
 }
 
-bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const char* delimitersIn, const char delimiterIn, bool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_ms) {
+safebool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const char* delimitersIn, const char delimiterIn, safebool & skipToDelimiter, uint8_t echoInput, unsigned long timeout_ms) {
   token.clear(); // always
   if ((echoInput != 0) && (echoInput != 1) && (timeout_ms == 0)) {
     setError();
@@ -4848,7 +4848,7 @@ size_t SafeString::getLastReadCount() {
 /*******************************************************/
 /** Private methods for Debug and Error support           */
 /*******************************************************/
-void SafeString::debugInternal(bool verbose) const {
+void SafeString::debugInternal(safebool verbose) const {
   if (debugPtr) {
     if (name) {
       debugPtr->print(' ');
@@ -4865,7 +4865,7 @@ void SafeString::debugInternal(bool verbose) const {
 
 // this internal msg debug does not add line indent if not fullDebug
 // always need to add debugPtr->println() at end of debug output
-void SafeString::debugInternalMsg(bool verbose) const {
+void SafeString::debugInternalMsg(safebool verbose) const {
   (void)(verbose);
 #ifdef SSTRING_DEBUG
   if (debugPtr) {
@@ -4889,7 +4889,7 @@ void SafeString::debugInternalMsg(bool verbose) const {
 #endif // SSTRING_DEBUG
 }
 
-void SafeString::debugInternalResultMsg(bool verbose) const {
+void SafeString::debugInternalResultMsg(safebool verbose) const {
   (void)(verbose);
 #ifdef SSTRING_DEBUG
   if (debugPtr) {
@@ -4965,7 +4965,7 @@ void SafeString::capError(const __FlashStringHelper * methodName, size_t neededC
 #endif
 }
 
-void SafeString::assignError(size_t neededCap, const char* cstr, const __FlashStringHelper * pstr, char c, bool numberFlag) const {
+void SafeString::assignError(size_t neededCap, const char* cstr, const __FlashStringHelper * pstr, char c, safebool numberFlag) const {
   (void)(neededCap);   (void)(cstr);   (void)(pstr);   (void)(c);   (void)(numberFlag);
 #ifdef SSTRING_DEBUG
   if (debugPtr) {
