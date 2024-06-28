@@ -10,6 +10,7 @@
 #endif
 #endif  // #if defined(MEGATINYCORE_MAJOR) ...
 
+// only execute this block for ARDUINO_ARCH_SAMD
 #if defined(ARDUINO_ARCH_SAMD)
 #if defined(ARDUINO_SAMD_ADAFRUIT)
 #else 
