@@ -95,17 +95,13 @@
 #ifndef SafeString_class_h
 #define SafeString_class_h
 
-#if defined(ARDUINO_ARCH_SAM)
-#define bool int
-#endif
 
 #ifdef __cplusplus
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-
-
 
 #if defined(ESP_PLATFORM) || defined(ARDUINO_ARCH_ESP8266)
 #include <pgmspace.h>
