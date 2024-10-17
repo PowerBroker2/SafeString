@@ -79,11 +79,11 @@ class BufferedOutput : public Stream {
   public:
     /**
          use createBufferedOutput(name, size, mode); instead
-         BufferedOutput(size_t _bufferSize, uint8_t *_buf, BufferedOutputMode = BLOCK_IF_FULL, bool allOrNothing = true);
+         BufferedOutput(size_t _bufferSize, uint8_t *_buf, BufferedOutputMode mode, bool allOrNothing = true);
          
          buf -- the user allocated buffer to store the bytes, must be at least bufferSize long.  Defaults to an internal 8 char buffer if buf is omitted or NULL
          bufferSize -- number of bytes to buffer,max bufferSize is limited to 32766. Defaults to an internal 8 char buffer if bufferSize is < 8 or is omitted
-         mode -- BLOCK_IF_FULL (default), DROP_UNTIL_EMPTY or DROP_IF_FULL
+         mode -- BLOCK_IF_FULL, DROP_UNTIL_EMPTY or DROP_IF_FULL
                  BLOCK_IF_FULL,    like normal print, but with a buffer. Use this to see ALL the output, but will block the loop() when the output buffer fills
                  DROP_UNTIL_EMPTY, when the output buffer is full, drop any more chars until it completely empties.  ~~<CR><NL> is inserted in the output to show chars were dropped.
                                      Useful when there too much output.  It allow multiple prints to be output consecutively to give meaning full output
@@ -93,7 +93,7 @@ class BufferedOutput : public Stream {
                                         Else if false OR output buffer is empty then write(buf,size) will output partial data to fill output buffer.
                          allOrNothing setting is ignored if mode is BLOCK_IF_FULL
     */
-    BufferedOutput(size_t _bufferSize, uint8_t *_buf, BufferedOutputMode = BLOCK_IF_FULL, bool allOrNothing = true);
+    BufferedOutput(size_t _bufferSize, uint8_t *_buf, BufferedOutputMode mode, bool allOrNothing = true);
 
     /**
         void connect(HardwareSerial& _serial); // the output to write to, can also read from
