@@ -52,6 +52,11 @@ toLong	KEYWORD2
 binToLong	KEYWORD2
 octToLong	KEYWORD2
 hexToLong	KEYWORD2
+toUnsignedLong	KEYWORD2
+binToUnsignedLong	KEYWORD2
+octToUnsignedLong	KEYWORD2
+hexToUnsignedLong	KEYWORD2
+toInt64_t	KEYWORD2
 toFloat	KEYWORD2
 toDouble	KEYWORD2
 readFrom	KEYWORD2

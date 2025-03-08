@@ -18,7 +18,7 @@
 */
 extern const int PIN_ON;
 /**
-    PIN_OFF is a 'magic' number that turns the output OFF when setOnOff(PIN_ON) called
+    PIN_OFF is a 'magic' number that turns the output OFF when setOnOff(PIN_OFF) called
 */
 extern const int PIN_OFF;
 
