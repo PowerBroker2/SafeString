@@ -51,6 +51,11 @@
   e.g. to create a SafeStringReader called sfReader to handle tokens upto 80char long and return tokens delimited by comma or newline or carriageReturn use<br>
  <code>createSafeStringReader(sfReader, 80, ",\n\r")</code><br>
  
+ To return empty tokens use 
+ <code>returnEmptyTokens();</code><br>
+ Otherwise sfReader.read() will return false if successive delimiters are read
+ 
+  
   Other optional arguments for createSafeStringReader are better set via method calls.  The examples below use the created SafeStringReader called, <i><b>sfReader</b></i> from above<br>
   To control echoing the input back to the input stream ( default echoOff() ) use<br>
     <code>sfReader.echoOn();</code><br>

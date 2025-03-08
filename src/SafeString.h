@@ -1300,6 +1300,15 @@ class SafeString : public Printable, public Print {
         leading and trailing white space is allowed around a valid int
      */         
     unsigned char toInt(int & i) ;
+    
+    /**
+      convert the SafeString to a int64_t (for time_t long long).
+      @param l -- int64_t reference, where the result is stored. l is only updated if the conversion is successful
+      @return -- 0 if the SafeString is not a valid int, else return non-zero<br>
+        leading and trailing white space is allowed around a valid int
+     */         
+    unsigned char toInt64_t(int64_t &l) ;
+    
     /**
       convert the SafeString to a long.
       @param l -- long reference, where the result is stored. l is only updated if the conversion is successful
@@ -1962,6 +1971,7 @@ class SafeString : public Printable, public Print {
     void warningMethod(const __FlashStringHelper * methodName) const ;
     void assignErrorMethod() const ;
     void outputFromIndexIfFullDebug(unsigned int fromIndex) const ;
+    int64_t strto_int64_t(const char *nptr, char **endptr, int base);
 };
 
 #include "SafeStringNameSpaceEnd.h"
