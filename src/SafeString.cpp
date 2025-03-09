@@ -829,19 +829,46 @@ SafeString & SafeString::concatln(const char *cstr, size_t length) {
 
 
 //============= public print methods ===========
-size_t SafeString::print(unsigned char c, int d) {
+size_t SafeString::print(unsigned char c, int d) {        
+  if ((d < 2) || (d > 16)) {
+      baseError(F("print"),d);
+      return 0;
+  }
   return printInternal((unsigned long)c, d); // calls cleanUp()
 }
-size_t SafeString::print(int i, int d) {
+size_t SafeString::print(int i, int d) {        
+  if ((d < 2) || (d > 16)) {
+      baseError(F("print"),d);
+      return 0;
+  }
   return printInternal((long)i, d); // calls cleanUp()
 }
-size_t SafeString::print(unsigned int u, int d) {
+size_t SafeString::print(unsigned int u, int d) { 
+  if ((d < 2) || (d > 16)) {
+      baseError(F("print"),d);
+      return 0;
+  }
   return printInternal((unsigned long)u, d); // calls cleanUp()
 }
 size_t SafeString::print(long l, int d) {
+  if ((d < 2) || (d > 16)) {
+      baseError(F("print"),d);
+      return 0;
+  }
   return printInternal(l, d); // calls cleanUp()
 }
-size_t SafeString::print(unsigned long l, int d) {
+size_t SafeString::print(unsigned long l, int d) {     
+  if ((d < 2) || (d > 16)) {
+      baseError(F("print"),d);
+      return 0;
+  }
+  return printInternal(l, d); // calls cleanUp()
+}
+size_t SafeString::print(int64_t l, int d) {        
+  if ((d < 2) || (d > 16)) {
+      baseError(F("print"),d);
+      return 0;
+  }
   return printInternal(l, d); // calls cleanUp()
 }
 size_t SafeString::print(double d, int decs) {
@@ -1120,6 +1147,41 @@ size_t SafeString::print(const __FlashStringHelper *pstr) {
 
 // ============ protected internal print methods =============
 
+
+size_t SafeString::printInternal(int64_t num, int base, bool assignOp) {
+  cleanUp();
+  char tempBuffer[8 * sizeof(int64_t) + 4];
+  size_t tempLen = 0;
+  // from sprintf
+   do {
+    const char digit = (char)(num % base);
+    tempBuffer[tempLen++] = (digit < 10) ? ('0' + digit) : ('A' + digit - 10);
+    num /= base;
+  } while(num);
+  tempBuffer[tempLen] = '\0';
+  
+  size_t newlen = len + tempLen;
+  if (assignOp) {
+    newlen = tempLen;
+  }
+  if (!reserve(newlen)) {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (assignOp) {
+      assignError(newlen, tempBuffer, NULL, '\0', true);
+    } else {
+      capError(F("print"), newlen, tempBuffer, NULL);
+    }
+#endif // SSTRING_DEBUG
+    return 0;
+  }
+  if (assignOp) {
+    clear(); // clear first
+  }
+  concat(tempBuffer);
+  return tempLen;
+}
+
 size_t SafeString::printInternal(long num, int base, bool assignOp) {
   cleanUp();
   createSafeString(temp, 8 * sizeof(long) + 4); // null + sign + nl
@@ -1261,6 +1323,10 @@ size_t SafeString::println(char c) {
 }
 
 size_t SafeString::println(unsigned char b, int base) {
+  if ((base < 2) || (base > 16)) {
+      baseError(F("println"),base);
+      return 0;
+  }
   createSafeString(temp, 8 * sizeof(long) + 4); // null + sign + nl
   size_t n = temp.Print::print(b, base);
   concatln(temp.buffer, temp.len); // calls cleanUp()
@@ -1268,6 +1334,11 @@ size_t SafeString::println(unsigned char b, int base) {
 }
 
 size_t SafeString::println(int num, int base) {
+    
+  if ((base < 2) || (base > 16)) {
+      baseError(F("println"),base);
+      return 0;
+  }
   createSafeString(temp, 8 * sizeof(long) + 4); // null + sign + nl
   size_t n = temp.Print::print(num, base);
   concatln(temp.buffer, temp.len); // calls cleanUp()
@@ -1275,6 +1346,11 @@ size_t SafeString::println(int num, int base) {
 }
 
 size_t SafeString::println(unsigned int num, int base) {
+    
+  if ((base < 2) || (base > 16)) {
+      baseError(F("println"),base);
+      return 0;
+  }
   createSafeString(temp, 8 * sizeof(long) + 4); // null + sign + nl
   size_t n = temp.Print::print(num, base);
   concatln(temp.buffer, temp.len); // calls cleanUp()
@@ -1282,6 +1358,11 @@ size_t SafeString::println(unsigned int num, int base) {
 }
 
 size_t SafeString::println(long num, int base) {
+    
+  if ((base < 2) || (base > 16)) {
+      baseError(F("println"),base);
+      return 0;
+  }
   createSafeString(temp, 8 * sizeof(long) + 4); // null + sign + nl
   size_t n = temp.Print::print(num, base);
   concatln(temp.buffer, temp.len); // calls cleanUp()
@@ -1289,9 +1370,25 @@ size_t SafeString::println(long num, int base) {
 }
 
 size_t SafeString::println(unsigned long num, int base) {
+    
+  if ((base < 2) || (base > 16)) {
+      baseError(F("println"),base);
+      return 0;
+  }
   createSafeString(temp, 8 * sizeof(long) + 4); // null + sign + nl
   size_t n = temp.Print::print(num, base);
   concatln(temp.buffer, temp.len); // calls cleanUp()
+  return n + 2;
+}
+
+size_t SafeString::println(int64_t num, int base) {
+    
+  if ((base < 2) || (base > 16)) {
+      baseError(F("println"),base);
+      return 0;
+  }
+  size_t n = printInternal(num, base);  // calls cleanUp()
+  concat("\r\n"); // calls cleanUp()
   return n + 2;
 }
 
@@ -1389,6 +1486,11 @@ SafeString & SafeString::operator = (unsigned int num) {
 }
 
 SafeString & SafeString::operator = (long num) {
+  printInternal(num, DEC, true);
+  return *this;
+}
+
+SafeString & SafeString::operator = (int64_t num) {
   printInternal(num, DEC, true);
   return *this;
 }
@@ -1601,6 +1703,12 @@ SafeString & SafeString::prefix(unsigned long num) {
   return prefix(temp); // calls cleanUp()
 }
 
+SafeString & SafeString::prefix(int64_t num) {
+  createSafeString(temp, 2 + 3 * sizeof(int64_t));
+  temp.print(num);
+  return concat(temp); // calls cleanUp()
+}
+
 SafeString & SafeString::prefix(float num) {
   createSafeString(temp, 22);
   temp.print(num);
@@ -1664,6 +1772,12 @@ SafeString & SafeString::concat(long num) {
 
 SafeString & SafeString::concat(unsigned long num) {
   createSafeString(temp, 2 + 3 * sizeof(unsigned long));
+  temp.print(num);
+  return concat(temp); // calls cleanUp()
+}
+
+SafeString & SafeString::concat(int64_t num) {
+  createSafeString(temp, 2 + 3 * sizeof(int64_t));
   temp.print(num);
   return concat(temp); // calls cleanUp()
 }
@@ -4998,6 +5112,25 @@ void SafeString::assignError(size_t neededCap, const char* cstr, const __FlashSt
   }
 #endif
 }
+
+void SafeString::baseError(const __FlashStringHelper * methodName, int base) const {
+  (void)(methodName);
+#ifdef SSTRING_DEBUG
+  if (debugPtr) {
+    debugPtr->print(F("Error:"));
+    outputName();
+    debugPtr->print('.');
+    if (methodName) {
+      debugPtr->print(methodName);
+    }
+    debugPtr->print(F("()"));
+    debugPtr->print(F(" base arg was:"));
+    debugPtr->print(base);
+    debugPtr->println(F("  Must be in range 2 to 16"));
+  }
+#endif
+}
+    
 
 void SafeString::errorMethod(const __FlashStringHelper * methodName) const {
   (void)(methodName);

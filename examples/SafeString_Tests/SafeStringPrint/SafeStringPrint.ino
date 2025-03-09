@@ -109,7 +109,18 @@ void setup() {
   Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
+  stringTwo.clear();
+  stringTwo.debug(F("stringTwo.clear(); => "));
+  stringTwo.print((int64_t)((~(uint64_t)0) >> 1));
+  stringTwo.debug(F("stringTwo.print((int64_t)((~(uint64_t)0) >> 1)); => "));
+  Serial.println();
 
+  stringTwo.clear();
+  stringTwo.debug(F("stringTwo.clear(); => "));
+  Serial.println(F("stringTwo.print(10,1);"));
+  stringTwo.print(10,1);
+  stringTwo.debug(F("stringTwo.print(10,1); => "));
+  Serial.println();
 
 }
 

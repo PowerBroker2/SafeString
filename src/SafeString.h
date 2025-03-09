@@ -478,6 +478,7 @@ class SafeString : public Printable, public Print {
     size_t print(unsigned int, int = DEC);
     size_t print(long, int = DEC);
     size_t print(unsigned long, int = DEC);
+    size_t print(int64_t, int = DEC);
     size_t print(double, int = 2);
     size_t print(const __FlashStringHelper *);
     size_t print(const char*);
@@ -489,6 +490,7 @@ class SafeString : public Printable, public Print {
     size_t println(unsigned int, int = DEC);
     size_t println(long, int = DEC);
     size_t println(unsigned long, int = DEC);
+    size_t println(int64_t, int = DEC);
     size_t println(double, int = 2);
     size_t println(const __FlashStringHelper *);
     size_t println(const char*);
@@ -600,6 +602,15 @@ class SafeString : public Printable, public Print {
     
     @param num - the number to convert to text
     ****************************************************************************/
+    SafeString & operator = (int64_t num);
+    
+    /*************************************************************
+    Clears this SafeString and concatinates the text version of the argument
+    
+    If the value is null or invalid, or too large to be fit in the string's internal buffer the resulting SafeString will be empty
+    
+    @param num - the number to convert to text
+    ****************************************************************************/
     SafeString & operator = (float num);
 
     /*************************************************************
@@ -654,6 +665,7 @@ class SafeString : public Printable, public Print {
     SafeString & prefix(unsigned int num);
     SafeString & prefix(long num);
     SafeString & prefix(unsigned long num);
+    SafeString & prefix(int64_t num);
     SafeString & prefix(float num);
     SafeString & prefix(double num);
     SafeString & prefix(const __FlashStringHelper * str);
@@ -676,6 +688,7 @@ class SafeString : public Printable, public Print {
     SafeString & concat(unsigned int num);
     SafeString & concat(long num);
     SafeString & concat(unsigned long num);
+    SafeString & concat(int64_t num);
     SafeString & concat(float num);
     SafeString & concat(double num);
     SafeString & concat(const __FlashStringHelper * str);
@@ -1939,6 +1952,8 @@ class SafeString : public Printable, public Print {
     size_t printInternal(long, int = DEC, bool assignOp = false);
     size_t printInternal(unsigned long, int = DEC, bool assignOp = false);
     size_t printInternal(double, int = 2, bool assignOp = false);
+    size_t printInternal(int64_t num, int base = 2, bool assignOp = false);
+
     void setError();
     void printlnErr()const ;
     void debugInternalMsg(bool _fullDebug) const ;
@@ -1962,6 +1977,7 @@ class SafeString : public Printable, public Print {
     static char emptyDebugRtnBuffer[1];
     void debugInternal(bool _fullDebug) const ;
     void debugInternalResultMsg(bool _fullDebug) const ;
+    void baseError(const __FlashStringHelper * methodName, int base) const ;
     void concatErr()const ;
     void concatAssignError() const;
     void prefixErr()const ;
