@@ -1150,15 +1150,23 @@ size_t SafeString::print(const __FlashStringHelper *pstr) {
 
 size_t SafeString::printInternal(int64_t num, int base, bool assignOp) {
   cleanUp();
-  char tempBuffer[8 * sizeof(int64_t) + 4];
+  const size_t bufLen = 8 * sizeof(int64_t) + 4;
+  char reverseTempBuffer[bufLen];
+  char tempBuffer[bufLen];
   size_t tempLen = 0;
   // from sprintf
    do {
     const char digit = (char)(num % base);
-    tempBuffer[tempLen++] = (digit < 10) ? ('0' + digit) : ('A' + digit - 10);
+    reverseTempBuffer[tempLen++] = (digit < 10) ? ('0' + digit) : ('A' + digit - 10);
     num /= base;
   } while(num);
-  tempBuffer[tempLen] = '\0';
+  reverseTempBuffer[tempLen] = '\0';
+  size_t i = 0;
+  for (int j = tempLen-1; j>=0; j--) {
+      tempBuffer[i] = reverseTempBuffer[j];
+    i++;
+  }
+  tempBuffer[i] = '\0';
   
   size_t newlen = len + tempLen;
   if (assignOp) {
