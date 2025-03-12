@@ -4861,9 +4861,9 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
   while (input.available() && (len < capacity()) && (noCharsRead < capacity()) ) {
     int c = input.read();
     noCharsRead++;
-    //    if (debugPtr) {
-    //      debugPtr->print(F("read:")); debugPtr->println(c));
-    //    }
+      //  if (debugPtr) {
+      //    debugPtr->print(F("read:")); debugPtr->println((char)c);
+      //  }
     if (c == '\0') {
       setError(); // found '\0' in input
       token.setError();
