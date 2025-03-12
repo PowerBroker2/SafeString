@@ -745,6 +745,9 @@ class SafeString : public Printable, public Print {
     SafeString & operator -= (unsigned long num) {
       return prefix(num);
     }
+    SafeString & operator -= (int64_t num) {
+      return prefix(num);
+    }
     SafeString & operator -= (float num) {
       return prefix(num);
     }
@@ -790,6 +793,9 @@ class SafeString : public Printable, public Print {
       return concat(num);
     }
     SafeString & operator += (unsigned long num) {
+      return concat(num);
+    }
+    SafeString & operator += (int64_t num) {
       return concat(num);
     }
     SafeString & operator += (float num) {
