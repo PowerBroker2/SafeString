@@ -515,7 +515,7 @@ class SafeString : public Printable, public Print {
     
     @param d - the double to convert to text
     @param decs - the preferred number of decimial places to output (limited to <7).  This will be reduced automatically to fit the fixed width
-    @param width - fixed width the output is to padded/limited to
+    @param width - fixed width the output is to padded/limited to (+ve width padds on left, -ve width padds on right)
     @param forceSign - optional, defaults to false, if true the + sign is added for +ve numbers
     ****************************************************************************/
     size_t println(double d, int decs, int width, bool forceSign = false);
@@ -527,7 +527,7 @@ class SafeString : public Printable, public Print {
     
     @param d - the double to convert to text
     @param decs - the preferred number of decimial places to output(limited to <7).  This will be reduced automatically to fit the fixed width
-    @param width - fixed width the output is to padded/limited to
+    @param width - fixed width the output is to padded/limited to (+ve width padds on left, -ve width padds on right)
     @param forceSign - optional, defaults to false, if true the + sign is added for +ve numbers
     ****************************************************************************/
     size_t print(double d, int decs, int width, bool forceSign = false);
