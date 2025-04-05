@@ -36,20 +36,20 @@
 **/
 
 /**
-     use createBufferedOutput(name, size, mode); instead
-     BufferedOutput(size_t _bufferSize, uint8_t *_buf, BufferedOutputMode mode, bool allOrNothing = true);
-
-     buf -- the user allocated buffer to store the bytes, must be at least bufferSize long.  Defaults to an internal 8 char buffer if buf is omitted or NULL
-     bufferSize -- number of bytes to buffer,max bufferSize is limited to 32766. Defaults to an internal 8 char buffer if bufferSize is < 8 or is omitted
-     mode -- BLOCK_IF_FULL, DROP_UNTIL_EMPTY or DROP_IF_FULL
-             BLOCK_IF_FULL,    like normal print, but with a buffer. Use this to see ALL the output, but will block the loop() when the output buffer fills
-             DROP_UNTIL_EMPTY, when the output buffer is full, drop any more chars until it completely empties.  ~~<CR><NL> is inserted in the output to show chars were dropped.
-                                 Useful when there too much output.  It allow multiple prints to be output consecutively to give meaning full output
-                                 avaliableForWrite() will return 0 from when the buffer fills until is empties
-             DROP_IF_FULL,     when the output buffer is full, drop any more chars until here is space.  ~~<CR><NL> is inserted in the output to show chars were dropped.
-     allOrNothing -- defaults to true,  If true AND output buffer not empty then if write(buf,size) will not all fit don't output any of it.
-                                    Else if false OR output buffer is empty then write(buf,size) will output partial data to fill output buffer.
-                     allOrNothing setting is ignored if mode is BLOCK_IF_FULL
+     use createBufferedOutput(name, size, mode); instead  
+     BufferedOutput(size_t _bufferSize, uint8_t *_buf, BufferedOutputMode mode, bool allOrNothing = true);  
+  
+     buf -- the user allocated buffer to store the bytes, must be at least bufferSize long.  Defaults to an internal 8 char buffer if buf is omitted or NULL  
+     bufferSize -- number of bytes to buffer,max bufferSize is limited to 32766. Defaults to an internal 8 char buffer if bufferSize is < 8 or is omitted  
+     mode -- BLOCK_IF_FULL, DROP_UNTIL_EMPTY or DROP_IF_FULL  
+             BLOCK_IF_FULL,    like normal print, but with a buffer. Use this to see ALL the output, but will block the loop() when the output buffer fills  
+             DROP_UNTIL_EMPTY, when the output buffer is full, drop any more chars until it completely empties.  ~~<CR><NL> is inserted in the output to show chars were dropped.  
+                                 Useful when there too much output.  It allow multiple prints to be output consecutively to give meaning full output  
+                                 avaliableForWrite() will return 0 from when the buffer fills until is empties  
+             DROP_IF_FULL,     when the output buffer is full, drop any more chars until here is space.  ~~<CR><NL> is inserted in the output to show chars were dropped.  
+     allOrNothing -- defaults to true,  If true AND output buffer not empty then if write(buf,size) will not all fit don't output any of it.  
+                                    Else if false OR output buffer is empty then write(buf,size) will output partial data to fill output buffer.  
+                     allOrNothing setting is ignored if mode is BLOCK_IF_FULL  
 */
 
 BufferedOutput::BufferedOutput( size_t _bufferSize, uint8_t _buf[],  BufferedOutputMode _mode, bool _allOrNothing) {

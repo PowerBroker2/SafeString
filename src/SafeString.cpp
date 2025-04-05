@@ -877,7 +877,7 @@ size_t SafeString::print(double d, int decs) {
 
 /**
   print to SafeString a double (or long) with decs after the decimal point
-  and padd to specified width
+  and padd to specified width (+ve width padds on left, -ve width padds on right);
   width is signed value, negative for left adjustment, +ve for right padding
   by default the + sign is not added, set forceSign argument to true to force the display of the + sign
 

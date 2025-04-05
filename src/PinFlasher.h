@@ -85,6 +85,17 @@ class PinFlasher: protected millisDelay {
     */
     void setOnOff(unsigned long onOff_ms);
 
+    
+    /**
+      Set the On and Off separately.
+      This call does nothing if the on and off length are the same as the existing setting.<br>
+      This simplifies the calling logic.<br>
+      @param on_ms -- ms for on<br>
+      @param off_ms -- ms for off<br>
+      PIN_OFF (0) and PIN_ON (-1) inputs are invalid and are ignored<br>
+    */
+    void setOnAndOff(unsigned long on_ms, unsigned long off_ms);
+
     /**
         Normally pin output is LOW for off, HIGH for on.
         This inverts the current setting for on/off<br>
@@ -110,7 +121,8 @@ class PinFlasher: protected millisDelay {
     bool outputInverted; // initially false, not inverted, i.e. off is LOW, on is HIGH
 
   private:
-    unsigned long half_period; // initially 0, off
+    unsigned long on_len_ms; // initially 0, off
+    unsigned long off_len_ms; // initially 0, off
 };
 
 #endif

@@ -7,14 +7,14 @@
    Provide this copyright is maintained.
 */
 #include "PinFlasher.h"
-/** 
- *  PIN_ON is a 'magic' number that turns the output ON when setOnOff(PIN_ON) called
- */
-const int PIN_ON = -1; 
-/** 
- *  PIN_OFF is a 'magic' number that turns the output OFF when setOnOff(PIN_ON) called
- */
-const int PIN_OFF = 0; 
+/**
+    PIN_ON is a 'magic' number that turns the output ON when setOnOff(PIN_ON) called
+*/
+const int PIN_ON = -1;
+/**
+    PIN_OFF is a 'magic' number that turns the output OFF when setOnOff(PIN_ON) called
+*/
+const int PIN_OFF = 0;
 /**
    Constructor.
    if pin >=0 it is initally set to output and OFF<br>
@@ -23,17 +23,18 @@ const int PIN_OFF = 0;
 */
 PinFlasher::PinFlasher(int pin, bool invert) {
   outputInverted = invert; // set this befor calling setPin( ) so off is correct logic level
-  half_period = PIN_OFF; // off
+  on_len_ms = PIN_OFF; // off
+  off_len_ms = PIN_OFF; // off
   io_pin_on = false;
   io_pin = pin; // don't call setPin() here as that enables setOutput before all the globals have finished construction
   // causes problems for ESP32C etc using ws2812
-  if(io_pin >=0) {
+  if (io_pin >= 0) {
     pinMode(io_pin, OUTPUT); // io_pin >=0 here
   }
 }
 
 PinFlasher::~PinFlasher() {
-	setPin(-1); // set pin back to input
+  setPin(-1); // set pin back to input
 }
 
 /**
@@ -45,15 +46,19 @@ void PinFlasher::update() {
     return;
   }
   if (justFinished()) {
-    if (half_period == PIN_OFF) {  // should not happen
+    if (on_len_ms == PIN_OFF) {  // should not happen
       io_pin_on = false; // stay off
       stop(); // stop flash timer
-    } else if (half_period == (unsigned long)(PIN_ON)) { // should not happen
+    } else if (on_len_ms == (unsigned long)(PIN_ON)) { // should not happen
       io_pin_on = true;       // stay on
       stop(); // stop flash timer
     } else { //restart flash
-      restart(); // slips time
       io_pin_on = !io_pin_on;
+      if (io_pin_on) {
+        start(on_len_ms); // slips time
+      } else {
+        start(off_len_ms);
+      }
     }
     setOutput(); // off does nothing if io_pin < 0
   }
@@ -72,7 +77,7 @@ void PinFlasher::setPin(int pin) {
     pin = -1;
   }
   if (io_pin == pin) { // all -ve inputs will match and return
-  	update();
+    update();
     return;
   }
   // else pin changed re-init
@@ -80,46 +85,78 @@ void PinFlasher::setPin(int pin) {
   int prev_pin = io_pin;
   io_pin = pin;
   stop(); // stop flash timer
-  half_period = PIN_OFF; // off
+  on_len_ms = PIN_OFF; // off
+  off_len_ms = PIN_OFF; // off
   io_pin_on = false;
-  if(io_pin >= 0) {
+  if (io_pin >= 0) {
     pinMode(io_pin, OUTPUT); // io_pin >=0 here
     setOutput();
   }
-  if(prev_pin >=0) {
+  if (prev_pin >= 0) {
     pinMode(prev_pin, INPUT); // reset previous output
   }
 }
 
 /**
     Set the On and Off length, the period is twice this setting.
-    This call does nothing is the on/off length is the same as the existing setting.<br>
+    This call does nothing if the on/off length is the same as the existing setting.<br>
     i.e. Multiple calls to this method with the same arguement are ignored and do not interfere with flashing<br>
     This simplifies the calling logic.<br>
     @param onOff_ms -- ms for on and also for off, i.e. half the period, duty cycle 50%<br>
     PIN_OFF (0) turns off the output<br>
     PIN_ON (-1) turns the output on <br>
     other values turn the output on for that length of time and then off for the same time
-    */
+*/
 void PinFlasher::setOnOff(unsigned long onOff_ms) {
-	if (half_period == onOff_ms) {
-      update(); // update if called with no change
-      return;
-	}
-  half_period = onOff_ms;
-  if (half_period == PIN_OFF) { // stay off
+  if ((on_len_ms == onOff_ms) && (off_len_ms == onOff_ms)) {
+    update(); // update if called with no change
+    return;
+  }
+  on_len_ms = onOff_ms;
+  off_len_ms = onOff_ms;
+  if (onOff_ms == PIN_OFF) { // stay off
     io_pin_on = false;
     stop(); // stop flash timer
-  } else if (half_period == (unsigned long)(PIN_ON)) {  // stay on
+  } else if (onOff_ms == (unsigned long)(PIN_ON)) {  // stay on
     io_pin_on = true;
     stop(); // stop flash timer
   } else { //restart flash
     io_pin_on = true;
-    if (io_pin >=0 ) { // if have a pin
-      start(half_period);  // restart
+    if (io_pin >= 0 ) { // if have a pin
+      start(on_len_ms);  // restart
     } else {
       stop(); // no output so stop timer
     }
+  }
+  setOutput();
+}
+
+/**
+   Set the On and Off separately.
+   This call does nothing if the on and off length are the same as the existing setting.<br>
+   This simplifies the calling logic.<br>
+   @param on_ms -- ms for on<br>
+   @param off_ms -- ms for off<br>
+   PIN_OFF (0) and PIN_ON (-1) inputs are invalid and are ignored<br>
+*/
+void PinFlasher::setOnAndOff(unsigned long on_ms, unsigned long off_ms) {
+  if ((on_len_ms == on_ms) && (off_len_ms == off_ms)) {
+    update(); // update if called with no change
+    return;
+  }
+  if ((on_ms == (unsigned long)PIN_ON) || (on_ms == PIN_OFF) ||
+      (off_ms == (unsigned long)PIN_ON) || (off_ms == PIN_OFF)) {
+    update(); // ignore this input and just update
+    return;
+  }
+
+  on_len_ms = on_ms;
+  off_len_ms = off_ms;
+  io_pin_on = true;
+  if (io_pin >= 0 ) { // if have a pin
+    start(on_len_ms);  // restart
+  } else {
+    stop(); // no output so stop timer
   }
   setOutput();
 }

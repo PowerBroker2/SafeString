@@ -44,7 +44,7 @@
 
 typedef enum {BLOCK_IF_FULL, DROP_UNTIL_EMPTY, DROP_IF_FULL } BufferedOutputMode;
 /**************
-  To create a BufferedOutput use the macro **createBufferedOutput**  see the detailed description. 
+  To create a BufferedOutput use the macro **createBufferedOutput**  see the detailed description. NOTE: Any '\0' chars added by <b>write(0)</b> calls, are filtered out of the final output.
     
   The createBufferedOutput macro takes 2, 3 or 4 arguments.<br>
   
@@ -77,27 +77,27 @@ typedef enum {BLOCK_IF_FULL, DROP_UNTIL_EMPTY, DROP_IF_FULL } BufferedOutputMode
 
 class BufferedOutput : public Stream {
   public:
-    /**
-         use createBufferedOutput(name, size, mode); instead
-         BufferedOutput(size_t _bufferSize, uint8_t *_buf, BufferedOutputMode mode, bool allOrNothing = true);
-         
-         buf -- the user allocated buffer to store the bytes, must be at least bufferSize long.  Defaults to an internal 8 char buffer if buf is omitted or NULL
-         bufferSize -- number of bytes to buffer,max bufferSize is limited to 32766. Defaults to an internal 8 char buffer if bufferSize is < 8 or is omitted
-         mode -- BLOCK_IF_FULL, DROP_UNTIL_EMPTY or DROP_IF_FULL
-                 BLOCK_IF_FULL,    like normal print, but with a buffer. Use this to see ALL the output, but will block the loop() when the output buffer fills
-                 DROP_UNTIL_EMPTY, when the output buffer is full, drop any more chars until it completely empties.  ~~<CR><NL> is inserted in the output to show chars were dropped.
-                                     Useful when there too much output.  It allow multiple prints to be output consecutively to give meaning full output
-                                     avaliableForWrite() will return 0 from when the buffer fills until is empties
-                 DROP_IF_FULL,     when the output buffer is full, drop any more chars until here is space.  ~~<CR><NL> is inserted in the output to show chars were dropped.
-         allOrNothing -- defaults to true,  If true AND output buffer not empty then if write(buf,size) will not all fit don't output any of it.
-                                        Else if false OR output buffer is empty then write(buf,size) will output partial data to fill output buffer.
-                         allOrNothing setting is ignored if mode is BLOCK_IF_FULL
-    */
+    /************
+         use createBufferedOutput(name, size, mode); instead  
+         BufferedOutput(size_t _bufferSize, uint8_t *_buf, BufferedOutputMode mode, bool allOrNothing = true);  
+           
+         @param buf -- the user allocated buffer to store the bytes, must be at least bufferSize long.  Defaults to an internal 8 char buffer if buf is omitted or NULL  
+         @param bufferSize -- number of bytes to buffer,max bufferSize is limited to 32766. Defaults to an internal 8 char buffer if bufferSize is < 8 or is omitted  
+         @param mode -- BLOCK_IF_FULL, DROP_UNTIL_EMPTY or DROP_IF_FULL  
+                 BLOCK_IF_FULL,    like normal print, but with a buffer. Use this to see ALL the output, but will block the loop() when the output buffer fills  
+                 DROP_UNTIL_EMPTY, when the output buffer is full, drop any more chars until it completely empties.  ~~<CR><NL> is inserted in the output to show chars were dropped.  
+                                     Useful when there too much output.  It allow multiple prints to be output consecutively to give meaning full output  
+                                     avaliableForWrite() will return 0 from when the buffer fills until is empties  
+                 DROP_IF_FULL,     when the output buffer is full, drop any more chars until here is space.  ~~<CR><NL> is inserted in the output to show chars were dropped.  
+         @param allOrNothing -- defaults to true,  If true AND output buffer not empty then if write(buf,size) will not all fit don't output any of it.  
+                                        Else if false OR output buffer is empty then write(buf,size) will output partial data to fill output buffer.  
+                         allOrNothing setting is ignored if mode is BLOCK_IF_FULL  
+    ********/
     BufferedOutput(size_t _bufferSize, uint8_t *_buf, BufferedOutputMode mode, bool allOrNothing = true);
 
     /**
         void connect(HardwareSerial& _serial); // the output to write to, can also read from
-            serial -- the HardwareSerial to buffer output to, usually Serial.
+            @param serial -- the HardwareSerial to buffer output to, usually Serial.
                      You must call nextByteOut() each loop() in order to release the buffered chars. 
     */
     void connect(HardwareSerial& _serial); 
@@ -105,24 +105,91 @@ class BufferedOutput : public Stream {
     
     /**
         void connect(Stream& _stream, const uint32_t baudRate); // the stream to write to and how fast to write output, can also read from
-            stream -- the stream to buffer output to
-            baudRate -- the maximum rate at which the bytes are to be released.  Bytes will be relased slower depending on how long your loop() method takes to execute
+            @param stream -- the stream to buffer output to
+            @param baudRate -- the maximum rate at which the bytes are to be released.  Bytes will be relased slower depending on how long your loop() method takes to execute
                          You must call nextByteOut() each loop() in order to release the buffered chars. 
     */
     void connect(Stream& _stream, const uint32_t baudRate=0);
     
+    /**
+     void nextByteOut()
+     
+     This must be called often, at least every loop().<br>
+     It releases one or more bytes if there is space available in the Serial Tx buffer<br>
+     <b>OR</b> if a baud rate is set, then at that rate.
+    */
+    
     void nextByteOut();
+    
+    /**
+    write(uint8_t b)  
+    @param b - byte to be added to the buffer.
+    
+    NOTE: any '\0' chars are filtered from the final output.    
+    But calling <b>write(0)</b> has the same effect as calling protect()
+    */
     virtual size_t write(uint8_t);
     virtual size_t write(const uint8_t *buf, size_t size);
     virtual int available();
     virtual int read();
     virtual int peek();
-    virtual void flush(); // this blocks until write buffer empty
+    /**
+     void flush()
+     
+     This blocks until the buffer empties
+     **/
+    virtual void flush(); 
+    
+    /**
+    int availableForWrite()
+    
+    @return bytes available to write.  Includes the space available in the buffer plus the Serial Tx space available.
+    */
     virtual int availableForWrite();
-    size_t getSize(); // returns buffer size + any hardwareSerial buffer size found on connect
-    int clearSpace(size_t len); // clears space in outgoing (write) buffer, by removing last bytes written,  Serial Tx buffer is NOT changed, returns available space in buffer + Tx
-    void protect(); // prevents current buffer contects from being cleared by clearSpace(), but clear() will still clear the whole buffer
+    /**
+    size_t  getSize();
+     @return buffer size + any hardwareSerial buffer size found on connect
+     **/
+    size_t getSize();
+
+    /**
+    int clearSpace(size_t len);
+    
+    Attempts to make len bytes space available in the buffer plus the Serial TX available space, by removing existing bytes if necessary.
+    
+    If any bytes are removed a ~~, drop mark, is added.  Removal stops at the protect() mark, a '\0' in the buffer.<br>
+    <b>Serial Tx buffer is NOT changed.</b>
+    
+    @return space available in buffer for write including the Serial Tx available space
+    @param len -- number of bytes to make available for write.
+     **/
+    int clearSpace(size_t len); 
+    
+    /**
+      void protect()
+      
+      Add a '\0' to the buffer to protect previous data from being removed by calls to clearSpace();
+      
+      Calls to clear() still clear the entire buffer.
+      All '\0' bytes are filtered from the output, including those added by <b>write(0)</b>
+      
+      */
+    void protect(); 
+    /**
+      void clear()
+      
+      Clears the entire buffer. <b>Serial Tx buffer is NOT changed.</b>
+      */
     void clear(); // clears outgoing (write) buffer, even if protected.
+    
+    
+    /**
+      size_t terminateLastLine()
+      
+      If the last character in the buffer is not \\n add \\r\\n if space available, else add just \\n
+      
+      @return number of bytes written, if any
+      */
     size_t terminateLastLine(); // adds a newline if one not already there
 
   private:
