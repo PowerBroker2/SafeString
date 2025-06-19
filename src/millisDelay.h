@@ -1,5 +1,6 @@
 // millisDelay.h
 // see the tutorial https://www.forward.com.au/pfod/ArduinoProgramming/TimingDelaysInArduino.html
+// V1.1.0 fixed repeat if stopped / finished early
 
 #ifndef MILLIS_DELAY_H
 #define MILLIS_DELAY_H
@@ -53,6 +54,8 @@ class millisDelay {
     /**
       repeat()
       Do same delay again but allow for a possible delay in calling justFinished()
+      Note: if you called finish(), repeat() == restart()
+      Note: if you called repeat() while still running, repeat() == restart()
     */
     void repeat();
 
@@ -60,6 +63,8 @@ class millisDelay {
       restart()
       Start the same delay again starting from now
       Note: use repeat() when justFinished() returns true, if you want a regular repeating delay
+      Note: if you called finish(), repeat() == restart()
+      Note: if you called repeat() while still running, repeat() == restart()
     */
     void restart();
 
