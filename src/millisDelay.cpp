@@ -1,8 +1,8 @@
 // millisDelay.cpp
 // see the tutorial https://www.forward.com.au/pfod/ArduinoProgramming/TimingDelaysInArduino.html
-
+// V1.1.0 fixed repeat if stopped / finished early
 /*
- * (c)2018 Forward Computing and Control Pty. Ltd.
+ * (c)2018-2025 Forward Computing and Control Pty. Ltd.
  * NSW Australia, www.forward.com.au
  * This code is not warranted to be fit for any purpose. You may only use it at your own risk.
  * This generated code may be freely used for both private and commercial use
@@ -44,8 +44,17 @@ void millisDelay::stop() {
 /**
    repeat()
    Do same delay again but allow for a possible delay in calling justFinished()
+   Note: if you called finish(), repeat() == restart()
+   Note: if you called repeat() while still running, repeat() == restart()
 */
 void millisDelay::repeat() {
+  unsigned long ms = millis();
+  if ((ms - startTime) < ms_delay) {
+    // stop / finished early OR just called repeat while running
+    // just start
+    start(ms_delay); // prevent wrap around/overflow in justFinished
+    return;
+  } // else last timer expired so repeat
   startTime = startTime + ms_delay;
   running = true;
   finishNow = false; // do not finish early
@@ -55,6 +64,8 @@ void millisDelay::repeat() {
    restart()
    Start the same delay again starting from now
    Note: use repeat() when justFinished() returns true, if you want a regular repeating delay
+   Note: if you called finish(), repeat() == restart()
+   Note: if you called repeat() while still running, repeat() == restart()
 */
 void millisDelay::restart() {
   start(ms_delay);

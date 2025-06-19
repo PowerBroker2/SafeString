@@ -36,9 +36,9 @@
 **/
 
 /**
-     use createBufferedOutput(name, size, mode); instead  
-     BufferedOutput(size_t _bufferSize, uint8_t *_buf, BufferedOutputMode mode, bool allOrNothing = true);  
-  
+     use createBufferedOutput(name, size, mode); instead
+     BufferedOutput(size_t _bufferSize, uint8_t *_buf, BufferedOutputMode mode, bool allOrNothing = true);
+
      buf -- the user allocated buffer to store the bytes, must be at least bufferSize long.  Defaults to an internal 8 char buffer if buf is omitted or NULL  
      bufferSize -- number of bytes to buffer,max bufferSize is limited to 32766. Defaults to an internal 8 char buffer if bufferSize is < 8 or is omitted  
      mode -- BLOCK_IF_FULL, DROP_UNTIL_EMPTY or DROP_IF_FULL  
