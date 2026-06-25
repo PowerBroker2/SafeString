@@ -28,9 +28,11 @@ PinFlasher::PinFlasher(int pin, bool invert) {
   io_pin_on = false;
   io_pin = pin; // don't call setPin() here as that enables setOutput before all the globals have finished construction
   // causes problems for ESP32C etc using ws2812
-  if (io_pin >= 0) {
-    pinMode(io_pin, OUTPUT); // io_pin >=0 here
-  }
+  // pinMode() is NOT called here -- for global/static PinFlasher objects the
+  // constructor runs during static initialization, before the board core is
+  // fully initialized, and touching the hardware then is a problem on some
+  // boards.  The pin is claimed lazily by the first setOutput() call instead.
+  pinModeSet = false;
 }
 
 PinFlasher::~PinFlasher() {
@@ -42,6 +44,14 @@ PinFlasher::~PinFlasher() {
    update() should be called often, atleast every loop()
 */
 void PinFlasher::update() {
+  if (!pinModeSet) {
+    // first call: claim the pin and drive the initial (OFF) output state.
+    // The constructor no longer calls pinMode() so until this first call the
+    // pin is still in its power-on reset state.  Also covers setOnOff(PIN_OFF)
+    // on a fresh object whose no-change early-return never reaches setOutput().
+    setOutput();
+    pinModeSet = true; // in case a subclass override of setOutput() did not claim the pin
+  }
   if (!isRunning()) {
     return;
   }
@@ -84,13 +94,13 @@ void PinFlasher::setPin(int pin) {
   // set existing pin back to input
   int prev_pin = io_pin;
   io_pin = pin;
+  pinModeSet = false; // new pin not claimed yet, setOutput() below will claim it
   stop(); // stop flash timer
   on_len_ms = PIN_OFF; // off
   off_len_ms = PIN_OFF; // off
   io_pin_on = false;
   if (io_pin >= 0) {
-    pinMode(io_pin, OUTPUT); // io_pin >=0 here
-    setOutput();
+    setOutput(); // claims the pin via lazy pinMode and sets it OFF
   }
   if (prev_pin >= 0) {
     pinMode(prev_pin, INPUT); // reset previous output
@@ -188,6 +198,12 @@ bool PinFlasher::invertOutput() {
 void PinFlasher::setOutput() { // uses class vars io_pin and io_pin_on
   if (io_pin < 0) {
     return;
+  }
+  // lazily claim the pin on first use -- the constructor does not call pinMode()
+  // so global PinFlasher objects do not touch hardware during static initialization
+  if (!pinModeSet) {
+    pinMode(io_pin, OUTPUT);
+    pinModeSet = true;
   }
   if (io_pin_on) {
     if (!outputInverted) {

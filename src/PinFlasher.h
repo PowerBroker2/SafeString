@@ -50,7 +50,10 @@ class PinFlasher: protected millisDelay {
   public:
     /**
        Constructor.
-       if pin >= 0 it is initally set to output and OFF<br>
+       The pin number is saved here but the hardware is not touched until the first
+       call to setOnOff(), setOnAndOff(), invertOutput() or update() -- which then sets
+       the pin to output and OFF.  This avoids global PinFlasher objects calling
+       pinMode() during static initialization, before the board core is initialized.<br>
        @param pin -- the pin number to flash, default -1 (not set)<br>
        @param invert -- true to make pin LOW for on, false (default) to make pin HIGH for on.
     */
@@ -123,6 +126,9 @@ class PinFlasher: protected millisDelay {
   private:
     unsigned long on_len_ms; // initially 0, off
     unsigned long off_len_ms; // initially 0, off
+    bool pinModeSet; // initially false, pinMode(io_pin, OUTPUT) is deferred to the
+    // first setOutput() call so the constructor does not touch hardware during
+    // static initialization of global PinFlasher objects
 };
 
 #endif

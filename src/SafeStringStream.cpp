@@ -182,7 +182,7 @@ int SafeStringStream::peek() {
   return  (unsigned char)rxBuf->charAt(0);
 }
 
-void SafeStringStream::SafeStringStream::flush() {
+void SafeStringStream::flush() {
   unsigned long excessTime = releaseNextByte();
   sendTimerStart = micros() - excessTime; // allow for this processing time
 }
