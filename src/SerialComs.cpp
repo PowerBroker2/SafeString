@@ -40,7 +40,7 @@
 
 #define DEBUG SafeString::Output
 
-char SerialComs::emptyCharArray[0];
+char SerialComs::emptyCharArray[1]; // must be at least 1 byte, the SafeString(1,..) constructor writes buffer[0] = '\0'
 
 static const char XON = (char)0x11;
 
@@ -110,6 +110,7 @@ void SerialComs::sendAndReceive() {
 
 // call this to connect to set the Stream to send to / receive from
 bool SerialComs::connect(Stream &io) {
+  deleteSerialComs(); // release any buffers from a previous connect(), prevents leaks on reconnect
   stream_io_ptr = &io;
   outOfMemory = false;
   memoryLow = false;
@@ -210,12 +211,22 @@ void SerialComs::deleteSerialComs() {
     return;// already called
   }
   outOfMemory = true;
-  delete [](textToSendPtr);
-  delete [](textReceivedPtr);
-  delete [] (receiver_SF_INPUT);
+  // these were allocated with single-object new in connect(), so must use
+  // plain delete -- delete[] on a non-array new is undefined behaviour
+  // the pointers are set back to NULL so a later call (e.g. from a reconnect)
+  // cannot free them a second time
+  delete textToSendPtr;
+  textToSendPtr = NULL;
+  delete textReceivedPtr;
+  textReceivedPtr = NULL;
+  delete receiver_SF_INPUT;
+  receiver_SF_INPUT = NULL;
   free(send_BUFFER);
+  send_BUFFER = NULL;
   free(receiver_TOKEN_BUFFER);
+  receiver_TOKEN_BUFFER = NULL;
   free(receive_INPUT_BUFFER);
+  receive_INPUT_BUFFER = NULL;
 }
 
 SerialComs::~SerialComs() {
@@ -254,7 +265,7 @@ void SerialComs::receiveNextMsg() {
     DEBUG.println(F(" textReceived hasError. Read '\\0' or Input overflowed."));
   }
   if (textReceivedPtr->getDelimiter() == - 1) { // no delimiter so timed out
-    DEBUG.println(F("textReceived timeout without receiving terminating XON (0x13)"));
+    DEBUG.println(F("textReceived timeout without receiving terminating XON (0x11)"));
     textReceivedPtr->debug(" ");
     textReceivedPtr->clear(); // skip the invalid line
     return;
@@ -373,7 +384,11 @@ void SerialComs::calcCheckSum(SafeString& msg, SafeString& chkHexStr) {
   }
   int chksum = 0;
   for (size_t i = 0; i < msg.length(); i++) {
-    chksum += msg[i];
+    // cast to unsigned char -- plain char is signed on most boards so bytes >= 0x80
+    // (any utf-8 multi-byte char) would drive the sum negative and % 256 of a
+    // negative int stays negative, producing a multi-char hex string that
+    // overflows the 2 char checksum field
+    chksum += (unsigned char)msg[i];
   }
   chksum = chksum % 256; // keep last 1 byte only
   if (chksum < 16) {

@@ -56,6 +56,7 @@ See the top of each file for its license
 Note, this is NOT my work, I am simply hosting it for easy access. The original code belongs to [Forward Computing and Control Pty. Ltd](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
 
 # Revisions
+V4.1.43 fixed minor bugs found by claude  
 V4.1.42 prevent recursive calls to nextByteOut(). Added utf8index() and utf8nextIndex()  
 V4.1.41 fixed millisDelay repeat after stop()/finish()  
 V4.1.40 add support for separate setting of on and off times for PinFlasher    

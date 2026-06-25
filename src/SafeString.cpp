@@ -962,6 +962,24 @@ size_t SafeString::printInt(double d, int decs, int width, bool forceSign, bool 
 #endif // SSTRING_DEBUG
     return 0;
   }
+  // result[33] below limits the formatted width to 32, dtostrf() pads the output
+  // to abs(width) so larger widths would overflow the stack buffer, and the
+  // padding loop at the end could never reach a width past result's capacity
+  if (absWidth > 32) {
+    setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      if (addNL) {
+        errorMethod(F("println"));
+      } else {
+        errorMethod(F("print"));
+      }
+      debugPtr->print(F(" width:")); debugPtr->print(width); debugPtr->print(F(" exceeds maximum formatted number width of 32"));
+      debugInternalMsg(fullDebug);
+    }
+#endif // SSTRING_DEBUG
+    return 0;
+  }
   // max chars are 11 for integer part including sign (-4294967040), + 1 (.) + 7 prec (prec limited to 7) = 19 + '\0' => 20
   // ESP32
   // max chars are 19 for integer part including sign (-9223372036854775807L), + 1 (.) + 7 prec (prec limited to 7) = 19 +1 + 7 + '\0' => 27
@@ -1154,12 +1172,26 @@ size_t SafeString::printInternal(int64_t num, int base, bool assignOp) {
   char reverseTempBuffer[bufLen];
   char tempBuffer[bufLen];
   size_t tempLen = 0;
-  // from sprintf
-   do {
-    const char digit = (char)(num % base);
+  // work on an unsigned magnitude -- for negative num, num % base is negative in C++
+  // which produced garbage digit chars and no '-' sign.
+  // match Print::print(long,base) semantics: sign only for base 10,
+  // two's complement representation for other bases
+  bool negative = false;
+  uint64_t unum;
+  if ((base == 10) && (num < 0)) {
+    negative = true;
+    unum = -((uint64_t)num); // also correct for INT64_MIN
+  } else {
+    unum = (uint64_t)num;
+  }
+  do {
+    const char digit = (char)(unum % (unsigned int)base);
     reverseTempBuffer[tempLen++] = (digit < 10) ? ('0' + digit) : ('A' + digit - 10);
-    num /= base;
-  } while(num);
+    unum /= (unsigned int)base;
+  } while(unum);
+  if (negative) {
+    reverseTempBuffer[tempLen++] = '-';
+  }
   reverseTempBuffer[tempLen] = '\0';
   size_t i = 0;
   for (int j = tempLen-1; j>=0; j--) {
@@ -1244,9 +1276,11 @@ size_t SafeString::printInternal(unsigned long num, int base, bool assignOp) {
 
 size_t SafeString::printInternal(double num, int digits, bool assignOp) {
   cleanUp();
-  createSafeString(temp, 8 * sizeof(long) + 4); // null + sign + nl
-  if (digits > 7) {
-    digits = 7; // seems to be the limit for print
+  createSafeString(temp, 8 * sizeof(long) + 4); // capacity 36 (sizeof(long) == 4 on all Arduino targets)
+  if (digits > 18) {
+    digits = 18; // match println(double) clamp.  worst case output is
+    // "-4294967040." (12 chars, Print::printFloat prints "ovf" past this magnitude)
+    // + 18 digits = 30 chars which fits the capacity of 36 above
   }
   size_t n = temp.Print::print(num, digits);
   size_t newlen = len + temp.length();
@@ -1714,7 +1748,7 @@ SafeString & SafeString::prefix(unsigned long num) {
 SafeString & SafeString::prefix(int64_t num) {
   createSafeString(temp, 2 + 3 * sizeof(int64_t));
   temp.print(num);
-  return concat(temp); // calls cleanUp()
+  return prefix(temp); // calls cleanUp()
 }
 
 SafeString & SafeString::prefix(float num) {
@@ -3234,10 +3268,10 @@ int SafeString::indexOfCharFrom(const char* chars, unsigned int fromIndex) {
 /****  end of Search methods  *******************************/
 
 /*************************************************/
-/**  utf8 methods                           */
+/**  UTF-8 methods                           */
 /*************************************************/
 // For endIdx <= length(), utf8index returns an index in the range endIdx-3 to endIdx
-// such that using that index for substring will not split a valid utf8 code point
+// such that using that index for substring will not split a valid UTF-8 code point
 // if endIdx > length(), endIdx is set to length(); and the error flag is set
 // endIdx == (unsigned int)(-1)  is treated as endIdx == length() returns a result without an error
     //Code Points 	     1st-Byte 2nd-Byte 3rd-Byte 4th-Byte
@@ -3275,7 +3309,7 @@ int SafeString::utf8index(unsigned int endIdx) {
   unsigned int idx = endIdx;
   int count = 0;
   uint8_t p = 0xFF;
-  // start at endIdx and work back looking for start of utf8
+  // start at endIdx and work back looking for start of UTF-8
   while((idx > 0) && (count <= 4)) { 
     // check idx-1
     p = charAt(idx-1);
@@ -3283,44 +3317,44 @@ int SafeString::utf8index(unsigned int endIdx) {
     count++;
     if (count == 4) {
       return endIdx; // found 3 trailing bytes before this one
-      // so there is a full utf8 4 byte code point between here and
+      // so there is a full UTF-8 4 byte code point between here and
       // endIdx, so splitting at endIdx will not split a code point
     }
     // common case ASCII
-    if (p <= 0x7F) { // finished check valid utf8
-      return endIdx; // first utf8 start byte found and it is a complete code point 
-      // so there is not another partial utf8 code point between here and
+    if (p <= 0x7F) { // finished check valid UTF-8
+      return endIdx; // first UTF-8 start byte found and it is a complete code point 
+      // so there is not another partial UTF-8 code point between here and
       // endIdx, so splitting at endIdx will not split a code point
     } 
     // expect trailing bytes with values < 0xC0, 192
-    if (p >= 0xC0) { // possible first byte of utf8 code point
+    if (p >= 0xC0) { // possible first byte of UTF-8 code point
       break;
     } 
-    // else not a utf8 starting byte for a utf8 code point
+    // else not a UTF-8 starting byte for a UTF-8 code point
     // tailing bytes are 
     // in the range >= 0b10000000 (0x80) < 0b11000000 (0xC0)
     // continue
   }
   
-  // idx is the start a possible valid utf8 sequence.
+  // idx is the start a possible valid UTF-8 sequence.
   if ((p < 0xC2) || (p > 0xF4)) {
-    // not a valid starting byte for utf8 code point
-    // so sequence of bytes between here and endIdx are not a valid utf8 code point
+    // not a valid starting byte for UTF-8 code point
+    // so sequence of bytes between here and endIdx are not a valid UTF-8 code point
     return endIdx; 
   }    
 
-  // else check for valid number of trailing utf8 bytes for this starting byte
+  // else check for valid number of trailing UTF-8 bytes for this starting byte
   if ((p >= 0xF0 && p <= 0xF4) && (count >= 4)) {
-    return idx + 4; // skip to end of 4 byte utf8 code point
+    return idx + 4; // skip to end of 4 byte UTF-8 code point
     // this case already handled by the if (count == 4) { return endIdx} above
   } else if ((p >= 0xE0 && p <= 0xEF) && (count >= 3)) {
-    return idx + 3; // skip to end of 3 byte utf8 code point, may split on invalid extra trailing bytes   
+    return idx + 3; // skip to end of 3 byte UTF-8 code point, may split on invalid extra trailing bytes   
   } else if ((p >= 0xC2 && p <= 0xDF) && (count >= 2)) {  
-    return idx + 2; // skip to end of 2 byte utf8 code point, may split on invalid extra trailing bytes    
+    return idx + 2; // skip to end of 2 byte UTF-8 code point, may split on invalid extra trailing bytes    
   } 
-  // found start of partial utf8 code point.
+  // found start of partial UTF-8 code point.
   if ((idx == 0) && (endIdx == len)) {
-    // safeString only contains partial utf8 code point 
+    // safeString only contains partial UTF-8 code point 
     // so spitting on endIdx will not split aa valid code point
     return endIdx;
   }  
@@ -3330,7 +3364,7 @@ int SafeString::utf8index(unsigned int endIdx) {
 
 
 // For startIdx < length(), utf8nextIndex returns an index in the range startIdx+1 to startIdx+4
-// such that using that index for substring will not split a valid utf8 code point
+// such that using that index for substring will not split a valid UTF-8 code point
 // if startIdx > length(), (unsigned int)(-1) will be returned and the error flag is set
 // if startIdx == (unsigned int)(-1), OR startIdx == length(),  (unsigned int)(-1) will be returned with no error
 int SafeString::utf8nextIndex(unsigned int startIdx) {
@@ -3359,45 +3393,45 @@ int SafeString::utf8nextIndex(unsigned int startIdx) {
   uint8_t p = charAt(startIdx);
   int maxCount = 4;
   if (p >= 0xF0 && p <= 0xF4) {
-    maxCount = 4; // max possible valid bytes to end of 4 byte utf8 code point
+    maxCount = 4; // max possible valid bytes to end of 4 byte UTF-8 code point
   } else if (p >= 0xE0 && p <= 0xEF) {
-    maxCount = 3; // max possible valid bytes to end of 3 byte utf8 code point   
+    maxCount = 3; // max possible valid bytes to end of 3 byte UTF-8 code point   
   } else if (p >= 0xC2 && p <= 0xDF) {  
-    maxCount = 2; // max possible valid bytes to end of 2 byte utf8 code point    
+    maxCount = 2; // max possible valid bytes to end of 2 byte UTF-8 code point    
   } 
   // may stop before maxCount if find start byte.
   
   unsigned int idx = startIdx+1;
   int count = 0;
-  // start at endIdx and work back looking for start of utf8
+  // start at endIdx and work back looking for start of UTF-8
   while((idx < len) && (count < maxCount)) { 
     // check idx
     p = charAt(idx);
     // common case ASCII
-    if (p <= 0x7F) { // finished check valid utf8
-      return idx; // first utf8 start byte found and it is a complete code point 
+    if (p <= 0x7F) { // finished check valid UTF-8
+      return idx; // first UTF-8 start byte found and it is a complete code point 
       // so splitting here will not split a code point
     } 
     // expect trailing bytes with values < 0xC0, 192
-    if (p >= 0xC0) { // possible first byte of utf8 code point
+    if (p >= 0xC0) { // possible first byte of UTF-8 code point
       return idx; // so splitting here will not split a code point
     } 
-    // else not a utf8 starting byte for a utf8 code point
+    // else not a UTF-8 starting byte for a UTF-8 code point
     // tailing bytes are 
     // in the range >= 0b10000000 (0x80) < 0b11000000 (0xC0)
     // continue
     count++;
     if (count == maxCount) {
       return idx; // have scanned 4 bytes with no start found so split here
-      // will not break a valid utf8 code point
+      // will not break a valid UTF-8 code point
     }    
     idx++; // try next one
   }
   return idx; // stopped at end of safeString or after testing 4 bytes 
-  // so splitting here will not split a valid utf8 code point
+  // so splitting here will not split a valid UTF-8 code point
 }  
 
-/****  end of uft8 methods  *******************************/
+/****  end of UTF-8 methods  *******************************/
     
 /*************************************************/
 /**  substring methods                           */
@@ -4823,7 +4857,7 @@ unsigned char SafeString::readUntil(Stream& input, const char delimiter) {
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
+    return false; // errors return false, was len + 1 which is true when cast to the unsigned char return
   }
   return readUntilInternal(input, NULL, delimiter);
 }
@@ -4934,7 +4968,7 @@ unsigned char SafeString::readUntilToken(Stream & input, SafeString& token, cons
       debugInternalMsg(fullDebug);
     }
 #endif // SSTRING_DEBUG
-    return len + 1;
+    return false; // errors return false, was len + 1 which is true when cast to the unsigned char return
   }
   return readUntilTokenInternal(input, token, NULL, delimiter, skipToDelimiter, echoInput, timeout_ms);
 }

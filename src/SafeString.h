@@ -115,7 +115,7 @@
 #include <Print.h>
 #include <Printable.h>
 
-// This include handles the rename of Stream for MBED compiles
+// This include handles the rename of Stream for MBED compiles  also pi pico #if defined(ARDUINO_ARCH_RP2040) && !defined(__MBED__)
 #if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_MBED)
 #include <Stream.h>
 #elif defined( __MBED__ ) || defined( MBED_H )
@@ -321,6 +321,11 @@ class SafeString : public Printable, public Print {
     // _fromBuffer true does extra checking before each method execution for SafeStrings created from existing char[] buffers
     // _fromPtr is not checked unless _fromBuffer is true
     // _fromPtr true allows for any array size, if false prevents passing char* by checking sizeof(charArray) != sizeof(char*)
+
+    // SafeString inherits virtual functions from Print/Printable so it is a polymorphic type.
+    // A virtual destructor is required to avoid -Wdelete-non-virtual-dtor warnings when
+    // deleting heap-allocated SafeString (or SafeStringReader) objects via a base-class pointer.
+    virtual ~SafeString() {}
 
   private: // to force compile errors if function definition of the SafeString argument is not a refernce, i.e. not SafeString&
     SafeString(const SafeString& other ); // You must declare SafeStrings function arguments as a reference, SafeString&,  e.g. void test(SafeString& strIn)
@@ -1098,9 +1103,9 @@ class SafeString : public Printable, public Print {
       */
     int indexOfCharFrom(const char* chars, unsigned int fromIndex = 0);
 
-    /* *** utf8 methods ************/
+    /* *** UTF-8 methods ************/
     // For endIdx <= length(), utf8index returns an index in the range endIdx-3 to endIdx
-    // such that using that index for substring will not split a valid utf8 code point
+    // such that using that index for substring will not split a valid UTF-8 code point
     // if endIdx > length(), endIdx is set to length(); and the error flag is set
     // endIdx == (unsigned int)(-1)  is treated as endIdx == length() returns a result without an error
     //Code Points 	     1st-Byte 2nd-Byte 3rd-Byte 4th-Byte
@@ -1116,16 +1121,16 @@ class SafeString : public Printable, public Print {
     
     /**
       For endIdx <= length(), utf8index() returns an index in the range endIdx-3 to endIdx
-      such that using that index in substring() will not split a valid utf8 code point.
+      such that using that index in substring() will not split a valid UTF-8 code point.
       (see https://www.unicode.org/versions/Unicode16.0.0/core-spec/)
       
-      @param endIdx - the index to the start searching back from to find as safe index to split on to preserve valid utf8 code points<br>
+      @param endIdx - the index to the start searching back from to find as safe index to split on to preserve valid UTF-8 code points<br>
       if endIdx > length(),  endIdx is set to length(); and the error flag is set.<br>
       if endIdx == (unsigned int)(-1), it is treated as endIdx == length() and returns a result without error.
       
       @return result - index that the SafeString can be split at that will preserve valid uff8 code points.
            
-      To take a substring() of a SafeString containing utf8 data while maintaining the integrity of the utf8 code points use <br>
+      To take a substring() of a SafeString containing UTF-8 data while maintaining the integrity of the UTF-8 code points use <br>
       <code>sfStr.substring(sfResult, 0, sfStr.utf8index(endIdx));</code><br>
       Note: if sfStr only contains ASCII data (0x00 to 0x7F) the result is exactly the same as<br>
       <code>sfStr.substring(sfResult, 0, endIdx);</code>
@@ -1134,19 +1139,19 @@ class SafeString : public Printable, public Print {
     
     
     // For startIdx < length(), utf8nextIndex returns an index in the range startIdx+1 to startIdx+4
-    // such that using that index for substring will not split a valid utf8 code point
+    // such that using that index for substring will not split a valid UTF-8 code point
     // if startIdx > length(), (unsigned int)(-1) will be returned and the error flag is set
     // if startIdx == (unsigned int)(-1), OR startIdx == length(),  (unsigned int)(-1) will be returned with no error
     /**
       For startIdx < length(), utf8nextIndex() returns an index in the range startIdx+1 to startIdx+4
-      such that using that index in substring() will not split a valid utf8 code point.
+      such that using that index in substring() will not split a valid UTF-8 code point.
       (see https://www.unicode.org/versions/Unicode16.0.0/core-spec/)
       
-      @param startIdx - the index to the start from to find the next start of a valid utf8 code points<br>
+      @param startIdx - the index to the start from to find the next start of a valid UTF-8 code points<br>
       if startIdx > length(),  (unsigned int)(-1) will be returned and the error flag is set<br>
       if startIdx == (unsigned int)(-1), OR startIdx == length(),  (unsigned int)(-1) will be returned with no error
       
-      @return result - the next index, after startIdx, that can start a valid utf8 code point.<br>
+      @return result - the next index, after startIdx, that can start a valid UTF-8 code point.<br>
       Using this index in substring() will preserve valid uff8 code points.
            
       To extract a single uft8 code point around idx use <br>

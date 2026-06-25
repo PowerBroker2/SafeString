@@ -211,6 +211,7 @@ class BufferedOutput : public Stream {
     int txBufferSize; // serial tx buffer, if any OR set to zero to only use ringBuffer
     bool dropMarkWritten;
     uint8_t lastCharWritten; // check for \n
+    volatile bool inNextByteOut; // per-instance lock to prevent recursive calls to nextByteOut()
 
     // ringBuffer methods
     /**

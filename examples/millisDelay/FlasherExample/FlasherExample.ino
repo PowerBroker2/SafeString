@@ -17,6 +17,8 @@ PinFlasher flasher(flasher_pin);
 //
 
 void setup() {
+  flasher.update(); // claims the pin and drives it OFF.  The PinFlasher constructor
+  // no longer touches the pin, the first update()/setOnOff()/setOnAndOff() call does
   Serial.begin(115200);
   for (int i = 10; i > 0; i--) {
     Serial.print(i); Serial.print(' ');

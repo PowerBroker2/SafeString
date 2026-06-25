@@ -62,6 +62,7 @@ BufferedOutput::BufferedOutput( size_t _bufferSize, uint8_t _buf[],  BufferedOut
   txBufferSize = 0;  // if > 0 then serialPtr != NULL, but can have serialPtr != NULL and txBufferSize == 0
   dropMarkWritten = false;
   lastCharWritten = ' ';
+  inNextByteOut = false; // per-instance recursion lock for nextByteOut()
   baudRate = 0;
   mode = _mode; // default DROP_IF_FULL if not passed in
   allOrNothingSetting = _allOrNothing;
@@ -270,9 +271,7 @@ void BufferedOutput::clear() {
   rb_clear();
   if (notEmpty) {
     dropMarkWritten = false;
-    if (!dropMarkWritten) {
-      writeDropMark();
-    }
+    writeDropMark();
   }
   waitForEmpty = false;
   allOrNothing = false; // force something next write
@@ -516,7 +515,8 @@ size_t BufferedOutput::bytesToBeSent() {
   }
   return btbs;
 }
-static volatile bool inNextByteOut = false; // lock to prevent recursive calls to nextByteOut
+// inNextByteOut is now a per-instance member (see BufferedOutput.h) so one
+// instance's nextByteOut() does not block another instance's
 
 // NOTE nextByteOut will block if baudRate is set higher then actual i/o baudrate
 void BufferedOutput::nextByteOut() {
