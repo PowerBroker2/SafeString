@@ -46,10 +46,12 @@ typedef enum {BLOCK_IF_FULL, DROP_UNTIL_EMPTY, DROP_IF_FULL } BufferedOutputMode
 /**************
   To create a BufferedOutput use the macro **createBufferedOutput**  see the detailed description. NOTE: Any '\0' chars added by <b>write(0)</b> calls, are filtered out of the final output.
     
-  The createBufferedOutput macro takes 2, 3 or 4 arguments.<br>
-  
-  createBufferedOutput(name, size); creates a BufferedOutput called <i>name</i> which can buffer upto <i>size</i> chars without blocking and then will block once the buffer fills up.<br>
-  This default blocking when the buffer is full is not recommended.<br>
+  The createBufferedOutput macro takes 3 or 4 arguments.  The <b>mode</b> argument is NOT optional.<br>
+
+  NOTE: createBufferedOutput(name, size); with only 2 arguments does NOT compile.  This macro ends in a
+  bare __VA_ARGS__, so leaving out the mode expands to <code>BufferedOutput name(size, buf,  );</code> and
+  fails with "error: expected primary-expression before ')' token".  The constructor has no default for
+  mode either.  Always pass one of BLOCK_IF_FULL, DROP_UNTIL_EMPTY or DROP_IF_FULL.<br>
 
   Add a call to <br> 
   <code>bufferedOutput.nextByteOut();</code><br>
@@ -81,8 +83,8 @@ class BufferedOutput : public Stream {
          use createBufferedOutput(name, size, mode); instead  
          BufferedOutput(size_t _bufferSize, uint8_t *_buf, BufferedOutputMode mode, bool allOrNothing = true);  
            
-         @param buf -- the user allocated buffer to store the bytes, must be at least bufferSize long.  Defaults to an internal 8 char buffer if buf is omitted or NULL  
-         @param bufferSize -- number of bytes to buffer,max bufferSize is limited to 32766. Defaults to an internal 8 char buffer if bufferSize is < 8 or is omitted  
+         @param buf -- the user allocated buffer to store the bytes, must be at least bufferSize long.  Defaults to an internal 8 char buffer if buf is NULL (there is no default, buf cannot be omitted)  
+         @param bufferSize -- number of bytes to buffer,max bufferSize is limited to 32766. Defaults to an internal 8 char buffer if bufferSize is < 8 (there is no default, bufferSize cannot be omitted)  
          @param mode -- BLOCK_IF_FULL, DROP_UNTIL_EMPTY or DROP_IF_FULL  
                  BLOCK_IF_FULL,    like normal print, but with a buffer. Use this to see ALL the output, but will block the loop() when the output buffer fills  
                  DROP_UNTIL_EMPTY, when the output buffer is full, drop any more chars until it completely empties.  ~~<CR><NL> is inserted in the output to show chars were dropped.  

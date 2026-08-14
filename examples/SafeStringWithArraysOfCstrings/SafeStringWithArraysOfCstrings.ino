@@ -40,7 +40,7 @@ void setup() {
   Serial.println();
   SafeString::setOutput(Serial); // enable error msgs
 
-  Serial.println(F(" char arr2[][MAX_STRING_SIZE]"));
+  Serial.println(F(" char arr1[][MAX_STRING_SIZE]"));
   // to modify the string safely wrap it in a SafeString
   cSFA(sf1arr0, arr1[0]); // OR in the long form   createSafeStringFromCharArray(sf1arr0,arr1[0]);
   // the capacity is automatically picked up from the arr[][xx] definition
@@ -64,8 +64,10 @@ void setup() {
   Serial.println(F(" Now const char *arr2[]"));
 
   // to modify the string safely wrap it in a SafeString
-  cSFP(sf2arr0, (char*)arr2[0]); // OR in the long form   createSafeStringFromCharArray(sf2arr0,arr2[0]);
-  // the capacity is automatically picked up from the arr[][xx] definition
+  cSFP(sf2arr0, (char*)arr2[0]); // OR in the long form   createSafeStringFromCharPtr(sf2arr0,(char*)arr2[0]);
+  // NOTE: this is cSFP, not cSFA.  arr2 is an array of const char*, not a char[][xx], so there is no
+  // array size for SafeString to pick up.  The capacity is strlen(arr2[0]), i.e. 18 here, and it can
+  // NOT be increased.  That is why the += below fails and hasError() returns true.
   Serial.print(F("sf2arr0 capacity:")); Serial.println(sf2arr0.capacity());
   Serial.println(F("sf2arr0 += \" add a bit more\";"));
   sf2arr0 += " add a bit more";

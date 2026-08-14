@@ -102,6 +102,10 @@
 #include <Arduino.h>
 #include "SafeString.h"
 #include <limits.h>
+// errno / ERANGE are used by the number conversion methods below to distinguish a genuine
+// overflow from a valid input that happens to equal LONG_MAX / LONG_MIN / ULONG_MAX.
+// strtol()'s return value cannot tell those two cases apart, errno can.
+#include <errno.h>
 
 #if !defined(ARDUINO_ARCH_AVR)
 #ifdef __cplusplus
@@ -204,7 +208,34 @@ SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _
 
   if (buf != NULL) {
     buffer = buf;
-    if ((maxLen == 0) || (maxLen == ((size_t) - 1))) { // -1 => find cap from strlen()
+    // Why maxLen == 0 is trapped here instead of being left to provoke an error later:
+    // the normal path below does  _capacity = maxLen - 1;  and maxLen is unsigned, so 0-1 underflows
+    // to SIZE_MAX (65535 on AVR, 4294967295 on 32 bit) and the SafeString would believe it owns a huge
+    // buffer.  The malloc(_capacity) memory check further down does eventually catch that, but it
+    // reports "request size:4294967295 exceeds available memory", which does not tell the user what is
+    // actually wrong.  Trapping it here gives the real reason, and does not rely on a huge malloc failing.
+    //
+    // maxLen == (size_t)-1 is the cSFP( ) sentinel, meaning "take the capacity from strlen(buf)".
+    //
+    // The three outcomes below:
+    //   (size_t)-1, from a char*   -> capacity = strlen(buf).  cSFP( ).  The ONLY use of strlen( ) here
+    //   0,          from a char*   -> error, capacity 0.  cSFPS( ) was given an array size of 0
+    //   either,     from a char[]  -> error, capacity 0.  zero length array
+    //
+    // How maxLen == 0 can actually arise:
+    //   cSFPS(name, ptr, 0)   - the caller's arraySize is passed straight through.  The usual way
+    //   cSFA(name, charArray) - where charArray is a zero length array, char x[0].  That is invalid in
+    //                           standard C++ but GCC allows it as an extension and gives sizeof(x) == 0,
+    //                           and the Arduino cores compile with -std=gnu++.. so the extension is on
+    //   cSF(name, -1)         - the macro declares char name_SAFEBUFFER[(-1)+1], i.e. char[0]
+    //   cSFP( ) cannot, it always passes (size_t)-1
+    // Note the char*-lookalike check earlier in this constructor cannot catch the cSFA case, it tests
+    // maxLen == sizeof(char*) and 0 is never sizeof(char*).
+    // char str[0] is ill-formed in standard C++ (array bounds must be greater than zero).
+    // GCC allows it as a documented extension, giving sizeof == 0, and the Arduino cores
+    // compile with -std=gnu++11/gnu++17, so the extension is enabled and the declaration is
+    // accepted.
+    if ((maxLen == 0) || (maxLen == ((size_t) - 1))) {
       if (fromBuffer && _fromPtr) { // either ..fromCharPtr or ..fromCharPtrWithSize
         if (maxLen == 0) { // ..fromCharPtrWithSize
           buffer = nullBufferSafeStringBuffer;
@@ -214,8 +245,8 @@ SafeString::SafeString(size_t maxLen, char *buf, const char* cstr, const char* _
           setError();
 #ifdef SSTRING_DEBUG
           if (debugPtr) {
-            debugPtr->print(F("Error: createSafeStringFromCharArrayWithSize("));
-            outputName(); debugPtr->print(F(", ..., 0) was passed zero passed for array size"));
+            debugPtr->print(F("Error: createSafeStringFromCharPtrWithSize("));
+            outputName(); debugPtr->print(F(", ..., 0) was passed zero for the array size"));
             debugInternalMsg(fullDebug);
           }
 #endif // SSTRING_DEBUG
@@ -884,7 +915,7 @@ size_t SafeString::print(double d, int decs) {
   If the result exceed abs(width), reduce the decs after the decmial point to fit
   If result with decs == 0 still > abs(width) raise an error and ,optionally, output an error msg
 
-  Note decs is quietly limited in this method to < 7
+  Note decs is quietly limited in this method to 7 digits after the decimal point, i.e. if (decs > 7) decs = 7;
 */
 size_t SafeString::print(double d, int decs, int width, bool forceSign) {
   return printInt(d, decs, width, forceSign, false);
@@ -3268,10 +3299,10 @@ int SafeString::indexOfCharFrom(const char* chars, unsigned int fromIndex) {
 /****  end of Search methods  *******************************/
 
 /*************************************************/
-/**  UTF-8 methods                           */
+/**  utf8 methods                           */
 /*************************************************/
 // For endIdx <= length(), utf8index returns an index in the range endIdx-3 to endIdx
-// such that using that index for substring will not split a valid UTF-8 code point
+// such that using that index for substring will not split a valid utf8 code point
 // if endIdx > length(), endIdx is set to length(); and the error flag is set
 // endIdx == (unsigned int)(-1)  is treated as endIdx == length() returns a result without an error
     //Code Points 	     1st-Byte 2nd-Byte 3rd-Byte 4th-Byte
@@ -3309,7 +3340,7 @@ int SafeString::utf8index(unsigned int endIdx) {
   unsigned int idx = endIdx;
   int count = 0;
   uint8_t p = 0xFF;
-  // start at endIdx and work back looking for start of UTF-8
+  // start at endIdx and work back looking for start of utf8
   while((idx > 0) && (count <= 4)) { 
     // check idx-1
     p = charAt(idx-1);
@@ -3317,44 +3348,44 @@ int SafeString::utf8index(unsigned int endIdx) {
     count++;
     if (count == 4) {
       return endIdx; // found 3 trailing bytes before this one
-      // so there is a full UTF-8 4 byte code point between here and
+      // so there is a full utf8 4 byte code point between here and
       // endIdx, so splitting at endIdx will not split a code point
     }
     // common case ASCII
-    if (p <= 0x7F) { // finished check valid UTF-8
-      return endIdx; // first UTF-8 start byte found and it is a complete code point 
-      // so there is not another partial UTF-8 code point between here and
+    if (p <= 0x7F) { // finished check valid utf8
+      return endIdx; // first utf8 start byte found and it is a complete code point 
+      // so there is not another partial utf8 code point between here and
       // endIdx, so splitting at endIdx will not split a code point
     } 
     // expect trailing bytes with values < 0xC0, 192
-    if (p >= 0xC0) { // possible first byte of UTF-8 code point
+    if (p >= 0xC0) { // possible first byte of utf8 code point
       break;
     } 
-    // else not a UTF-8 starting byte for a UTF-8 code point
+    // else not a utf8 starting byte for a utf8 code point
     // tailing bytes are 
     // in the range >= 0b10000000 (0x80) < 0b11000000 (0xC0)
     // continue
   }
   
-  // idx is the start a possible valid UTF-8 sequence.
+  // idx is the start a possible valid utf8 sequence.
   if ((p < 0xC2) || (p > 0xF4)) {
-    // not a valid starting byte for UTF-8 code point
-    // so sequence of bytes between here and endIdx are not a valid UTF-8 code point
+    // not a valid starting byte for utf8 code point
+    // so sequence of bytes between here and endIdx are not a valid utf8 code point
     return endIdx; 
   }    
 
-  // else check for valid number of trailing UTF-8 bytes for this starting byte
+  // else check for valid number of trailing utf8 bytes for this starting byte
   if ((p >= 0xF0 && p <= 0xF4) && (count >= 4)) {
-    return idx + 4; // skip to end of 4 byte UTF-8 code point
+    return idx + 4; // skip to end of 4 byte utf8 code point
     // this case already handled by the if (count == 4) { return endIdx} above
   } else if ((p >= 0xE0 && p <= 0xEF) && (count >= 3)) {
-    return idx + 3; // skip to end of 3 byte UTF-8 code point, may split on invalid extra trailing bytes   
+    return idx + 3; // skip to end of 3 byte utf8 code point, may split on invalid extra trailing bytes   
   } else if ((p >= 0xC2 && p <= 0xDF) && (count >= 2)) {  
-    return idx + 2; // skip to end of 2 byte UTF-8 code point, may split on invalid extra trailing bytes    
+    return idx + 2; // skip to end of 2 byte utf8 code point, may split on invalid extra trailing bytes    
   } 
-  // found start of partial UTF-8 code point.
+  // found start of partial utf8 code point.
   if ((idx == 0) && (endIdx == len)) {
-    // safeString only contains partial UTF-8 code point 
+    // safeString only contains partial utf8 code point 
     // so spitting on endIdx will not split aa valid code point
     return endIdx;
   }  
@@ -3364,7 +3395,7 @@ int SafeString::utf8index(unsigned int endIdx) {
 
 
 // For startIdx < length(), utf8nextIndex returns an index in the range startIdx+1 to startIdx+4
-// such that using that index for substring will not split a valid UTF-8 code point
+// such that using that index for substring will not split a valid utf8 code point
 // if startIdx > length(), (unsigned int)(-1) will be returned and the error flag is set
 // if startIdx == (unsigned int)(-1), OR startIdx == length(),  (unsigned int)(-1) will be returned with no error
 int SafeString::utf8nextIndex(unsigned int startIdx) {
@@ -3393,45 +3424,45 @@ int SafeString::utf8nextIndex(unsigned int startIdx) {
   uint8_t p = charAt(startIdx);
   int maxCount = 4;
   if (p >= 0xF0 && p <= 0xF4) {
-    maxCount = 4; // max possible valid bytes to end of 4 byte UTF-8 code point
+    maxCount = 4; // max possible valid bytes to end of 4 byte utf8 code point
   } else if (p >= 0xE0 && p <= 0xEF) {
-    maxCount = 3; // max possible valid bytes to end of 3 byte UTF-8 code point   
+    maxCount = 3; // max possible valid bytes to end of 3 byte utf8 code point   
   } else if (p >= 0xC2 && p <= 0xDF) {  
-    maxCount = 2; // max possible valid bytes to end of 2 byte UTF-8 code point    
+    maxCount = 2; // max possible valid bytes to end of 2 byte utf8 code point    
   } 
   // may stop before maxCount if find start byte.
   
   unsigned int idx = startIdx+1;
   int count = 0;
-  // start at endIdx and work back looking for start of UTF-8
+  // start at endIdx and work back looking for start of utf8
   while((idx < len) && (count < maxCount)) { 
     // check idx
     p = charAt(idx);
     // common case ASCII
-    if (p <= 0x7F) { // finished check valid UTF-8
-      return idx; // first UTF-8 start byte found and it is a complete code point 
+    if (p <= 0x7F) { // finished check valid utf8
+      return idx; // first utf8 start byte found and it is a complete code point 
       // so splitting here will not split a code point
     } 
     // expect trailing bytes with values < 0xC0, 192
-    if (p >= 0xC0) { // possible first byte of UTF-8 code point
+    if (p >= 0xC0) { // possible first byte of utf8 code point
       return idx; // so splitting here will not split a code point
     } 
-    // else not a UTF-8 starting byte for a UTF-8 code point
+    // else not a utf8 starting byte for a utf8 code point
     // tailing bytes are 
     // in the range >= 0b10000000 (0x80) < 0b11000000 (0xC0)
     // continue
     count++;
     if (count == maxCount) {
       return idx; // have scanned 4 bytes with no start found so split here
-      // will not break a valid UTF-8 code point
+      // will not break a valid utf8 code point
     }    
     idx++; // try next one
   }
   return idx; // stopped at end of safeString or after testing 4 bytes 
-  // so splitting here will not split a valid UTF-8 code point
+  // so splitting here will not split a valid utf8 code point
 }  
 
-/****  end of UTF-8 methods  *******************************/
+/****  end of uft8 methods  *******************************/
     
 /*************************************************/
 /**  substring methods                           */
@@ -4025,14 +4056,22 @@ unsigned char SafeString::toInt(int &i) {
     return false; // not found
   }
   char* endPtr;
+  errno = 0; // clear before the call, only strtol() below can set it here
   long result = strtol(buffer, &endPtr, 10); // handles 123 (use 0 for 0xAF and 037 (octal))
+  if (errno == ERANGE) {
+    // the long itself overflowed.  This is the only guard that works on boards where
+    // sizeof(int) == sizeof(long) (ESP32/ESP8266/RP2040/SAMD), because there INT_MAX == LONG_MAX
+    // and the range checks below can never be true for an overflowed result.
+    return false;
+  }
   if (result > INT_MAX) {
+    // the long is valid but does not fit in an int.  Needed on AVR where int is 16 bit.
     return false;
   }
   if (result < INT_MIN) {
     return false;
   }
-  // check endPtr to see if number valid 5a is invalid,  5. is valid
+  // check endPtr to see if number valid, 5a and 5. are both invalid ('.' is not white space)
   if (endPtr == buffer)  { // no numbers found at all
     return false;
   } // else
@@ -4055,14 +4094,12 @@ unsigned char SafeString::toLong(long &l) {
     return false; // not found
   }
   char* endPtr;
+  errno = 0; // clear before the call, only strtol() below can set it here
   long result = strtol(buffer, &endPtr, 10); // handles 123 (use 0 for 0xAF and 037 (octal))
-  if (result == LONG_MAX) {
-    return false;
+  if (errno == ERANGE) { // the only reliable over/underflow signal
+    return false;        // NOTE: do NOT test result == LONG_MAX/LONG_MIN, they are also valid inputs
   }
-  if (result == LONG_MIN) {
-    return false;
-  }
-  // check endPtr to see if number valid 5a is invalid,  5. is valid
+  // check endPtr to see if number valid, 5a and 5. are both invalid ('.' is not white space)
   if (endPtr == buffer)  { // no numbers found at all
     return false;
   } // else
@@ -4085,14 +4122,12 @@ unsigned char SafeString::binToLong(long &l) {
     return false; // not found
   }
   char* endPtr;
+  errno = 0; // clear before the call, only strtol() below can set it here
   long result = strtol(buffer, &endPtr, 2);
-  if (result == LONG_MAX) {
-    return false;
+  if (errno == ERANGE) { // the only reliable over/underflow signal
+    return false;        // NOTE: do NOT test result == LONG_MAX/LONG_MIN, they are also valid inputs
   }
-  if (result == LONG_MIN) {
-    return false;
-  }
-  // check endPtr to see if number valid 5a is invalid,  5. is valid
+  // check endPtr to see if number valid, 5a and 5. are both invalid ('.' is not white space)
   if (endPtr == buffer)  { // no numbers found at all
     return false;
   } // else
@@ -4115,14 +4150,12 @@ unsigned char SafeString::octToLong(long &l) {
     return false; // not found
   }
   char* endPtr;
+  errno = 0; // clear before the call, only strtol() below can set it here
   long result = strtol(buffer, &endPtr, 8);
-  if (result == LONG_MAX) {
-    return false;
+  if (errno == ERANGE) { // the only reliable over/underflow signal
+    return false;        // NOTE: do NOT test result == LONG_MAX/LONG_MIN, they are also valid inputs
   }
-  if (result == LONG_MIN) {
-    return false;
-  }
-  // check endPtr to see if number valid 5a is invalid,  5. is valid
+  // check endPtr to see if number valid, 5a and 5. are both invalid ('.' is not white space)
   if (endPtr == buffer)  { // no numbers found at all
     return false;
   } // else
@@ -4145,14 +4178,12 @@ unsigned char SafeString::hexToLong(long &l) {
     return false; // not found
   }
   char* endPtr;
+  errno = 0; // clear before the call, only strtol() below can set it here
   long result = strtol(buffer, &endPtr, 16); //
-  if (result == LONG_MAX) {
-    return false;
+  if (errno == ERANGE) { // the only reliable over/underflow signal
+    return false;        // NOTE: do NOT test result == LONG_MAX/LONG_MIN, they are also valid inputs
   }
-  if (result == LONG_MIN) {
-    return false;
-  }
-  // check endPtr to see if number valid 5a is invalid,  5. is valid
+  // check endPtr to see if number valid, 5a and 5. are both invalid ('.' is not white space)
   if (endPtr == buffer)  { // no numbers found at all
     return false;
   } // else
@@ -4175,11 +4206,12 @@ unsigned char SafeString::toUnsignedLong(unsigned long &l) {
     return false; // not found
   }
   char* endPtr;
+  errno = 0; // clear before the call, only strtoul() below can set it here
   unsigned long result = strtoul(buffer, &endPtr, 10); // handles 123 (use 0 for 0xAF and 037 (octal))
-  if (result == ULONG_MAX) {
-    return false;
+  if (errno == ERANGE) { // the only reliable overflow signal
+    return false;        // NOTE: do NOT test result == ULONG_MAX, that is also a valid input
   }
-  // check endPtr to see if number valid 5a is invalid,  5. is valid
+  // check endPtr to see if number valid, 5a and 5. are both invalid ('.' is not white space)
   if (endPtr == buffer)  { // no numbers found at all
     return false;
   } // else
@@ -4202,11 +4234,12 @@ unsigned char SafeString::binToUnsignedLong(unsigned long &l) {
     return false; // not found
   }
   char* endPtr;
+  errno = 0; // clear before the call, only strtoul() below can set it here
   unsigned long result = strtoul(buffer, &endPtr, 2);
-  if (result == ULONG_MAX) {
-    return false;
+  if (errno == ERANGE) { // the only reliable overflow signal
+    return false;        // NOTE: do NOT test result == ULONG_MAX, that is also a valid input
   }
-  // check endPtr to see if number valid 5a is invalid,  5. is valid
+  // check endPtr to see if number valid, 5a and 5. are both invalid ('.' is not white space)
   if (endPtr == buffer)  { // no numbers found at all
     return false;
   } // else
@@ -4229,11 +4262,12 @@ unsigned char SafeString::octToUnsignedLong(unsigned long &l) {
     return false; // not found
   }
   char* endPtr;
+  errno = 0; // clear before the call, only strtoul() below can set it here
   unsigned long result = strtoul(buffer, &endPtr, 8);
-  if (result == ULONG_MAX) {
-    return false;
+  if (errno == ERANGE) { // the only reliable overflow signal
+    return false;        // NOTE: do NOT test result == ULONG_MAX, that is also a valid input
   }
-  // check endPtr to see if number valid 5a is invalid,  5. is valid
+  // check endPtr to see if number valid, 5a and 5. are both invalid ('.' is not white space)
   if (endPtr == buffer)  { // no numbers found at all
     return false;
   } // else
@@ -4256,11 +4290,12 @@ unsigned char SafeString::hexToUnsignedLong(unsigned long &l) {
     return false; // not found
   }
   char* endPtr;
+  errno = 0; // clear before the call, only strtoul() below can set it here
   unsigned long result = strtoul(buffer, &endPtr, 16); //
-  if (result == ULONG_MAX) {
-    return false;
+  if (errno == ERANGE) { // the only reliable overflow signal
+    return false;        // NOTE: do NOT test result == ULONG_MAX, that is also a valid input
   }
-  // check endPtr to see if number valid 5a is invalid,  5. is valid
+  // check endPtr to see if number valid, 5a and 5. are both invalid ('.' is not white space)
   if (endPtr == buffer)  { // no numbers found at all
     return false;
   } // else
@@ -5566,6 +5601,8 @@ int64_t SafeString::strto_int64_t(const char *nptr, char **endptr, int base) {
   }
   if (any < 0) {
     acc = neg ? SF_INT64_MIN : SF_INT64_MAX;
+    errno = ERANGE; // signal the overflow the same way strtol() does, so that callers can tell a
+    // genuine overflow from a valid input that happens to equal SF_INT64_MAX / SF_INT64_MIN
   } else if (neg)
     acc = -acc;
   if (endptr != 0)
@@ -5586,14 +5623,12 @@ unsigned char SafeString::toInt64_t(int64_t &l) {
     return false; // not found
   }
   char* endPtr;
+  errno = 0; // clear before the call, only strto_int64_t() below can set it here
   int64_t result = strto_int64_t(buffer, &endPtr, 10); // handles 123 (use 0 for 0xAF and 037 (octal))
-  if (result == SF_INT64_MAX) {
-    return false;
+  if (errno == ERANGE) { // the only reliable over/underflow signal
+    return false;        // NOTE: do NOT test result == SF_INT64_MAX/MIN, they are also valid inputs
   }
-  if (result == SF_INT64_MIN) {
-    return false;
-  }
-  // check endPtr to see if number valid 5a is invalid,  5. is valid
+  // check endPtr to see if number valid, 5a and 5. are both invalid ('.' is not white space)
   if (endPtr == buffer)  { // no numbers found at all
     return false;
   } // else

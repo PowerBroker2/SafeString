@@ -1,5 +1,8 @@
 # SafeString
-This SafeString library is designed for beginners to be a safe, robust and debuggable replacement for string processing in Arduino and provides non-blocking text I/O and parsing and testing for Real World use.
+This SafeString library is designed for beginners to be a safe, robust and debuggable replacement for string processing in Arduino and provides non-blocking 
+text I/O and parsing and testing for Real World use.  
+
+The <strong>[SafeString_AI_Guide.md](SafeString_AI_Guide.md)</strong> provides this library's context and examples for use by an AI coding assistant.
 
 This library includes:-  
 * **SafeString**, a safe, robust and debuggable replacement for string processing in Arduino  
@@ -56,6 +59,9 @@ See the top of each file for its license
 Note, this is NOT my work, I am simply hosting it for easy access. The original code belongs to [Forward Computing and Control Pty. Ltd](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
 
 # Revisions
+V4.1.44 added SafeString_AI_Guide.md for AI code assistants to use as context for this library
+        fixed toInt and toLong for edge cases and 32bit chips
+        various doc fixes	
 V4.1.43 fixed minor bugs found by claude  
 V4.1.42 prevent recursive calls to nextByteOut(). Added utf8index() and utf8nextIndex()  
 V4.1.41 fixed millisDelay repeat after stop()/finish()  
@@ -107,5 +113,4 @@ V4.0.1 fixed SafeStringReader timeout and NanoBLE F() macro
 V4.0.0 changes method returns to better match Arduino String methods, main change is indexOf now returns int and returns -1 if not found  
 V3.1.0 adds hasError() method  
 V3.0.6 adds support for Arduino megaAVR boards  
-V3.0.5 adds support for SparkFun Redboard Turbo,but may interfer with other SAM ZERO based boards, also adds support for Due and STM32F1 and STM32F4  
-
+V3.0.5 adds support for SparkFun Redboard Turbo,but may interfer with other SAM ZERO based boards, also adds support for Due and STM32F1 and STM32F4

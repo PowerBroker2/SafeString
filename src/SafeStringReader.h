@@ -146,8 +146,13 @@ class SafeStringReader : public SafeString {
     /**
         end()
         returns true if have another token, terminates last token if any,
-        disconnect from stream, turn echo off, set timeout to 0 and clear skipToDelimiter,
-        clears getReadCount()
+        disconnects from the stream, clears any buffered input, clears skipToDelimiter
+        and clears getReadCount()
+
+        NOTE: end() does NOT change the echo setting and does NOT reset the timeout.
+        The lines that did so are commented out in SafeStringReader.cpp, so those two
+        settings survive an end()/connect() cycle.  If you need them reset, call
+        echoOff() / setTimeout( ) yourself after re-connecting.
     */
     bool end();
 

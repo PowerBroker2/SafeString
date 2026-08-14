@@ -29,26 +29,32 @@
    SafeString str(sizeof(charBuffer),charBuffer, charBuffer, "str", true);
 
   createSafeStringFromCharPtrWithSize(name, char*, unsigned int);  or cSFPS(name, char*, unsigned int);
-   wraps an existing char[] pointed to by char* in a SafeString of the given name and sets the capacity to the given size
+   wraps an existing char[] pointed to by char* in a SafeString of the given name.
+   The arraySize argument is the size of the char[], so the capacity is set to arraySize-1 to allow for the terminating '\0'
   e.g.
   char charBuffer[15]; // can hold 14 char + terminating '\0'
   char *bufPtr = charBuffer;
-  createSafeStringFromCharPtrWithSize(str,bufPtr, 14); or cSFPS(str,bufPtr, 14);
+  createSafeStringFromCharPtrWithSize(str,bufPtr, 15); or cSFPS(str,bufPtr, 15);
   expands in the pre-processor to
-   SafeString str(14+1,charBuffer, charBuffer, "str", true);
-  The capacity of the SafeString is set to 14.
+   SafeString str(15,charBuffer, charBuffer, "str", true);
+  The capacity of the SafeString is set to 14, i.e. arraySize-1
 
   createSafeStringFromCharPtr(name, char*);  or cSFP(name, char*);
    wraps an existing char[] pointed to by char* in a SafeString of the given name
-  createSafeStringFromCharPtr(name, char* s) is the same as   createSafeStringFromCharPtrWithSzie(name, char* s, strlen(s));
+  createSafeStringFromCharPtr(name, char* s) is the same as   createSafeStringFromCharPtrWithSize(name, char* s, strlen(s)+1);
   That is the current strlen() is used to set the SafeString capacity.
+  Note the +1 above:  cSFPS sets capacity to its size argument -1, so matching cSFP's capacity of strlen(s) needs strlen(s)+1
   e.g.
   char charBuffer[15] = "test";
   char *bufPtr = charBuffer;
   createSafeStringFromCharPtr(str,bufPtr); or cSFP(str,bufPtr);
   expands in the pre-processor to
-   SafeString str(0,charBuffer, charBuffer, "str", true);
-  and the capacity of the SafeString is set to strlen(charBuffer) and cannot be increased.
+   SafeString str((unsigned int)-1,charBuffer, charBuffer, "str", true);
+  the -1 tells the constructor to take the capacity from strlen(charBuffer), and it cannot be increased.
+  NOTE CAREFULLY: the capacity here is 4, the strlen of "test", NOT 14.  cSFP( ) uses strlen( ), not the
+  size of the array, because a char* carries no size information.  The other 10 bytes of charBuffer[15]
+  are unusable through this SafeString.  If you want the capacity to be 14, the array size-1, you must
+  tell SafeString the size yourself with cSFA(str,charBuffer) or cSFPS(str,bufPtr,15).
 
 
    If str is a SafeString then
@@ -115,7 +121,7 @@
 #include <Print.h>
 #include <Printable.h>
 
-// This include handles the rename of Stream for MBED compiles  also pi pico #if defined(ARDUINO_ARCH_RP2040) && !defined(__MBED__)
+// This include handles the rename of Stream for MBED compiles
 #if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_MBED)
 #include <Stream.h>
 #elif defined( __MBED__ ) || defined( MBED_H )
@@ -304,19 +310,24 @@ class SafeString : public Printable, public Print {
   SafeString Constructor called from <a href="#details">the four (4) macros</a> **createSafeString** or **cSF**, **createSafeStringFromCharArray** or **cSFA**, **createSafeStringFromCharPtr** or **cSFP**, **createSafeStringFromCharPtrWithSize** or **cSFPS**.
   
   This constructor is not designed to called directly by your code. See the <a href="#details">detailed SafeString class description</a> above.
-  @param maxLen - the number of chars that can stored not including the terminating '\0'
+  @param maxLen - the size of the buf char[] array, i.e. the capacity+1 to allow for the terminating '\0'.
+   NOT the number of chars that can be stored, that is the capacity, which is maxLen-1.
+   Two values of maxLen are sentinels and do not follow that rule, see the notes below the @param list.
   @param buf - the fixed sized char buffer to hold the data
   @param cstr - the initial data to be loaded into this SafeString
   @param _name - the code variable name of this SafeString, default NULL
   @param _fromBuffer - true if this SafeString is wrapping an existing char[]
   @param _fromPtr - true if this SafeString's buf parameter was a char* rather then a char[], _fromPtr is not checked unless _fromBuffer is true
  ********************************************/
-// In all cases when maxlen != -1, it is the actual size of the array
+// When maxLen is neither (size_t)-1 nor 0 it is the actual size of the array, and capacity == maxLen-1
 // if _fromBuffer false (i.e. cSF(sfStr,20); ) then maxLen is the capacity+1 and the macro allocates an char[20+1], (_fromPtr ignored)
 // if _fromBuffer true and _fromPtr false (i.e. cSFA(sfStr, strArray); ) then maxLen is the sizeof the strArray and the capacity is maxLen-1, _fromPtr is false
-// if _fromBuffer true and _fromPtr true, then from char*, (i.e. cSFP(sfStr,strPtr) or cSFPS(sfStr,strPtr, maxLen) and maxLen is either -1 cSFP( ) the size of the char Array pointed cSFPS 
-//    if maxLen == -1 then capacity == strlen(char*)  i.e. cSFP( )
+// if _fromBuffer true and _fromPtr true, then from char*, (i.e. cSFP(sfStr,strPtr) or cSFPS(sfStr,strPtr, maxLen)
+//    if maxLen == (size_t)-1 then capacity == strlen(char*)  i.e. cSFP( ).  This is the ONLY case that uses strlen()
+//    else if maxLen == 0 then it is an ERROR, cSFPS( ) was passed an array size of 0.  capacity is set to 0
 //    else capacity == maxLen-1;   i.e. cSFPS( )
+// maxLen == 0, or (size_t)-1, when NOT from a char* (i.e. cSF( ) or cSFA( )) is an ERROR, a zero length
+//    array.  capacity is set to 0.  Note: cSF( ) cannot produce maxLen == 0, its macro always passes size+1
     explicit SafeString(unsigned int maxLen, char *buf, const char* cstr, const char* _name = NULL, bool _fromBuffer = false, bool _fromPtr = true);
     // _fromBuffer true does extra checking before each method execution for SafeStrings created from existing char[] buffers
     // _fromPtr is not checked unless _fromBuffer is true
@@ -511,7 +522,7 @@ class SafeString : public Printable, public Print {
     //    If the result exceeds abs(width), reduce the decs after the decmial point to fit into width
     //    If result with decs reduced to 0 is still > abs(width) raise an error and ,optionally, output an error msg
     //
-    //    Note decs is quietly limited in this method to < 7 digit after the decimal point.
+    //    Note decs is quietly limited in this method to 7 digits after the decimal point, i.e. if (decs > 7) decs = 7;
     
     /*************************************************************
     Prints a double (or long/int) to this SafeString padded with spaces (left or right) and limited to the specified width and adds a trailing CR NL
@@ -1103,9 +1114,9 @@ class SafeString : public Printable, public Print {
       */
     int indexOfCharFrom(const char* chars, unsigned int fromIndex = 0);
 
-    /* *** UTF-8 methods ************/
+    /* *** utf8 methods ************/
     // For endIdx <= length(), utf8index returns an index in the range endIdx-3 to endIdx
-    // such that using that index for substring will not split a valid UTF-8 code point
+    // such that using that index for substring will not split a valid utf8 code point
     // if endIdx > length(), endIdx is set to length(); and the error flag is set
     // endIdx == (unsigned int)(-1)  is treated as endIdx == length() returns a result without an error
     //Code Points 	     1st-Byte 2nd-Byte 3rd-Byte 4th-Byte
@@ -1121,16 +1132,16 @@ class SafeString : public Printable, public Print {
     
     /**
       For endIdx <= length(), utf8index() returns an index in the range endIdx-3 to endIdx
-      such that using that index in substring() will not split a valid UTF-8 code point.
+      such that using that index in substring() will not split a valid utf8 code point.
       (see https://www.unicode.org/versions/Unicode16.0.0/core-spec/)
       
-      @param endIdx - the index to the start searching back from to find as safe index to split on to preserve valid UTF-8 code points<br>
+      @param endIdx - the index to the start searching back from to find as safe index to split on to preserve valid utf8 code points<br>
       if endIdx > length(),  endIdx is set to length(); and the error flag is set.<br>
       if endIdx == (unsigned int)(-1), it is treated as endIdx == length() and returns a result without error.
       
       @return result - index that the SafeString can be split at that will preserve valid uff8 code points.
            
-      To take a substring() of a SafeString containing UTF-8 data while maintaining the integrity of the UTF-8 code points use <br>
+      To take a substring() of a SafeString containing utf8 data while maintaining the integrity of the utf8 code points use <br>
       <code>sfStr.substring(sfResult, 0, sfStr.utf8index(endIdx));</code><br>
       Note: if sfStr only contains ASCII data (0x00 to 0x7F) the result is exactly the same as<br>
       <code>sfStr.substring(sfResult, 0, endIdx);</code>
@@ -1139,19 +1150,19 @@ class SafeString : public Printable, public Print {
     
     
     // For startIdx < length(), utf8nextIndex returns an index in the range startIdx+1 to startIdx+4
-    // such that using that index for substring will not split a valid UTF-8 code point
+    // such that using that index for substring will not split a valid utf8 code point
     // if startIdx > length(), (unsigned int)(-1) will be returned and the error flag is set
     // if startIdx == (unsigned int)(-1), OR startIdx == length(),  (unsigned int)(-1) will be returned with no error
     /**
       For startIdx < length(), utf8nextIndex() returns an index in the range startIdx+1 to startIdx+4
-      such that using that index in substring() will not split a valid UTF-8 code point.
+      such that using that index in substring() will not split a valid utf8 code point.
       (see https://www.unicode.org/versions/Unicode16.0.0/core-spec/)
       
-      @param startIdx - the index to the start from to find the next start of a valid UTF-8 code points<br>
+      @param startIdx - the index to the start from to find the next start of a valid utf8 code points<br>
       if startIdx > length(),  (unsigned int)(-1) will be returned and the error flag is set<br>
       if startIdx == (unsigned int)(-1), OR startIdx == length(),  (unsigned int)(-1) will be returned with no error
       
-      @return result - the next index, after startIdx, that can start a valid UTF-8 code point.<br>
+      @return result - the next index, after startIdx, that can start a valid utf8 code point.<br>
       Using this index in substring() will preserve valid uff8 code points.
            
       To extract a single uft8 code point around idx use <br>
@@ -1669,7 +1680,7 @@ class SafeString : public Printable, public Print {
                 while being consistent with the SafeString's all or nothing insertion rule<br>
                Input argument errors return false and an empty token and hasError() is set on both this SafeString and the token SafeString.
     **/
-    inline unsigned char firstToken(SafeString & token, SafeString delimiters, bool returnLastNonDelimitedToken = true) {
+    inline unsigned char firstToken(SafeString & token, SafeString & delimiters, bool returnLastNonDelimitedToken = true) {
     	return nextToken(token,delimiters,true,returnLastNonDelimitedToken,true);
     }
     

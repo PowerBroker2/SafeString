@@ -13,24 +13,27 @@
 
 /***
   Usage:
-     // modes DROP_IF_FULL or DROP_UNTIL_EMPTY or BLOCK_IF_FULL.  BLOCK_IF_FULL will delay loop() when buffer fills up
-  createBufferedOutput( output, 64, DROP_IF_FULL); // buffered out called output with buffer size 64 and mode drop chars if buffer full
-  OR
-  createBufferedOutput( output, 64, DROP_IF_FULL, false);  // for partial output of print(...)
+  createBufferedInput( input, 64); // buffered input called input with an extra buffer size of 64 chars
 
   Then in setup()
-  output.connect(Serial,9600); // connect the buffered output to Serial releasing bytes at 9600 baud.
+  input.connect(Serial); // connect the buffered input to Serial to read from
 
-  Then in loop()  use output instead of Serial e.g.
+  Then in loop()  use input instead of Serial e.g.
   void loop() {
-    // put this line at the top of the loop, must be called each loop to release the buffered bytes
-    output.nextByteOut(); // send a byte to Serial if it is time i.e. release at 9600baud
+    // put this line at the top of the loop, must be called each loop to transfer the
+    // available chars from the Serial RX buffer into this buffer before the RX buffer overflows
+    input.nextByteIn();
    ...
-    output.print(" this is the msg"); // print to output instead of Serial
+    if (input.available()) { int c = input.read(); } // read from input instead of Serial
    ...
-    output.read(); // can also read from output, not buffered reads directly from Serial.
+    input.print(" this is the msg"); // can also write to input, not buffered, writes directly to Serial.
    ...
    }
+
+  Sizing the buffer: input.maxBufferUsed() returns the high water mark of this buffer and
+  input.maxStreamAvailable() returns the high water mark of the Serial RX buffer.  Both are
+  reset to zero by the call.  If maxBufferUsed() reaches the buffer size, increase the size.
+  If maxStreamAvailable() approaches the Serial RX buffer size, call nextByteIn() more often.
 */
 
 #include <Print.h>
@@ -61,11 +64,11 @@
 class BufferedInput : public Stream {
   public:
     /**
-         use createBufferedOutput(name, size); instead
+         use createBufferedInput(name, size); instead
          BufferedInput(size_t _bufferSize, uint8_t *_buf);
 
-         buf -- the user allocated buffer to store the bytes, must be at least bufferSize long.  Defaults to an internal 8 char buffer if buf is omitted or NULL
-         bufferSize -- number of bytes to buffer,max bufferSize is limited to 32766. Defaults to an internal 8 char buffer if bufferSize is < 8 or is omitted
+         buf -- the user allocated buffer to store the bytes, must be at least bufferSize long.  Defaults to an internal 8 char buffer if buf is NULL (there is no default, buf cannot be omitted)
+         bufferSize -- number of bytes to buffer,max bufferSize is limited to 32766. Defaults to an internal 8 char buffer if bufferSize is < 8 (there is no default, bufferSize cannot be omitted)
     */
     BufferedInput(size_t _bufferSize, uint8_t *_buf);
 
@@ -85,10 +88,14 @@ class BufferedInput : public Stream {
     virtual int availableForWrite();
     size_t getSize(); // returns buffer size
 
-    // Counts when number of chars dropped due to full inputBuffer
-    // count is reset to zero at the end of this call
-    int maxStreamAvailable();
-    int maxBufferUsed();
+    // These two are HIGH WATER MARKS, not drop counts.  BufferedInput does not count dropped chars;
+    // nextByteIn() only ever moves as many bytes as currently fit, it never discards any.
+    // Each value is reset to zero by the call that reads it, so each reading covers the interval
+    // since the previous call.
+    int maxStreamAvailable(); // the largest available() seen on the connected Stream, ie how close the
+    // hardware RX buffer came to overflowing.  If this approaches the RX buffer size, call nextByteIn() more often
+    int maxBufferUsed();      // the largest fill level seen in this buffer.  If this reaches the buffer
+    // size then chars ARE being lost at the Stream, increase the size passed to createBufferedInput( )
 
   private:
     Stream* streamPtr;
