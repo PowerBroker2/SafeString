@@ -150,7 +150,7 @@ class SerialComs : public SafeString {
     size_t _receiveSize;
     size_t _sendSize;
     Stream *stream_io_ptr;
-    unsigned long connectionTimeout_ms;// = 250; // 0.25 sec
+    unsigned long connectionTimeout_ms;// set to 5000 (5 sec) in the constructor
     static char emptyCharArray[1]; // must be at least 1 byte, the SafeString(1,..) constructor writes buffer[0] = '\0'
 };
 

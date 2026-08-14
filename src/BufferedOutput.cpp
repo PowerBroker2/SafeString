@@ -39,8 +39,8 @@
      use createBufferedOutput(name, size, mode); instead
      BufferedOutput(size_t _bufferSize, uint8_t *_buf, BufferedOutputMode mode, bool allOrNothing = true);
 
-     buf -- the user allocated buffer to store the bytes, must be at least bufferSize long.  Defaults to an internal 8 char buffer if buf is omitted or NULL  
-     bufferSize -- number of bytes to buffer,max bufferSize is limited to 32766. Defaults to an internal 8 char buffer if bufferSize is < 8 or is omitted  
+     buf -- the user allocated buffer to store the bytes, must be at least bufferSize long.  Defaults to an internal 8 char buffer if buf is NULL (there is no default, buf cannot be omitted)  
+     bufferSize -- number of bytes to buffer,max bufferSize is limited to 32766. Defaults to an internal 8 char buffer if bufferSize is < 8 (there is no default, bufferSize cannot be omitted)  
      mode -- BLOCK_IF_FULL, DROP_UNTIL_EMPTY or DROP_IF_FULL  
              BLOCK_IF_FULL,    like normal print, but with a buffer. Use this to see ALL the output, but will block the loop() when the output buffer fills  
              DROP_UNTIL_EMPTY, when the output buffer is full, drop any more chars until it completely empties.  ~~<CR><NL> is inserted in the output to show chars were dropped.  
@@ -64,9 +64,10 @@ BufferedOutput::BufferedOutput( size_t _bufferSize, uint8_t _buf[],  BufferedOut
   lastCharWritten = ' ';
   inNextByteOut = false; // per-instance recursion lock for nextByteOut()
   baudRate = 0;
-  mode = _mode; // default DROP_IF_FULL if not passed in
+  mode = _mode; // no default, the mode argument is required by createBufferedOutput( )
   allOrNothingSetting = _allOrNothing;
-  allOrNothing = false; // reset after first write(buf,size) // default true if not passed in call.
+  allOrNothing = false; // reset to allOrNothingSetting after the first write(buf,size).  The
+  // allOrNothing constructor argument does default to true if createBufferedOutput( ) is given 3 args.
   waitForEmpty = false; // can write now
   if ((_buf == NULL) || (_bufferSize < 8)) {
     // use default
@@ -692,12 +693,6 @@ void BufferedOutput::rb_clear() {
   rb_buffer_count = 0;
 }
 
-/*
-   This should return size_t,
-   but someone stuffed it up in the Arduino libraries
-*/
-// defined in BufferedOutput.h in BufferedOutputRingBuffer class declaration
-//int BufferedOutput::available() { return buffer_count; }
 
 
 size_t BufferedOutput::rb_getSize() {
@@ -708,7 +703,7 @@ size_t BufferedOutput::rb_getSize() {
    This should return size_t,
    but someone stuffed it up in the Arduino libraries
 */
-// defined in BufferedOutput.h in BufferedOutputRingBuffer class declaration
+// defined in BufferedOutput.h as a private member of the BufferedOutput class
 int BufferedOutput::rb_availableForWrite() {
   return (rb_bufSize - rb_buffer_count);
 }

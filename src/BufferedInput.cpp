@@ -24,11 +24,11 @@
 **/
 
 /**
-     use createBufferedOutput(name, size, mode); instead
+     use createBufferedInput(name, size); instead
      BufferedInput(size_t _bufferSize, uint8_t *_buf);
 
-     buf -- the user allocated buffer to store the bytes, must be at least bufferSize long.  Defaults to an internal 8 char buffer if buf is omitted or NULL
-     bufferSize -- number of bytes to buffer,max bufferSize is limited to 32766. Defaults to an internal 8 char buffer if bufferSize is < 8 or is omitted
+     buf -- the user allocated buffer to store the bytes, must be at least bufferSize long.  Defaults to an internal 8 char buffer if buf is NULL (there is no default, buf cannot be omitted)
+     bufferSize -- number of bytes to buffer,max bufferSize is limited to 32766. Defaults to an internal 8 char buffer if bufferSize is < 8 (there is no default, bufferSize cannot be omitted)
 */
 
 BufferedInput::BufferedInput( size_t _bufferSize, uint8_t _buf[]) {
@@ -192,7 +192,7 @@ void BufferedInput::rb_clear() {
    This should return size_t,
    but someone stuffed it up in the Arduino libraries
 */
-// defined in BufferedInput.h in BufferedOutputRingBuffer class declaration
+// defined in BufferedInput.h as a private member of the BufferedInput class
 //int BufferedInput::available() { return buffer_count; }
 
 
@@ -204,7 +204,7 @@ size_t BufferedInput::rb_getSize() {
    This should return size_t,
    but someone stuffed it up in the Arduino libraries
 */
-// defined in BufferedInput.h in BufferedOutputRingBuffer class declaration
+// defined in BufferedInput.h as a private member of the BufferedInput class
 int BufferedInput::rb_availableForWrite() {
   return (rb_bufSize - rb_buffer_count);
 }

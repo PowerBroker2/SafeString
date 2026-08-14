@@ -59,16 +59,17 @@ void setup() {
   Serial.print(F("sensorStr.hasError():"));  Serial.println(sensorStr.hasError() ? "true" : "false");
   Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
-  Serial.println(F(" Use setLength(14) instead"));
-  sensorStr.setLength(14);
-  sensorStr.debug(F("sensorStr.setLength(14); => "));
+  Serial.println(F(" Use removeFrom(14) instead to truncate to 14 chars"));
+  Serial.println(F("   (setLength() was removed from SafeString in V4.1.34)"));
+  sensorStr.removeFrom(14);
+  sensorStr.debug(F("sensorStr.removeFrom(14); => "));
   Serial.print(F("sensorStr.hasError():"));  Serial.println(sensorStr.hasError() ? "true" : "false");
   Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();
 
-  sensorStr.debug(F("Trying to set a new length > length() is an error"));
-  Serial.println(F("sensorStr.setLength(33);"));
-  sensorStr.setLength(33);
+  sensorStr.debug(F("Trying to remove from an index > length() is an error"));
+  Serial.println(F("sensorStr.removeFrom(33);"));
+  sensorStr.removeFrom(33);
   Serial.print(F("sensorStr.hasError():"));  Serial.println(sensorStr.hasError() ? "true" : "false");
   Serial.print(F("SafeString::errorDetected():"));  Serial.println(SafeString::errorDetected() ? "true" : "false");
   Serial.println();

@@ -17,7 +17,12 @@ const int PIN_ON = -1;
 const int PIN_OFF = 0;
 /**
    Constructor.
-   if pin >=0 it is initally set to output and OFF<br>
+   The pin number is saved here but the hardware is NOT touched -- pinMode() is not called
+   and the pin is left in its power-on reset state.  This is so that global/static PinFlasher
+   objects, whose constructors run during static initialization before the board core is
+   fully initialized, do not touch the hardware too early (a problem on some boards).
+   The pin is claimed lazily, and driven to OFF, by the first call to
+   update(), setOnOff(), setOnAndOff(), setPin() or invertOutput().<br>
    @param pin -- the pin number to flash, default -1 (not set)<br>
    @param invert -- true to make pin LOW for on, false (default) to make pin HIGH for on.
 */

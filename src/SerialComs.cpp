@@ -26,7 +26,8 @@
   either its response message OR just <XON> if there is nothing to send
   The controller then responds with its response message or just <XON> and so on.
   
-  If no chars are received for 250ms, the connection times out and isConnected() returns false.
+  If no chars are received for connectionTimeout_ms, the connection times out and isConnected() returns false.
+  connectionTimeout_ms is set to 5000 (5 sec) in the constructor.
   If the isConnected() is false on the controller side, it is waiting for the non-controller to send its response
   to the last message (or <XON>) the controller sent so the controller prompts the non-controller with <XON>
   If isConnected() is false on the non-controller side, it is waiting for the controller prompt it.
