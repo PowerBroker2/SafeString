@@ -59,6 +59,7 @@ See the top of each file for its license
 Note, this is NOT my work, I am simply hosting it for easy access. The original code belongs to [Forward Computing and Control Pty. Ltd](https://www.forward.com.au/pfod/ArduinoProgramming/SafeString/index.html).
 
 # Revisions
+V4.1.45 revised SafeString_AI_Guide.md, fixed trim() for utf-8. readUntilToken now requires token.capacity() >= safestring.capacity()  
 V4.1.44 added SafeString_AI_Guide.md for AI code assistants to use as context for this library
         fixed toInt and toLong for edge cases and 32bit chips
         various doc fixes	

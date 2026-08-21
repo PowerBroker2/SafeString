@@ -23,7 +23,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">SafeString
-   &#160;<span id="projectnumber">4.1.44</span>
+   &#160;<span id="projectnumber">4.1.45</span>
    </div>
    <div id="projectbrief">SafeString is a safe, robust and debuggable replacement for string processing in Arduino</div>
   </td>
@@ -118,7 +118,10 @@ Software License</h1>
 <p>See the top of each file for its license</p>
 <h1><a class="anchor" id="autotoc_md5"></a>
 Revisions</h1>
-<p>V4.1.42 prevent recursive calls to nextByteOut(). Added utf8index() and utf8nextIndex() <br  />
+<p>V4.1.45 revised SafeString_AI_Guide.md, fixed trim() for utf-8. readUntilToken now requires token.capacity() &gt;= safestring.capacity() <br  />
+ V4.1.44 fixed toInt, toFloat, toLong <br  />
+ V4.1.43 pinFlasher setPin() deferred to loop(), <br  />
+ V4.1.42 prevent recursive calls to nextByteOut(). Added utf8index() and utf8nextIndex() <br  />
  V4.1.41 fixed <a class="el" href="classmillis_delay.html" title="millisDelay** implements a non-blocking, repeatable delay, see the detailed description.">millisDelay</a> repeat after stop()/finish() <br  />
  V4.1.40 add support for separate setting of on and off times for <a class="el" href="class_pin_flasher.html" title="The PinFlasher class inherits from millisDelay to provide non-blocking repeating on/off toggle of the...">PinFlasher</a> <br  />
  V4.1.39 add int64_t for += and -= operators <br  />

@@ -38,8 +38,11 @@
   
 */
 
+// uncomment this for  per message debugging
+// #define DEBUG SafeString::Output
 
-#define DEBUG SafeString::Output
+// Stream out for error messages
+#define ERROR_STREAM SafeString::Output
 
 char SerialComs::emptyCharArray[1]; // must be at least 1 byte, the SafeString(1,..) constructor writes buffer[0] = '\0'
 
@@ -95,11 +98,15 @@ SafeString& SerialComs::getTextToSend() {
 // this MUST be called every loop()
 void SerialComs::sendAndReceive() {
   if (outOfMemory) {
-    DEBUG.println(F("Out of Memory creating SerialComs"));
+#ifdef ERROR_STREAM
+    ERROR_STREAM.println(F("Out of Memory creating SerialComs"));
+#endif
     return; // skip
   }
   if (stream_io_ptr == NULL) {
-    DEBUG.println(F("Need to call connect(..) first"));
+#ifdef ERROR_STREAM
+    ERROR_STREAM.println(F("Need to call connect(..) first"));
+#endif
     return; // skip
   }  
   receiveNextMsg(); // always clears textReceivedPtr will fill textReceivedPtr if any non-empty line of data received.
@@ -173,7 +180,9 @@ bool SerialComs::connect(Stream &io) {
 #endif
   if (mem == NULL) {
     memoryLow = true;
-    DEBUG.println(F("Warning Low Memory after creating SerialComsPair"));
+#ifdef ERROR_STREAM
+    ERROR_STREAM.println(F("Warning Low Memory after creating SerialComsPair"));
+#endif
   } else {
     free(mem);
   }
@@ -191,7 +200,9 @@ bool SerialComs::connect(Stream &io) {
   textReceivedPtr->returnEmptyTokens();
   textReceivedPtr->flushInput();
   textReceivedPtr->connect(*stream_io_ptr); // read from COMS_SERIAL
+#ifdef DEBUG
   DEBUG.println(F(" SerialComs clearing out old data . . ."));
+#endif
   while(textReceivedPtr->isSkippingToDelimiter()) {
   	  textReceivedPtr->read();
   }
@@ -203,7 +214,9 @@ bool SerialComs::connect(Stream &io) {
   	  timeout = 1;
   }
   textReceivedPtr->setTimeout(timeout); // 10ms timeout 10 chars at 9600, 1 char at 960 baud timeout missing XON
+#ifdef DEBUG
   DEBUG.println(F(" SerialComs -  started"));
+#endif
   return true;
 }
 
@@ -260,14 +273,25 @@ void SerialComs::receiveNextMsg() {
  // checkConnectionTimeout(); // if CONTROLLER the other side if not connected and this side is the controller
 
   if (!textReceivedPtr->read()) { // have not got a line of data ALWAYS call this to handle read timeouts
+    // A message longer than receiveSize is bad DATA, not a coding error, so it raises no error.
+    // It must be picked up here, on the read() that detected and discarded it, because
+    // longTokenDiscarded() is cleared at the start of every read().
+    if (textReceivedPtr->longTokenDiscarded()) {
+#ifdef ERROR_STREAM
+      ERROR_STREAM.println(F(" textReceived input overflowed receiveSize. Message discarded."));
+#endif
+    }
     return;
   }
-  if (textReceivedPtr->hasError()) { // previous input length exceeded or read 0
-    DEBUG.println(F(" textReceived hasError. Read '\\0' or Input overflowed."));
-  }
+  // No hasError() test here.  The only error readUntilToken() still raises for link data is a '\0',
+  // and SafeString itself already prints "read '\0' from Stream." naming the SafeString, on the pass
+  // that read it.  Repeating it here would be a vaguer duplicate one pass late, and hasError() would
+  // clear the flag before the sketch could ever see it.
   if (textReceivedPtr->getDelimiter() == - 1) { // no delimiter so timed out
-    DEBUG.println(F("textReceived timeout without receiving terminating XON (0x11)"));
-    textReceivedPtr->debug(" ");
+#ifdef ERROR_STREAM
+    ERROR_STREAM.println(F("textReceived timeout without receiving terminating XON (0x11)"));
+    ERROR_STREAM.println(*textReceivedPtr); 
+#endif
     textReceivedPtr->clear(); // skip the invalid line
     return;
   }
@@ -284,15 +308,19 @@ void SerialComs::receiveNextMsg() {
   		// empty msg
   	} else {
   	  if (!wasConnected) { // was not already connected
+#ifdef DEBUG
   	   DEBUG.println(F("Got prompted by Controller"));
+#endif
   	  }
   	}
   } else {
+#ifdef DEBUG
    size_t len = textReceivedPtr->length();
    if (len > 2) {
    	   len -=2;
    }
    DEBUG.print(F("Received '")); DEBUG.write((const uint8_t*)textReceivedPtr->c_str(),len); DEBUG.println("'");
+#endif
   }
   clearToSendFlag = true; // can send more data now
   if (textReceivedPtr->isEmpty()) {
@@ -313,7 +341,9 @@ void SerialComs::sendNextMsg() {
     clearToSendFlag = false;  // only send one message per textToSendPtr received
     if (!textToSendPtr->isEmpty() && isConnected()) {
       textToSendPtr->replace(XON, ' ');    // replace \n with space
+#ifdef DEBUG
       DEBUG.print(F("Sending '")); DEBUG.print(*textToSendPtr); DEBUG.println("'");
+#endif
       cSF(ckSum, 2);
       calcCheckSum(*textToSendPtr, ckSum); // calculated checksum returned in SafeString ckSum
       stream_io_ptr->print(*textToSendPtr); stream_io_ptr->print(ckSum);
@@ -332,14 +362,18 @@ void SerialComs::resetConnectionTimer() {
 void SerialComs::setConnected() {
   resetConnectionTimer();
   if (!isConnected()) {
+#ifdef DEBUG
     DEBUG.println(F(" Made Connection."));
+#endif
     connected = true;
   }
 }
 
 void SerialComs::lostConnection() {
   if (isConnected()) {
+#ifdef DEBUG
     DEBUG.println(F("Connection timed out"));
+#endif
   }
   if (!isController) {
     clearToSendFlag = false; // wait for prompt from controller
@@ -409,10 +443,12 @@ bool SerialComs::checkCheckSum(SafeString& msg) {
   }
   size_t len = msg.length();
   if (len < 3) {
-    //DEBUG.print(F(" CheckSum failed for msg '")); DEBUG.print(*textReceivedPtr); DEBUG.println("'");
-    DEBUG.print(F(" CheckSum failed -- "));
-    DEBUG.print(F(" Need at least 3 chars in msg"));
-    DEBUG.println();
+#ifdef ERROR_STREAM
+    //ERROR_STREAM.print(F(" CheckSum failed for msg '")); ERROR_STREAM.print(*textReceivedPtr); ERROR_STREAM.println("'");
+    ERROR_STREAM.print(F(" CheckSum failed -- "));
+    ERROR_STREAM.print(F(" Need at least 3 chars in msg"));
+    ERROR_STREAM.println();
+#endif
     return false; // 2 Hex for checksum + at least one char for msg
     // empty lines don't have checksums
   }
@@ -424,11 +460,13 @@ bool SerialComs::checkCheckSum(SafeString& msg) {
   if (chksum == msgChksum) {
     return true;
   } // else
-//  DEBUG.print(F(" CheckSum failed for msg '")); DEBUG.print(*textReceivedPtr); DEBUG.println("'");
-  DEBUG.print(F(" CheckSum failed -- "));
-  DEBUG.print(F(" CheckSum Hex received '")); DEBUG.print(msgChksum); DEBUG.print("'");
-  DEBUG.print(F(" calculated '")); DEBUG.print(chksum); DEBUG.print("'");
-  DEBUG.println();
+#ifdef ERROR_STREAM
+//  ERROR_STREAM.print(F(" CheckSum failed for msg '")); ERROR_STREAM.print(*textReceivedPtr); ERROR_STREAM.println("'");
+  ERROR_STREAM.print(F(" CheckSum failed -- "));
+  ERROR_STREAM.print(F(" CheckSum Hex received '")); ERROR_STREAM.print(msgChksum); ERROR_STREAM.print("'");
+  ERROR_STREAM.print(F(" calculated '")); ERROR_STREAM.print(chksum); ERROR_STREAM.print("'");
+  ERROR_STREAM.println();
+#endif
   return false; // check sum failed
 }
 
@@ -441,7 +479,9 @@ void SerialComs::checkConnectionTimeout() {
       // so prompt it every connectionTimeOut_ms
       // after connectionTimeout, controller times out but skips this section since connected is still true
       // next time around i.e. 2*connectionTimeOut this section send a prompt.
+#ifdef DEBUG
       DEBUG.println(F("Prompt other side to connect"));
+#endif
       stream_io_ptr->write(XON); // we are still alive
     }
     if (!stream_io_ptr->available()) { // both controller and other side

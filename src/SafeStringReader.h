@@ -106,7 +106,16 @@ class SafeStringReader : public SafeString {
       sets this SafeStringReader to that token's text.  The delimiter is not returned as part of the token.
       Use getDelimiter() to check which char delimited this token.
       returnEmptyTokens() controls if empty tokens are returned. Default is to not return empty tokens, i.e. skip multiple consecutive delimiters.
-      NOTE: this call always clears the SafeStringReader so no need to call clear() on sfReader at end of processing.
+      NOTE: this call always clears the SafeStringReader so no need to call clear() on sfReader at end of processing.<br>
+      <br>
+      returns false both when there is no complete token yet and when an over-long token has just been
+      detected and discarded.  longTokenDiscarded() tells those two apart:<br>
+      true - the input was longer than the size this SafeStringReader was created with.  The leading
+      chars of it are left in this SafeStringReader so they can be shown to whoever sent them, the rest
+      is discarded as it arrives, up to the next delimiter.  This is the only case where read() returns
+      false with a non-empty SafeStringReader.<br>
+      false - nothing to report, just carry on with the rest of loop()<br>
+      Over-long input is bad DATA, not a coding error, so it raises no error and prints nothing.
     */
     bool read();
 
@@ -176,6 +185,30 @@ class SafeStringReader : public SafeString {
       */
     bool isSkippingToDelimiter();
 
+    /**
+      longTokenDiscarded() returns true if the last call to read() found a token longer than the
+      size this SafeStringReader was created with, and so discarded it.<br>
+      Over-long input is bad DATA, not a coding error, so no SafeString error is raised for it and
+      nothing is printed.  This method is how you detect it and report it to whoever sent it.<br>
+      Cleared at the start of every read(), so it always refers to the most recent read() call and
+      is true for exactly one read() per over-long token, the one that detected it.<br>
+      While it is true this SafeStringReader holds the leading chars of the over-long input, so they
+      can be shown to whoever sent them.  The rest is discarded as it arrives, up to the next
+      delimiter, so what you have is the start of the input, not all of it.<br>
+      Note isSkippingToDelimiter() is NOT a substitute, it can be set and cleared again within a
+      single read() when the next delimiter is already in the Stream's RX buffer.<br>
+      <code>
+      if (sfReader.read()) {<br>
+      &nbsp;&nbsp;handleCommand(sfReader);         // delimited token found (may be empty)<br>
+      } else if (sfReader.longTokenDiscarded()) {<br>
+      &nbsp;&nbsp;Serial.print(F("Input too long, starts with '")); Serial.print(sfReader); Serial.println('\'');<br>
+      } else {<br>
+      &nbsp;&nbsp;// no complete token yet, just carry on with the rest of loop()<br>
+      }<br>
+      </code>
+      */
+    bool longTokenDiscarded();
+
     /* Assignment operators **********************************
       Set the SafeString to a char version of the assigned value.
       For = (const char *) the contents are copied to the SafeString buffer
@@ -215,6 +248,7 @@ class SafeStringReader : public SafeString {
     bool echoInput;
     bool emptyTokensReturned; // default false
     bool flagFlushInput; // true if flushing
+    bool longTokenDiscardedFlag; // true if the last read() detected and discarded an over-long token
     unsigned long timeout_ms;
     bool haveToken; // true if have token but read() not called yet
     Stream *streamPtr;

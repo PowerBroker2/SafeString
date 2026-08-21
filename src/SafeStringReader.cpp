@@ -33,6 +33,7 @@ void SafeStringReader::init(SafeString& sfInput_,const char* delimiters_, bool s
   timeout_ms = timeout_ms_;
   emptyTokensReturned = false;
   flagFlushInput = false;
+  longTokenDiscardedFlag = false;
   haveToken = false;
   streamPtr = NULL;
   charCounter = 0;
@@ -40,6 +41,14 @@ void SafeStringReader::init(SafeString& sfInput_,const char* delimiters_, bool s
 
 bool SafeStringReader::isSkippingToDelimiter() {
 	return (flagFlushInput || skipToDelimiterFlag);
+}
+
+// true if the last read() found a token longer than size and discarded it.
+// Over-long input is bad DATA, not a coding error, so no error is raised and nothing is printed.
+// While true, this SafeStringReader holds the leading chars of that input so they can be shown to
+// whoever sent them.  Cleared at the start of every read(), see the header for the usage pattern.
+bool SafeStringReader::longTokenDiscarded() {
+	return longTokenDiscardedFlag;
 }
 
 void SafeStringReader::connect(Stream& stream) {
@@ -76,10 +85,9 @@ size_t SafeStringReader::getReadCount() {
 }
 
 //set back to false at next delimiter
+// Nothing is printed here.  The caller asked for this skip, so it is neither a coding error nor
+// unexpected input, and SafeString::Output is the channel for SafeString coding errors.
 void SafeStringReader::skipToDelimiter() {
-#ifdef SSTRING_DEBUG
-  SafeString::Output.print(F("\nSkipping Input upto next delimiter.\n")); // input overflow
-#endif // SSTRING_DEBUG
   skipToDelimiterFlag = true; // sets skipToDelimiter to true
 }
 
@@ -145,6 +153,18 @@ void SafeStringReader::flushInput() {
 
 // Each call to this method removes the lead delimiter so if you need to check the delimiter do it BEFORE the next call to read()
 // NOTE: this call always clears the SafeStringReader so no need to call clear() on sfReader at end of processing.
+//
+// Returns true when a delimited token has been read.  The token may be empty, that is an empty
+// field between two successive delimiters, and is only returned if returnEmptyTokens(true) was set.
+//
+// Returns false when there is no complete token yet, AND when an over-long token has just been
+// detected and discarded.  Those two are told apart by longTokenDiscarded():
+//   true  -> the input was longer than the size this reader was created with.  The leading chars
+//            of it are left in this SafeStringReader so they can be shown to whoever sent them,
+//            the rest is discarded as it arrives, up to the next delimiter.
+//            This is the only case where read() returns false with a non-empty SafeStringReader.
+//   false -> nothing to report, just carry on with the rest of loop()
+// Over-long input is bad DATA, not a coding error, so it raises no error and prints nothing.
 bool SafeStringReader::read() {
   if (!streamPtr) {
     SafeString::Output.println();
@@ -154,25 +174,25 @@ bool SafeStringReader::read() {
     delay(5000);
     return false;
   }
-  bool skipMsg = false;
+  longTokenDiscardedFlag = false; // refers to this read() call only
   bool rtn = false;
   bool skipToDelimiterPrior = skipToDelimiterFlag;
   rtn = sfInputPtr->readUntilToken(*streamPtr, *this, delimiters, skipToDelimiterFlag, echoInput, timeout_ms);
   charCounter += sfInputPtr->getLastReadCount();
   if ((!skipToDelimiterPrior) && skipToDelimiterFlag) {
-  	skipMsg = true;
+    // skipToDelimiter has just gone from false to true, so readUntilToken found input longer than
+    // capacity and is discarding it.  That is bad DATA, not a coding error, so nothing is printed
+    // and no error is raised, the caller tests longTokenDiscarded() instead.
+    longTokenDiscardedFlag = true;
   }
   // if skipToDelimiterFlag true the rtn is always false and sfInput has been cleared
   // try to read some more may return true if delimiter found this time
-  if ((!rtn) && (skipToDelimiterFlag)) {
+  // NOT when longTokenDiscardedFlag was just set though, because readUntilToken() clears the token
+  // at the start of every call and that would wipe the over-long chars before the caller sees them.
+  // Skipping then starts on the next read() instead of this one, which costs nothing.
+  if ((!rtn) && (skipToDelimiterFlag) && (!longTokenDiscardedFlag)) {
     rtn = sfInputPtr->readUntilToken(*streamPtr, *this, delimiters, skipToDelimiterFlag, echoInput, timeout_ms);
     charCounter += sfInputPtr->getLastReadCount();
-  }
-  if (skipMsg) {
-#ifdef SSTRING_DEBUG
-    SafeString::Output.println();
-    SafeString::Output.print(F("!! Input exceeded buffer size. Skipping Input upto next delimiter.\n")); // input overflow
-#endif // SSTRING_DEBUG
   }
   if ((!emptyTokensReturned) && isEmpty()) {
   	  return false;

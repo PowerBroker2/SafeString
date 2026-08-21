@@ -2255,7 +2255,7 @@ unsigned char SafeString::equalsIgnoreCase(const char *str2) {
   const char *p1 = buffer;
   const char *p2 = str2;
   while (*p1) {
-    if (tolower(*p1++) != tolower(*p2++)) {
+    if (tolower((unsigned char)*p1++) != tolower((unsigned char)*p2++)) {
       return false;
     }
   }
@@ -2277,7 +2277,7 @@ unsigned char SafeString::equalsIgnoreCase( SafeString &s2 ) {
   const char *p1 = buffer;
   const char *p2 = s2.buffer;
   while (*p1) {
-    if (tolower(*p1++) != tolower(*p2++)) {
+    if (tolower((unsigned char)*p1++) != tolower((unsigned char)*p2++)) {
       return false;
     }
   }
@@ -2528,7 +2528,7 @@ unsigned char SafeString::startsWithIgnoreCase( SafeString &s2, unsigned int fro
   const char *p1 = &buffer[fromIndex];
   const char *p2 = s2.buffer;
   while (*p2) { // loop through str2 have check lengths above
-    if (tolower(*p1++) != tolower(*p2++)) {
+    if (tolower((unsigned char)*p1++) != tolower((unsigned char)*p2++)) {
       return false;
     }
   }
@@ -2587,7 +2587,7 @@ unsigned char SafeString::startsWithIgnoreCase( const char *str2, unsigned int f
   const char *p1 = &buffer[fromIndex];
   const char *p2 = str2;
   while (*p2) { // loop through str2 have check lengths above
-    if (tolower(*p1++) != tolower(*p2++)) {
+    if (tolower((unsigned char)*p1++) != tolower((unsigned char)*p2++)) {
       return false;
     }
   }
@@ -3966,7 +3966,7 @@ void SafeString::keepLast(unsigned int count) {
 void SafeString::toLowerCase(void) {
   cleanUp();
   for (char *p = buffer; *p; p++) {
-    *p = tolower(*p);
+    *p = tolower((unsigned char)*p);
   }
   return;
 }
@@ -3974,7 +3974,7 @@ void SafeString::toLowerCase(void) {
 void SafeString::toUpperCase(void) {
   cleanUp();
   for (char *p = buffer; *p; p++) {
-    *p = toupper(*p);
+    *p = toupper((unsigned char)*p);
   }
   return;
 }
@@ -3997,11 +3997,11 @@ void SafeString::trim(void) {
     return;
   }
   char *begin = buffer;
-  while (isspace(*begin)) {
+  while (isspace((unsigned char)*begin)) {
     begin++;
   }
   char *end = buffer + len - 1;
-  while (isspace(*end) && end >= begin) {
+  while (isspace((unsigned char)*end) && end >= begin) {
     end--;
   }
   len = end + 1 - begin;
@@ -4077,7 +4077,7 @@ unsigned char SafeString::toInt(int &i) {
   } // else
   // else check for trailing white space
   while (*endPtr != '\0') {
-    if (!isspace(*endPtr)) { // number terminated by white space
+    if (!isspace((unsigned char)*endPtr)) { // number terminated by white space
       return false;
     }
     endPtr++;
@@ -4105,7 +4105,7 @@ unsigned char SafeString::toLong(long &l) {
   } // else
   // else check for trailing white space
   while (*endPtr != '\0') {
-    if (!isspace(*endPtr)) { // number terminated by white space
+    if (!isspace((unsigned char)*endPtr)) { // number terminated by white space
       return false;
     }
     endPtr++;
@@ -4133,7 +4133,7 @@ unsigned char SafeString::binToLong(long &l) {
   } // else
   // else check for trailing white space
   while (*endPtr != '\0') {
-    if (!isspace(*endPtr)) { // number terminated by white space
+    if (!isspace((unsigned char)*endPtr)) { // number terminated by white space
       return false;
     }
     endPtr++;
@@ -4161,7 +4161,7 @@ unsigned char SafeString::octToLong(long &l) {
   } // else
   // else check for trailing white space
   while (*endPtr != '\0') {
-    if (!isspace(*endPtr)) { // number terminated by white space
+    if (!isspace((unsigned char)*endPtr)) { // number terminated by white space
       return false;
     }
     endPtr++;
@@ -4189,7 +4189,7 @@ unsigned char SafeString::hexToLong(long &l) {
   } // else
   // else check for trailing white space
   while (*endPtr != '\0') {
-    if (!isspace(*endPtr)) { // number terminated by white space
+    if (!isspace((unsigned char)*endPtr)) { // number terminated by white space
       return false;
     }
     endPtr++;
@@ -4217,7 +4217,7 @@ unsigned char SafeString::toUnsignedLong(unsigned long &l) {
   } // else
   // else check for trailing white space
   while (*endPtr != '\0') {
-    if (!isspace(*endPtr)) { // number terminated by white space
+    if (!isspace((unsigned char)*endPtr)) { // number terminated by white space
       return false;
     }
     endPtr++;
@@ -4245,7 +4245,7 @@ unsigned char SafeString::binToUnsignedLong(unsigned long &l) {
   } // else
   // else check for trailing white space
   while (*endPtr != '\0') {
-    if (!isspace(*endPtr)) { // number terminated by white space
+    if (!isspace((unsigned char)*endPtr)) { // number terminated by white space
       return false;
     }
     endPtr++;
@@ -4273,7 +4273,7 @@ unsigned char SafeString::octToUnsignedLong(unsigned long &l) {
   } // else
   // else check for trailing white space
   while (*endPtr != '\0') {
-    if (!isspace(*endPtr)) { // number terminated by white space
+    if (!isspace((unsigned char)*endPtr)) { // number terminated by white space
       return false;
     }
     endPtr++;
@@ -4301,7 +4301,7 @@ unsigned char SafeString::hexToUnsignedLong(unsigned long &l) {
   } // else
   // else check for trailing white space
   while (*endPtr != '\0') {
-    if (!isspace(*endPtr)) { // number terminated by white space
+    if (!isspace((unsigned char)*endPtr)) { // number terminated by white space
       return false;
     }
     endPtr++;
@@ -4356,7 +4356,7 @@ unsigned char SafeString::toDouble(double  &d) {
   } // else
   // else check for trailing white space
   while (*endPtr != '\0') {
-    if (!isspace(*endPtr)) { // number terminated by white space
+    if (!isspace((unsigned char)*endPtr)) { // number terminated by white space
       return false;
     }
     endPtr++;
@@ -4970,11 +4970,37 @@ bool SafeString::readUntilInternal(Stream& input, const char* delimitersIn, cons
       ONLY delimited tokens of length less than this SafeString's capacity will return true with a non-empty token.
       Streams of chars that overflow this SafeString's capacity are ignored and return an empty token on the next delimiter or timeout
       That is this SafeString's capacity should be at least 1 more then the largest expected token.
-      If this SafeString OR the SafeString & token return argument is too small to hold the result, the token is returned empty and an error message output if debugging is enabled.
+
+      Over-long input is DATA, not a coding error, so NO error is raised and nothing is printed
+      when a stream of chars overflows this SafeString's capacity.  That makes this method safe
+      to use on raw, untrusted input.  The caller detects the discard by watching skipToDelimiter
+      go from false to true across the call, and token then holds the leading chars that
+      overflowed so the caller can show the sender what was rejected:
+          bool wasSkipping = skipToDelimiter;
+          if (sfInput.readUntilToken(stream, token, delims, skipToDelimiter, false, 0)) {
+            // true: token.isEmpty() means an empty field between two delimiters
+          } else if ((!wasSkipping) && skipToDelimiter) {
+            // input was longer than capacity, it is being discarded up to the next delimiter
+            // token holds the leading chars of it, the rest is discarded as it arrives
+          }
+
       The delimiter is NOT included in the SafeString & token return.  It will the first char of the this SafeString when readUntilToken returns true
-      It is recommended that the capacity of the SafeString & token argument be >= this SafeString's capacity
       Each call to this method removes any leading delimiters so if you need to check the delimiter do it BEFORE the next call to readUntilToken()
-      if token does not have the capacity to hold the substring, hasError() is set on both this SafeString and the token SafeString
+
+      REQUIRED: the capacity of the SafeString & token argument must be >= this SafeString's capacity.
+      This is checked once, on entry, and raises an error on both if it is not met, because it is a
+      coding error in the caller's declarations, not something the input data can cause.  Checking it
+      up front means it is reported on the first call, instead of waiting for a token that happens to
+      be long enough to expose it.
+      Because a token found here is always shorter than this SafeString's length, meeting that
+      requirement guarantees the token always fits.  So returning true with an empty token has exactly
+      one meaning, an empty field between two successive delimiters, with no flag to consult.
+
+      The only errors this method raises are coding errors and the library-wide '\0' restriction:
+      a capacity below 2, a bad echoInput/timeout_ms argument, a token argument that is too small,
+      and reading a '\0' from the input stream.  No condition arising from the length or content of
+      valid input data raises one.
+
       If this SafeString is empty and received just a delimiter, then return an empty token and leave delimiter in the SafeString
         On the next call may get just another delimiter in that case will skip over both, return empty token and add back last delimiter received
         Result is that multiple consecutive delimiters will return multiple empty tokens.
@@ -4989,7 +5015,11 @@ bool SafeString::readUntilInternal(Stream& input, const char* delimitersIn, cons
         timeout_ms - defaults to never timeout, pass a non-zero ms to autoterminate the last token if no new chars received for that time.
 
       returns true if a delimited series of chars found that fit in this SafeString else false
-      If this SafeString OR the SafeString & token argument is too small to hold the result, the returned token is returned empty
+      true with an empty token means an empty field, i.e. two successive delimiters
+      false with skipToDelimiter having just gone true means the input overflowed this SafeString and
+      is being discarded up to the next delimiter.  No error is raised for that, it is bad input data.
+      In that case token holds the leading chars that overflowed, so the caller can show the sender
+      what was rejected.  It is the only time this method returns false with a non-empty token
       The delimiter is NOT included in the SafeString & token return. It will the first char of the this SafeString when readUntilToken returns true
  **/
 
@@ -5062,6 +5092,29 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
     if (debugPtr) {
       errorMethod(F("readUntilToken"));
       debugPtr->println(F(" SafeString needs capacity of at least 2, one char + one delimiter"));
+    }
+#endif // SSTRING_DEBUG
+    return false;
+  }
+
+  // The token argument must be able to hold any token this SafeString can find, i.e. its capacity
+  // must be >= this SafeString's capacity.  Checked here, once, rather than left to fail later when
+  // an actual token happens to be too long, so this coding error is reported on the very first call
+  // even if the test data never contains a long enough token.
+  // Guaranteeing this also means a token found below can never fail to fit, which is what lets
+  // readUntilToken() return true with an empty token to mean "empty field between two delimiters"
+  // and nothing else.
+  if (token._capacity < _capacity) {
+    setError();
+    token.setError();
+#ifdef SSTRING_DEBUG
+    if (debugPtr) {
+      errorMethod(F("readUntilToken"));
+      debugPtr->print(F(" token SafeString")); token.outputName();
+      debugPtr->print(F(" cap:")); debugPtr->print(token._capacity);
+      debugPtr->print(F(" needs capacity of at least ")); debugPtr->print(_capacity);
+      debugPtr->print(F(", the capacity of")); outputName();
+      debugPtr->println();
     }
 #endif // SSTRING_DEBUG
     return false;
@@ -5155,13 +5208,16 @@ bool SafeString::readUntilTokenInternal(Stream & input, SafeString& token, const
   if (isFull()) { // note if full here then > max token as capacity needs to allow for one delimiter
     // SafeString is full of chars but no delimiter
     // discard the chars and skip input until get next delimiter
-    setError();
-    token.setError();
-    if (debugPtr) {
-      debugPtr->println(); debugPtr->print(F("!! Error:")); outputName();
-      debugPtr->print(F(" -- input length exceeds capacity "));
-      debugInternalMsg(fullDebug);
-    }
+    // NO error is raised and nothing is printed here.  Over-long input is bad DATA, not a
+    // coding error, so this method can be used on raw, untrusted input.  debugPtr is the
+    // reporting channel for SafeString coding errors and must not be used for input data.
+    // The caller detects the discard by skipToDelimiter going from false to true.
+    // skipToDelimiter is always false on entry to this branch, because while it is true
+    // no chars are added above, so this SafeString cannot become full.
+    // The chars that overflowed are returned in token, so the caller can show the sender what
+    // was rejected, e.g. Input too long: 'abcdefghij'.  The rest of the over-long input, up to
+    // the next delimiter, is still discarded.  The capacity check on entry guarantees they fit.
+    token = *this;
     clear();  // not full now
     skipToDelimiter = true;
     return false; // will do timeout check next call.  No token found return false
@@ -5547,7 +5603,7 @@ int64_t SafeString::strto_int64_t(const char *nptr, char **endptr, int base) {
   */
   do {
     c = *s++;
-  } while (isspace(c));
+  } while (isspace((unsigned char)c));
   if (c == '-') {
     neg = 1;
     c = *s++;
@@ -5583,10 +5639,10 @@ int64_t SafeString::strto_int64_t(const char *nptr, char **endptr, int base) {
   cutlim = cutoff % (uint64_t)base;
   cutoff /= (uint64_t)base;
   for (acc = 0, any = 0;; c = *s++) {
-    if (isdigit(c))
+    if (isdigit((unsigned char)c))
       c -= '0';
-    else if (isalpha(c))
-      c -= isupper(c) ? 'A' - 10 : 'a' - 10;
+    else if (isalpha((unsigned char)c))
+      c -= isupper((unsigned char)c) ? 'A' - 10 : 'a' - 10;
     else
       break;
     if (c >= base)
@@ -5634,7 +5690,7 @@ unsigned char SafeString::toInt64_t(int64_t &l) {
   } // else
   // else check for trailing white space
   while (*endPtr != '\0') {
-    if (!isspace(*endPtr)) { // number terminated by white space
+    if (!isspace((unsigned char)*endPtr)) { // number terminated by white space
       return false;
     }
     endPtr++;

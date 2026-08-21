@@ -1884,9 +1884,13 @@ class SafeString : public Printable, public Print {
       You can force a skip to the next delimiter to discard partial tokens<br>
       
       That is this SafeString's capacity should be at least 1 more then the largest expected token.<br>
-      If this SafeString OR the SafeString& token return argument is too small to hold the result, the token is returned empty and an error message output if debugging is enabled.<br>
+      Over-long input is DATA, not a coding error, so if a stream of chars overflows this SafeString's capacity NO error is raised and nothing is printed.<br>
+      That makes this method safe to use on raw, untrusted input. The caller detects the discard by watching skipToDelimiter go from false to true across the call.<br>
+      REQUIRED: the capacity of the SafeString& token argument must be >= this SafeString's capacity. This is checked once, on entry, and raises an error on both if not met,<br>
+      because it is a coding error in the caller's declarations. Meeting it guarantees a found token always fits, so true with an empty token has exactly one meaning,<br>
+      an empty field between two successive delimiters.<br>
       The delimiter is NOT included in the SafeString& token return.  It will the first char of the this SafeString when readUntilToken returns true<br>
-      It is recommended that the capacity of the SafeString& token argument be >= this SafeString's capacity<br>
+      The capacity of the SafeString& token argument must be >= this SafeString's capacity, see above<br>
       Each call to this method removes any leading delimiters so if you need to check the delimiter do it BEFORE the next call to readUntilToken()
 
       @param input - the Stream reference to read from
@@ -1898,8 +1902,8 @@ class SafeString : public Printable, public Print {
       @param timeout_ms - defaults to never timeout, pass a non-zero ms to auto-terminate the last token if no new chars received for that time.
 
       @return - true if a delimited series of chars found that fit in this SafeString else false<br>
-      If this SafeString OR the SafeString& token argument is too small to hold the result, the token is returned empty<br>
-      If a delimited token is found that fits in this SafeString but is too large for the token then true is returned and an empty token returned and an error raised on both this SafeString and the token<br>
+      true with an empty token means an empty field, i.e. two successive delimiters<br>
+      false with skipToDelimiter having just gone from false to true means the input overflowed this SafeString and is being discarded up to the next delimiter, no error is raised for that<br>
       The delimiter is NOT included in the SafeString& token return. It will the first char of the this SafeString when readUntilToken returns true
     **/
     unsigned char readUntilToken(Stream & input, SafeString & token, const char delimiter, bool & skipToDelimiter, uint8_t echoInput = false, unsigned long timeout_ms = 0);
@@ -1913,9 +1917,13 @@ class SafeString : public Printable, public Print {
       You can force a skip to the next delimiter to discard partial tokens<br>
       
       That is this SafeString's capacity should be at least 1 more then the largest expected token.<br>
-      If this SafeString OR the SafeString& token return argument is too small to hold the result, the token is returned empty and an error message output if debugging is enabled.<br>
+      Over-long input is DATA, not a coding error, so if a stream of chars overflows this SafeString's capacity NO error is raised and nothing is printed.<br>
+      That makes this method safe to use on raw, untrusted input. The caller detects the discard by watching skipToDelimiter go from false to true across the call.<br>
+      REQUIRED: the capacity of the SafeString& token argument must be >= this SafeString's capacity. This is checked once, on entry, and raises an error on both if not met,<br>
+      because it is a coding error in the caller's declarations. Meeting it guarantees a found token always fits, so true with an empty token has exactly one meaning,<br>
+      an empty field between two successive delimiters.<br>
       The delimiter is NOT included in the SafeString& token return.  It will the first char of the this SafeString when readUntilToken returns true<br>
-      It is recommended that the capacity of the SafeString& token argument be >= this SafeString's capacity<br>
+      The capacity of the SafeString& token argument must be >= this SafeString's capacity, see above<br>
       Each call to this method removes any leading delimiters so if you need to check the delimiter do it BEFORE the next call to readUntilToken()
 
       @param input - the Stream reference to read from
@@ -1927,8 +1935,8 @@ class SafeString : public Printable, public Print {
       @param timeout_ms - defaults to never timeout, pass a non-zero ms to auto-terminate the last token if no new chars received for that time.
 
       @return - true if a delimited series of chars found that fit in this SafeString else false<br>
-      If this SafeString OR the SafeString& token argument is too small to hold the result, the token is returned empty<br>
-      If a delimited token is found that fits in this SafeString but is too large for the token then true is returned and an empty token returned and an error raised on both this SafeString and the token<br>
+      true with an empty token means an empty field, i.e. two successive delimiters<br>
+      false with skipToDelimiter having just gone from false to true means the input overflowed this SafeString and is being discarded up to the next delimiter, no error is raised for that<br>
       The delimiter is NOT included in the SafeString& token return. It will the first char of the this SafeString when readUntilToken returns true
     **/
     unsigned char readUntilToken(Stream & input, SafeString & token, const char* delimiters, bool & skipToDelimiter, uint8_t echoInput = false, unsigned long timeout_ms = 0);
@@ -1942,9 +1950,13 @@ class SafeString : public Printable, public Print {
       You can force a skip to the next delimiter to discard partial tokens<br>
       
       That is this SafeString's capacity should be at least 1 more then the largest expected token.<br>
-      If this SafeString OR the SafeString& token return argument is too small to hold the result, the token is returned empty and an error message output if debugging is enabled.<br>
+      Over-long input is DATA, not a coding error, so if a stream of chars overflows this SafeString's capacity NO error is raised and nothing is printed.<br>
+      That makes this method safe to use on raw, untrusted input. The caller detects the discard by watching skipToDelimiter go from false to true across the call.<br>
+      REQUIRED: the capacity of the SafeString& token argument must be >= this SafeString's capacity. This is checked once, on entry, and raises an error on both if not met,<br>
+      because it is a coding error in the caller's declarations. Meeting it guarantees a found token always fits, so true with an empty token has exactly one meaning,<br>
+      an empty field between two successive delimiters.<br>
       The delimiter is NOT included in the SafeString& token return.  It will the first char of the this SafeString when readUntilToken returns true<br>
-      It is recommended that the capacity of the SafeString& token argument be >= this SafeString's capacity<br>
+      The capacity of the SafeString& token argument must be >= this SafeString's capacity, see above<br>
       Each call to this method removes any leading delimiters so if you need to check the delimiter do it BEFORE the next call to readUntilToken()
 
       @param input - the Stream reference to read from
@@ -1956,8 +1968,8 @@ class SafeString : public Printable, public Print {
       @param timeout_ms - defaults to never timeout, pass a non-zero ms to auto-terminate the last token if no new chars received for that time.
 
       @return - true if a delimited series of chars found that fit in this SafeString else false<br>
-      If this SafeString OR the SafeString& token argument is too small to hold the result, the token is returned empty<br>
-      If a delimited token is found that fits in this SafeString but is too large for the token then true is returned and an empty token returned and an error raised on both this SafeString and the token<br>
+      true with an empty token means an empty field, i.e. two successive delimiters<br>
+      false with skipToDelimiter having just gone from false to true means the input overflowed this SafeString and is being discarded up to the next delimiter, no error is raised for that<br>
       The delimiter is NOT included in the SafeString& token return. It will the first char of the this SafeString when readUntilToken returns true
     **/
     unsigned char readUntilToken(Stream & input, SafeString & token, SafeString & delimiters, bool & skipToDelimiter, uint8_t echoInput = false, unsigned long timeout_ms = 0);
