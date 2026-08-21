@@ -14,6 +14,7 @@ var class_safe_string_reader =
     [ "getDelimiter", "class_safe_string_reader.html#a091c4ee2dd97d7164948f4c7098c56a8", null ],
     [ "getReadCount", "class_safe_string_reader.html#aa9af4119035a13e004c055b55127076f", null ],
     [ "isSkippingToDelimiter", "class_safe_string_reader.html#af1a56a8267a194e3bdc0a7a3c92c1922", null ],
+    [ "longTokenDiscarded", "class_safe_string_reader.html#a40fc7182666ffd83fd47333c72a60133", null ],
     [ "operator=", "class_safe_string_reader.html#afcaf6128508d7c5d642480fb15acb35e", null ],
     [ "operator=", "class_safe_string_reader.html#a532cb57f2690ad5daba56decca73bf27", null ],
     [ "operator=", "class_safe_string_reader.html#a9569fe3336487c32f1a669f7ed60666e", null ],

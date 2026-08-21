@@ -1,4 +1,4 @@
-// num_limits.ino
+// SafeString_num_limits.ino
 //
 // Boundary-value check for the SafeString number conversions after the errno fix.
 // Every case below is a row of the behaviour table in the plan.
@@ -11,6 +11,12 @@
 // on the others, so the int narrowing case is selected on sizeof(int).
 
 #include <SafeString.h>
+#include <limits.h>   // for INT_MAX, used to select the toInt() narrowing case below
+
+// Every limit value below assumes a 32 bit long, which is true on every Arduino core
+// (AVR, SAMD, ESP32, ESP8266, RP2040, mbed).  If that ever stops being true, fail at compile
+// time rather than report a screen of confusing FAILs.
+static_assert(sizeof(long) == 4, "this sketch's limit values assume a 32 bit long");
 
 int passCount = 0;
 int failCount = 0;
@@ -125,11 +131,15 @@ void setup() {
     cSF(sf, 32); sf = "100000";
     int v = 0;
     bool ok = sf.toInt(v);
-    if (sizeof(int) < sizeof(long)) {
-      check("toInt 100000 rejected (16 bit int)", !ok);
-    } else {
-      check("toInt 100000 accepted (32 bit int)", ok && (v == 100000));
-    }
+    // NOTE: this has to be a preprocessor test, not if (sizeof(int) < sizeof(long)).
+    // With a runtime test the compiler still compiles the dead branch, and on a 16 bit int board
+    // (v == 100000) is outside the range of an int, which raises a -Wtype-limits
+    // "comparison is always false" warning.
+#if INT_MAX >= 100000
+    check("toInt 100000 accepted (32 bit int)", ok && (v == 100000));
+#else
+    check("toInt 100000 rejected (16 bit int)", !ok);
+#endif
   }
   {
     cSF(sf, 32); sf = "32767";

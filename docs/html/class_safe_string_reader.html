@@ -23,7 +23,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">SafeString
-   &#160;<span id="projectnumber">4.1.44</span>
+   &#160;<span id="projectnumber">4.1.45</span>
    </div>
    <div id="projectbrief">SafeString is a safe, robust and debuggable replacement for string processing in Arduino</div>
   </td>
@@ -107,6 +107,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:af1a56a8267a194e3bdc0a7a3c92c1922"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_safe_string_reader.html#af1a56a8267a194e3bdc0a7a3c92c1922">isSkippingToDelimiter</a> ()</td></tr>
 <tr class="memdesc:af1a56a8267a194e3bdc0a7a3c92c1922"><td class="mdescLeft">&#160;</td><td class="mdescRight">isSkippingToDelimiter returns true if currently skipping to next delimiter  <a href="class_safe_string_reader.html#af1a56a8267a194e3bdc0a7a3c92c1922">More...</a><br /></td></tr>
 <tr class="separator:af1a56a8267a194e3bdc0a7a3c92c1922"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a40fc7182666ffd83fd47333c72a60133"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_safe_string_reader.html#a40fc7182666ffd83fd47333c72a60133">longTokenDiscarded</a> ()</td></tr>
+<tr class="memdesc:a40fc7182666ffd83fd47333c72a60133"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="class_safe_string_reader.html#a40fc7182666ffd83fd47333c72a60133" title="longTokenDiscarded() returns true if the last call to read() found a token longer than the size this ...">longTokenDiscarded()</a> returns true if the last call to <a class="el" href="class_safe_string_reader.html#aa700382cb0ffb464b5311c4c6bb10238" title="read() returns true if a delimited token has been read from the stream.">read()</a> found a token longer than the size this <a class="el" href="class_safe_string_reader.html" title="To create a SafeStringReader use the macro createSafeStringReader see the detailed description.">SafeStringReader</a> was created with, and so discarded it.  <a href="class_safe_string_reader.html#a40fc7182666ffd83fd47333c72a60133">More...</a><br /></td></tr>
+<tr class="separator:a40fc7182666ffd83fd47333c72a60133"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afcaf6128508d7c5d642480fb15acb35e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="class_safe_string_reader.html">SafeStringReader</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_safe_string_reader.html#afcaf6128508d7c5d642480fb15acb35e">operator=</a> (char c)</td></tr>
 <tr class="separator:afcaf6128508d7c5d642480fb15acb35e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af82a78aee3516a2b54e1fb8d5b8dd753"><td class="memItemLeft" align="right" valign="top"><a class="el" href="class_safe_string_reader.html">SafeStringReader</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_safe_string_reader.html#af82a78aee3516a2b54e1fb8d5b8dd753">operator=</a> (unsigned char c)</td></tr>
@@ -1198,6 +1201,38 @@ Additional Inherited Members</h2></td></tr>
 
 </div>
 </div>
+<a id="a40fc7182666ffd83fd47333c72a60133"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a40fc7182666ffd83fd47333c72a60133">&#9670;&nbsp;</a></span>longTokenDiscarded()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool SafeStringReader::longTokenDiscarded </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p><a class="el" href="class_safe_string_reader.html#a40fc7182666ffd83fd47333c72a60133" title="longTokenDiscarded() returns true if the last call to read() found a token longer than the size this ...">longTokenDiscarded()</a> returns true if the last call to <a class="el" href="class_safe_string_reader.html#aa700382cb0ffb464b5311c4c6bb10238" title="read() returns true if a delimited token has been read from the stream.">read()</a> found a token longer than the size this <a class="el" href="class_safe_string_reader.html" title="To create a SafeStringReader use the macro createSafeStringReader see the detailed description.">SafeStringReader</a> was created with, and so discarded it. </p>
+<p><br  />
+ Over-long input is bad DATA, not a coding error, so no <a class="el" href="class_safe_string.html" title="To create SafeStrings use one of the four (4) macros createSafeString or cSF, createSafeStringFromCha...">SafeString</a> error is raised for it and nothing is printed. This method is how you detect it and report it to whoever sent it.<br  />
+ Cleared at the start of every <a class="el" href="class_safe_string_reader.html#aa700382cb0ffb464b5311c4c6bb10238" title="read() returns true if a delimited token has been read from the stream.">read()</a>, so it always refers to the most recent <a class="el" href="class_safe_string_reader.html#aa700382cb0ffb464b5311c4c6bb10238" title="read() returns true if a delimited token has been read from the stream.">read()</a> call and is true for exactly one <a class="el" href="class_safe_string_reader.html#aa700382cb0ffb464b5311c4c6bb10238" title="read() returns true if a delimited token has been read from the stream.">read()</a> per over-long token, the one that detected it.<br  />
+ While it is true this <a class="el" href="class_safe_string_reader.html" title="To create a SafeStringReader use the macro createSafeStringReader see the detailed description.">SafeStringReader</a> holds the leading chars of the over-long input, so they can be shown to whoever sent them. The rest is discarded as it arrives, up to the next delimiter, so what you have is the start of the input, not all of it.<br  />
+ Note <a class="el" href="class_safe_string_reader.html#af1a56a8267a194e3bdc0a7a3c92c1922" title="isSkippingToDelimiter returns true if currently skipping to next delimiter">isSkippingToDelimiter()</a> is NOT a substitute, it can be set and cleared again within a single <a class="el" href="class_safe_string_reader.html#aa700382cb0ffb464b5311c4c6bb10238" title="read() returns true if a delimited token has been read from the stream.">read()</a> when the next delimiter is already in the Stream's RX buffer.<br  />
+ <code> if (sfReader.read()) {<br  />
+ &#160;&#160;handleCommand(sfReader); // delimited token found (may be empty)<br  />
+ } else if (sfReader.longTokenDiscarded()) {<br  />
+ &#160;&#160;Serial.print(F("Input too long, starts with '")); Serial.print(sfReader); Serial.println('\'');<br  />
+ } else {<br  />
+ &#160;&#160;// no complete token yet, just carry on with the rest of loop()<br  />
+ }<br  />
+ </code> </p>
+
+</div>
+</div>
 <a id="afcaf6128508d7c5d642480fb15acb35e"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#afcaf6128508d7c5d642480fb15acb35e">&#9670;&nbsp;</a></span>operator=() <span class="overload">[1/11]</span></h2>
 
@@ -1412,7 +1447,12 @@ Additional Inherited Members</h2></td></tr>
 </div><div class="memdoc">
 
 <p><a class="el" href="class_safe_string_reader.html#aa700382cb0ffb464b5311c4c6bb10238" title="read() returns true if a delimited token has been read from the stream.">read()</a> returns true if a delimited token has been read from the stream. </p>
-<p>sets this <a class="el" href="class_safe_string_reader.html" title="To create a SafeStringReader use the macro createSafeStringReader see the detailed description.">SafeStringReader</a> to that token's text. The delimiter is not returned as part of the token. Use <a class="el" href="class_safe_string_reader.html#a091c4ee2dd97d7164948f4c7098c56a8" title="getDelimiter() returns the delimiter that terminated the last token only valid when read() returns tr...">getDelimiter()</a> to check which char delimited this token. <a class="el" href="class_safe_string_reader.html#ac2e35c465457e8396b6c3ce0772bc085" title="returnEmptyTokens By default empty tokens are not returned, i.e.">returnEmptyTokens()</a> controls if empty tokens are returned. Default is to not return empty tokens, i.e. skip multiple consecutive delimiters. NOTE: this call always clears the <a class="el" href="class_safe_string_reader.html" title="To create a SafeStringReader use the macro createSafeStringReader see the detailed description.">SafeStringReader</a> so no need to call <a class="el" href="class_safe_string.html#a8f33e24542ebfe6b09a6006d21b871c1" title="Empties this SafeString.">clear()</a> on sfReader at end of processing. </p>
+<p>sets this <a class="el" href="class_safe_string_reader.html" title="To create a SafeStringReader use the macro createSafeStringReader see the detailed description.">SafeStringReader</a> to that token's text. The delimiter is not returned as part of the token. Use <a class="el" href="class_safe_string_reader.html#a091c4ee2dd97d7164948f4c7098c56a8" title="getDelimiter() returns the delimiter that terminated the last token only valid when read() returns tr...">getDelimiter()</a> to check which char delimited this token. <a class="el" href="class_safe_string_reader.html#ac2e35c465457e8396b6c3ce0772bc085" title="returnEmptyTokens By default empty tokens are not returned, i.e.">returnEmptyTokens()</a> controls if empty tokens are returned. Default is to not return empty tokens, i.e. skip multiple consecutive delimiters. NOTE: this call always clears the <a class="el" href="class_safe_string_reader.html" title="To create a SafeStringReader use the macro createSafeStringReader see the detailed description.">SafeStringReader</a> so no need to call <a class="el" href="class_safe_string.html#a8f33e24542ebfe6b09a6006d21b871c1" title="Empties this SafeString.">clear()</a> on sfReader at end of processing.<br  />
+ <br  />
+ returns false both when there is no complete token yet and when an over-long token has just been detected and discarded. <a class="el" href="class_safe_string_reader.html#a40fc7182666ffd83fd47333c72a60133" title="longTokenDiscarded() returns true if the last call to read() found a token longer than the size this ...">longTokenDiscarded()</a> tells those two apart:<br  />
+ true - the input was longer than the size this <a class="el" href="class_safe_string_reader.html" title="To create a SafeStringReader use the macro createSafeStringReader see the detailed description.">SafeStringReader</a> was created with. The leading chars of it are left in this <a class="el" href="class_safe_string_reader.html" title="To create a SafeStringReader use the macro createSafeStringReader see the detailed description.">SafeStringReader</a> so they can be shown to whoever sent them, the rest is discarded as it arrives, up to the next delimiter. This is the only case where <a class="el" href="class_safe_string_reader.html#aa700382cb0ffb464b5311c4c6bb10238" title="read() returns true if a delimited token has been read from the stream.">read()</a> returns false with a non-empty <a class="el" href="class_safe_string_reader.html" title="To create a SafeStringReader use the macro createSafeStringReader see the detailed description.">SafeStringReader</a>.<br  />
+ false - nothing to report, just carry on with the rest of loop()<br  />
+ Over-long input is bad DATA, not a coding error, so it raises no error and prints nothing. </p>
 
 </div>
 </div>

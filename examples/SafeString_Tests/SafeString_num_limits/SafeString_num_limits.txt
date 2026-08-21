@@ -1,0 +1,1 @@
+Boundary value checks for the SafeString to number conversions, toInt/toLong/toUnsignedLong/toInt64_t and the bin, oct and hex variants
